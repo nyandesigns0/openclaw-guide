@@ -1,0 +1,26 @@
+const fs = require('fs');
+const path = require('path');
+
+const tabsHierarchy = [
+  {
+    id: 'intro',
+    title: 'Chapter 1: Introduction',
+    icon: 'Info',
+    subtabs: [
+      { id: 'tab-01', title: '1.1 Overview', filename: 'tab-01.md' },
+      { id: 'tab-02', title: '1.2 Feature List', filename: 'tab-02.md' }
+    ]
+  },
+  {
+    id: 'architecture',
+    title: 'Chapter 2: Architecture',
+    icon: 'Layers',
+    subtabs: [
+      { id: 'tab-03', title: '2.1 Multi-Agent Architecture', filename: 'tab-03.md' }
+    ]
+  }
+];
+
+const contentDir = path.join(__dirname, 'content');
+fs.writeFileSync(path.join(contentDir, 'index.json'), JSON.stringify(tabsHierarchy, null, 2));
+console.log('Hierarchy updated.');
