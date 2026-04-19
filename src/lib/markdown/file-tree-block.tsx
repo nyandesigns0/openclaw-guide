@@ -192,7 +192,7 @@ export function FileTreeBlock({ content }: FileTreeBlockProps) {
   
   const handleCopy = async () => {
     // Copy the raw markdown content
-    const didCopy = await copyText(content);
+    const didCopy = await copyText(content, null);
     if (!didCopy) return;
     setCopied(true);
     window.setTimeout(() => setCopied(false), 2000);

@@ -1,26 +1,26 @@
-# Chapter 0 — Formatting Guide & Template
+# Chapter 0.1 — Formatting Guide & Template
 
-## 0.1 Overview
+## 0.1.0 Overview
 
 This file serves as the instruction manual and structural template for formatting all OpenClaw documentation chapters.
 
-### 0.2 Typography and Highlighting
+### 0.1.1 Typography and Highlighting
 *(instruction)* **Bold Text:** Used for labels and emphasis. The UI highlights bold text in a specific color. \
 *(instruction)* **Italic Text:** Used for annotations such as *(to-be-updated)*. The UI highlights italic text in a different distinct color.
 
-### 0.3 Chapter and Heading Structure
-*(instruction)* **Main Title:** Use `# Chapter [Number] — [Title]` for the top-level chapter heading. \
-*(instruction)* **Overview:** The first section must be `## [Number].1 Overview` followed by a single-sentence summary of the chapter. \
-*(instruction)* **Subchapters:** Use `###` headings for all remaining subchapters (e.g., `### 1.2 Subchapter Name`). \
+### 0.1.2 Chapter and Heading Structure
+*(instruction)* **Main Title:** Use `# Chapter [Number].[Sub] — [Title]` for the top-level chapter heading. \
+*(instruction)* **Overview:** The first section must be `## [Number].[Sub].0 Overview` followed by a single-sentence summary of the chapter. \
+*(instruction)* **Subchapters:** Use `###` headings for all remaining subchapters (e.g., `### 1.1.1 Subchapter Name`). \
 *(instruction)* **Accordions:** Understand that `###` headings are automatically transformed into collapsible accordions by the UI.
 
-### 0.4 Lists and Spacing Rules
+### 0.1.3 Lists and Spacing Rules
 *(instruction)* **No Bullet Points:** Do not use markdown bullet points (`-` or `*`). \
 *(instruction)* **No Blank Lines:** Do not leave empty blank lines between list items within an accordion. \
 *(instruction)* **Hard Breaks:** End each list item with a space followed by a backslash (` \`) to create a hard break. \
 *(instruction)* **Item Format:** Structure items starting with an optional italic tag, then a bolded label, for example: `*(tag)* **Label:** Description \`.
 
-### 0.5 Flow Charts (Mermaid)
+### 0.1.4 Flow Charts (Mermaid)
 *(instruction)* **Mermaid Parser:** The UI can parse mermaid code blocks into actual flowcharts. \
 *(instruction)* **Syntax:** Use triple backticks with `mermaid` as the language identifier. \
 *(instruction)* **Init Block:** Always begin with `%%{init: {'flowchart': {'arrowMarkerSize': 1.5}}}%%` to enlarge arrowheads. \
@@ -69,7 +69,7 @@ flowchart TD
     linkStyle 5,6 stroke:#fbbf24,stroke-width:2px
 ```
 
-### 0.6 File Tree Explorer
+### 0.1.5 File Tree Explorer
 *(instruction)* **Block Type:** Use a triple-backtick code block with the language set to `text` (or `plaintext`, or leave it blank). The parser will auto-detect a file tree and render an interactive Explorer widget instead of a plain code block. \
 *(instruction)* **Detection Rules:** For auto-detection to trigger, the block must have at least 2 non-empty lines, at least one folder entry ending with `/`, at least one indented line, and ≥ 80 % of non-empty lines must look like path segments (no mid-line spaces unless the name itself contains one). \
 *(instruction)* **Folders:** Mark a directory by appending a trailing slash to its name (e.g., `agents/`). The parser strips the slash and renders a `Folder` icon; clicking the row expands or collapses its children. \
@@ -103,19 +103,19 @@ root-dir/
         canvas/
 ```
 
-# Chapter X — [Chapter Title]
+# Chapter X.X — [Chapter Title]
 
-## X.1 Overview
+## X.X.0 Overview
 
 This is a single-sentence summary outlining the foundational goals of this chapter.
 
-### X.2 [Subchapter Title]
+### X.X.1 [Subchapter Title]
 
 *(optional-tag)* **First Item:** Description of the first item without a bullet point. \
 **Second Item:** Description of the second item, using a backslash at the end for a line break. \
 **Third Item:** The final item in the subchapter.
 
-### X.3 [Another Subchapter Title]
+### X.X.2 [Another Subchapter Title]
 
 **Sub-item A:** Keep content structured and concise without empty lines between items. \
 **Sub-item B:** Ensure all formatting rules are strictly followed.

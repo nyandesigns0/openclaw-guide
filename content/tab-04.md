@@ -1,0 +1,183 @@
+# Chapter 2.2 — Native Memory Architecture
+
+## 2.2.0 Overview
+
+This chapter defines how OpenClaw persists, retrieves, consolidates, and isolates native memory across agent workspaces, memory backends, and optional memory-adjacent plugins.
+
+### 2.2.1 Native Memory Model
+
+**Source of Truth:** Native memory is file-backed, not hidden model state. OpenClaw only remembers what gets written to disk inside the agent workspace.  \
+**Core Layers:** The native model separates curated long-term memory in `MEMORY.md`, rolling short-term memory in `memory/YYYY-MM-DD.md`, and optional dreaming output in `DREAMS.md`.  \
+**Continuity Principle:** The model wakes up fresh and reconstructs continuity from runtime context injection, session history, retrieved memory snippets, and any enabled plugin-owned pre-reply memory stages.  \
+**Per-Agent Scope:** Memory belongs to the Full Role Agent that owns the workspace. Each top-level agent has its own memory root, its own retrieval index, and its own operating context.  \
+**Subagent Boundary:** Subagents are execution-scoped children under a parent agent tree rather than independent memory-owning agents. They inherit the parent role boundary instead of receiving a separate top-level workspace memory root.  \
+**Working Rule:** If knowledge must survive beyond the current reasoning window, it must be written to a workspace file or promoted through the native memory pipeline.
+
+```mermaid
+%%{init: {'flowchart': {'arrowMarkerSize': 1.5}}}%%
+flowchart TD
+    U[User / World Event] ==> A[Agent Turn]
+    A ==> C[Classify What Matters]
+
+    subgraph Workspace_Memory [Workspace Memory]
+        direction TB
+        L1[MEMORY.md]
+        L2[memory/YYYY-MM-DD.md]
+        L3[DREAMS.md]
+    end
+
+    C ==> L2
+    C -.-> L1
+    L2 ==> I[Memory Index / Backend]
+    L1 ==> I
+    L3 -.-> I
+    I ==> R[memory_search / memory_get]
+    R ==> A
+    A ==> U
+
+    linkStyle 0,1,3,5,6,8,9 stroke:#818cf8,stroke-width:4px
+    linkStyle 2,4,7 stroke:#fbbf24,stroke-width:2px
+```
+
+### 2.2.2 Memory Layers and Workspace Files
+
+**`MEMORY.md`:** Curated long-term memory for durable facts, preferences, decisions, lessons learned, and stable user context. This is the canonical long-horizon memory file rather than a raw activity log. \
+**`memory/YYYY-MM-DD.md`:** Dated working memory for observations, task context, recent events, and unrefined notes that may later be promoted into durable memory. \
+**`DREAMS.md`:** Optional human-readable dream diary and sweep summary file used by the dreaming system to surface reflections, grounded backfill output, and memory-consolidation artifacts for review. \
+**`AGENTS.md`:** Operational instructions plus standing memory discipline. This file defines what should be written down, what must not be forgotten, and which memory behaviors are safe inside the role boundary. \
+**`USER.md`:** Stable user-profile context that should remain operator-authored and explicit rather than being rediscovered repeatedly from chat history. \
+**`IDENTITY.md`:** Identity surface for name, vibe, emoji, and avatar. Not memory storage in the retrieval sense, but part of the self-model that persists across sessions. \
+**`TOOLS.md`:** Tool usage conventions and learned operator preferences for how tools should be used, documented, and corrected over time.  \
+**`HEARTBEAT.md`:** Proactive maintenance and check-in surface for scheduled main-session turns. This is memory-adjacent operational state rather than semantic memory storage, but it strongly shapes ongoing maintenance behavior.  \
+**Bootstrap Context:** Workspace bootstrap files are injected into runtime context with size caps and truncation limits, while deeper memory recall stays retrieval-driven instead of injecting the full memory corpus every turn.  \
+**Security Discipline:** Treat the workspace as private memory. Durable personal context belongs in agent-owned files, not in shared channel transcripts or assumptions kept only in ephemeral reasoning. 
+
+```text
+~/.openclaw/
+  openclaw.json
+  memory/
+    <agentId>.sqlite
+
+  agents/
+    orchestrator/
+      agent/
+        auth-profiles.json
+        auth.json
+      sessions/
+        sessions.json
+      workspace/
+        AGENTS.md
+        SOUL.md
+        TOOLS.md
+        IDENTITY.md
+        USER.md
+        HEARTBEAT.md
+        MEMORY.md
+        DREAMS.md
+        memory/
+          YYYY-MM-DD.md
+    agent-1/
+      agent/
+        auth-profiles.json
+        auth.json
+      sessions/
+        sessions.json
+      workspace/
+        AGENTS.md
+        SOUL.md
+        TOOLS.md
+        IDENTITY.md
+        USER.md
+        HEARTBEAT.md
+        MEMORY.md
+        DREAMS.md
+        memory/
+          YYYY-MM-DD.md
+```
+
+### 2.2.3 Retrieval, Indexing, and Recall Pipeline
+
+**Memory Tools:** Native recall is exposed through `memory_search` for semantic retrieval and `memory_get` for direct file or line reads. These tools are supplied by the active memory plugin, with `memory-core` as the default native path. 
+**Default Backend:** The builtin memory engine is the default backend and stores a per-agent index in SQLite, requiring no external memory service to start. 
+**Index Inputs:** The builtin engine indexes `MEMORY.md` plus `memory/*.md`, chunking content into retrieval units and keeping the workspace files as the durable source of truth. 
+**Hybrid Retrieval:** OpenClaw can combine keyword retrieval and embedding-based vector retrieval, then merge results into a single recall set instead of relying on one search mode only. 
+**Reindex Behavior:** File changes trigger debounced reindexing, while provider, model, or chunking changes trigger a full rebuild of the per-agent memory index. 
+**Recall Quality Controls:** MMR reduces duplicate retrievals, temporal decay boosts recency for older daily notes, and evergreen files such as `MEMORY.md` remain exempt from decay. 
+**Additional Sources:** `memorySearch.extraPaths` can extend recall beyond the default workspace memory roots, while experimental session memory can index transcripts into the same retrieval surface. 
+**Optional Sidecar Backend:** QMD is an optional local-first sidecar backend for reranking, query expansion, extra directories, and stronger transcript-oriented recall. It extends the native architecture without changing the file-backed source-of-truth model. 
+**Citation Surface:** Memory snippets can carry path-and-line provenance, allowing retrieved memory to remain inspectable rather than opaque. 
+**Reference Configuration:** The configuration below shows a native-first layout using the builtin engine, hybrid retrieval controls, transcript indexing, and dreaming support. \
+
+```json5
+{
+  agents: {
+    defaults: {
+      memorySearch: {
+        enabled: true,
+        provider: "openai",
+        extraPaths: ["../shared-notes"],
+        query: {
+          hybrid: {
+            vectorWeight: 0.7,
+            textWeight: 0.3,
+            mmr: { enabled: true, lambda: 0.7 },
+            temporalDecay: { enabled: true, halfLifeDays: 30 }
+          }
+        },
+        experimental: {
+          sessionMemory: true
+        },
+        sources: ["memory", "sessions"],
+        store: {
+          path: "~/.openclaw/memory/{agentId}.sqlite"
+        },
+        limits: {
+          maxResults: 6,
+          timeoutMs: 4000
+        }
+      }
+    }
+  },
+
+  memory: {
+    citations: "auto"
+  },
+
+  plugins: {
+    entries: {
+      "memory-core": {
+        config: {
+          dreaming: {
+            enabled: true,
+            frequency: "0 3 * * *"
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+### 2.2.4 Consolidation, Maintenance, and Dreaming
+
+**Immediate Capture:** When the user says to remember something, or when a durable decision is made, the correct native behavior is to write it into the workspace rather than trusting the current context window. 
+**Short-Term to Long-Term Flow:** Daily notes are the staging layer. Significant patterns, preferences, lessons, or decisions should later be distilled into `MEMORY.md` instead of leaving them buried in dated logs. 
+**Heartbeat Maintenance:** Heartbeat runs scheduled main-session turns that can review `HEARTBEAT.md`, surface follow-ups, and maintain the memory surface without creating detached background-task records. 
+**Dreaming System:** Dreaming is the background consolidation system with light, REM, and deep phases. Light stages short-term material, REM reflects and surfaces themes, and deep promotion is the phase that writes durable updates into `MEMORY.md`. 
+**Dream Output:** Dreaming writes machine state under `memory/.dreams/` and human-readable narrative output into `DREAMS.md`, keeping promotion artifacts inspectable by the operator. 
+**Promotion Discipline:** Durable memory should be distilled, stable, and reviewable. `MEMORY.md` should contain lasting truths and operator-relevant conclusions, not every transient observation from the daily stream. 
+**Grounded Backfill:** Historical daily notes can be reprocessed into grounded dream entries and promotion candidates, allowing older raw notes to be consolidated without manually rereading the entire archive each time. 
+**Knowledge-Layer Extension:** `memory-wiki` is an optional compiled knowledge layer that sits beside active memory. It does not replace native recall, promotion, indexing, or dreaming; it organizes durable knowledge into deterministic wiki pages, claims, dashboards, and digests. \
+
+### 2.2.5 Storage Boundaries, Multi-Agent Guidance, and Anti-Patterns
+
+**Workspace vs Runtime State:** Workspace files are the human-authored memory surface. Runtime indexes, credentials, auth profiles, and session transcripts live elsewhere under `~/.openclaw/` and should not be treated as interchangeable with authored memory. 
+**Per-Agent Isolation:** In a multi-agent deployment, each Full Role Agent should keep its own workspace memory, its own retrieval index, and its own long-term memory boundary. This prevents role bleed between orchestrator, specialist, and other durable agents. 
+**Orchestrator Memory Shape:** The orchestrator should keep only coordination-relevant durable memory. Specialist-specific facts belong in the specialist workspace that owns the domain boundary and tools. 
+**Subagent Memory Shape:** Do not model subagents as separate top-level memory owners. They are spawned execution units under a parent agent tree, not independent long-horizon personalities with their own permanent workspace roots. 
+**No Mental Notes:** Do not rely on ephemeral reasoning or session continuity as memory. If it matters later, write it down. 
+**No Raw-Dump `MEMORY.md`:** Do not turn `MEMORY.md` into a chronological scratchpad. Raw recency belongs in dated daily notes, while durable memory should stay distilled and high-signal. 
+**No Transcript-as-Memory Assumption:** Do not assume session transcripts are part of semantic recall by default. Transcript recall should be treated as an explicit indexed source, not a hidden guarantee. 
+**No Cross-Agent Memory Merge by Accident:** Do not point multiple Full Role Agents at the same workspace or SQLite memory store unless deliberate shared-memory behavior is explicitly designed and understood. 
+**No Runtime-State Commits:** Do not version-control the entire runtime tree as if it were safe authored memory. Back up workspace files intentionally; back up auth and session state separately and privately. 
+**Native-First Rule:** Start with workspace files, builtin memory search, heartbeat, and optional dreaming. Add QMD, active memory, or memory-wiki only when the retrieval or knowledge workload clearly needs those extra layers. \

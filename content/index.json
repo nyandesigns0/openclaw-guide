@@ -37,6 +37,11 @@
         "id": "tab-03",
         "title": "2.1 Multi-Agent Architecture",
         "filename": "tab-03.md"
+      },
+      {
+        "id": "tab-04",
+        "title": "2.2 Native Memory Architecture",
+        "filename": "tab-04.md"
       }
     ]
   }

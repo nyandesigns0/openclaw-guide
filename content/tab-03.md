@@ -1,10 +1,10 @@
-# Chapter 2 — Architecture
+# Chapter 2.1 — Multi-Agent Architecture
 
-## 2.1 Overview
+## 2.1.0 Overview
 
 This chapter defines the native multi-agent hierarchy, routing pipeline, and workspace boundaries required for an authoritative OpenClaw implementation.
 
-### 2.2 Agentic Model
+### 2.1.1 Agentic Model
 
 **Model Structure:** The agentic model is a three-tier execution hierarchy: one Orchestrator Agent at the top, multiple Full Role Agents as durable domain specialists below it, and task-scoped Subagents as narrower execution units beneath each Full Role Agent. \
 **Full Role Agent:** A first-class agent instance with a defined role boundary, persistent identity, governed instructions, assigned tools, and its own full workspace — including `SOUL.md`, `AGENTS.md`, `IDENTITY.md`, `TOOLS.md`, and others. Each Full Role Agent is declared in `agents.list[]` with its own `id`, `workspace`, `agentDir`, model/tool policy, and subagent policy. The Orchestrator is itself a Full Role Agent, but with a specialized foundational role: it serves as the sole inbound coordination point rather than a domain executor. All other Full Role Agents receive work delegated through the system, plan and execute within their domain, spawn Subagents when deeper specialization is needed, and consolidate results back upward. \
@@ -26,7 +26,7 @@ flowchart LR
     linkStyle 3,4,5 stroke:#fbbf24,stroke-width:2px
 ```
 
-### 2.3 Agentic Roles
+### 2.1.2 Agentic Roles
 
 **Orchestrator Agent:** *(Full Role Agent)* The single top-level coordinator. Receives inbound requests from the gateway via `bindings`, routes work to the appropriate Full Role Agent using `sessions_spawn`, and returns the final consolidated response. Does not perform direct worker-level execution and does not spawn its own Subagents. \
 **Execution Agents:** *(Full Role Agent)* Full Role Agents operating below the Orchestrator as domain-specific specialists. Each owns its role logic, determines whether to execute directly or spawn Worker Subagents, and controls all subordinate activity within its role boundary. Declared in `agents.list[]` with their own workspace, model policy, and subagent allowlist. \
@@ -94,7 +94,7 @@ flowchart TD
     linkStyle 6,7,8,12,13,14,21,22 stroke:#fbbf24,stroke-width:2px
 ```
 
-### 2.4 Routing and Agentic Pipeline
+### 2.1.3 Routing and Agentic Pipeline
 
 **External User to Orchestrator:** Inbound `bindings` route normal user traffic to the `orchestrator`; the most-specific binding wins, and unmatched traffic falls back to the default agent. ([OpenClaw][1]) \
 **Orchestrator to Specialist:** The Orchestrator should delegate isolated task execution with `sessions_spawn(agentId: "agent-1" | "agent-n")`, which runs the task as a background sub-agent session under the selected Full Role Agent profile. ([OpenClaw][2]) \
@@ -165,7 +165,7 @@ flowchart TD
 [1]: https://docs.openclaw.ai/concepts/multi-agent?utm_source=chatgpt.com "Multi-Agent Routing - OpenClaw"
 [2]: https://docs.openclaw.ai/tools/subagents?utm_source=chatgpt.com "Sub-Agents - OpenClaw"
 
-### 2.5 Workspace Structure and Guidance
+### 2.1.4 Workspace Structure and Guidance
 
 **Workspace Layout:** Each Full Role Agent has its own dedicated workspace under `~/.openclaw/agents/<agentId>/workspace/`, configured via `agents.list[].workspace` in `openclaw.json`. Subagents are execution-scoped units that operate under their parent Full Role Agent's runtime tree — they do not receive their own workspace directory or top-level agent entry. ([OpenClaw][3]) \
 **Workspace Files:** Each Full Role Agent workspace contains the standard bootstrap and mind files: `AGENTS.md`, `SOUL.md`, `TOOLS.md`, `IDENTITY.md`, `USER.md`, and optionally `HEARTBEAT.md`, `MEMORY.md`, `memory/YYYY-MM-DD.md`, `skills/`, and `canvas/`. These are the stable project-context surface for agent behavior, operator notes, tool guidance, and memory. ([OpenClaw][4]) \
@@ -240,7 +240,7 @@ flowchart TD
 [4]: https://docs.openclaw.ai/concepts/agent-workspace?utm_source=chatgpt.com "Agent Workspace - OpenClaw"
 [5]: https://docs.openclaw.ai/cli/agents?utm_source=chatgpt.com "agents - OpenClaw"
 
-### 2.6 Anti-Patterns
+### 2.1.5 Anti-Patterns
 
 **Direct Specialist Exposure by Default:** Do not bind every Full Role Agent directly to inbound channels on day one. The default public entrypoint should remain the orchestrator, with specialist Full Role Agents exposed only through explicit bindings when direct access is intentionally required. This preserves a single coordination boundary and matches OpenClaw’s native binding-based routing model. \
 **Subagents as Top-Level Agents:** Do not model Worker Subagents as if they were independent Full Role Agents with their own workspace, agentDir, or direct gateway identity. In OpenClaw, subagents are spawned runs with their own session key, not separate top-level agent definitions. \
