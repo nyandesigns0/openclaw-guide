@@ -20,26 +20,7 @@ This file serves as the instruction manual and structural template for formattin
 *(instruction)* **Hard Breaks:** End each list item with a space followed by a backslash (` \`) to create a hard break. \
 *(instruction)* **Item Format:** Structure items starting with an optional italic tag, then a bolded label, for example: `*(tag)* **Label:** Description \`.
 
-### 0.5 Chapter Template Example
-
-# Chapter X — [Chapter Title]
-
-## X.1 Overview
-
-This is a single-sentence summary outlining the foundational goals of this chapter.
-
-### X.2 [Subchapter Title]
-
-*(optional-tag)* **First Item:** Description of the first item without a bullet point. \
-**Second Item:** Description of the second item, using a backslash at the end for a line break. \
-**Third Item:** The final item in the subchapter.
-
-### X.3 [Another Subchapter Title]
-
-**Sub-item A:** Keep content structured and concise without empty lines between items. \
-**Sub-item B:** Ensure all formatting rules are strictly followed.
-
-### 0.6 Flow Charts (Mermaid)
+### 0.5 Flow Charts (Mermaid)
 *(instruction)* **Mermaid Parser:** The UI can parse mermaid code blocks into actual flowcharts. \
 *(instruction)* **Syntax:** Use triple backticks with `mermaid` as the language identifier. \
 *(instruction)* **Init Block:** Always begin with `%%{init: {'flowchart': {'arrowMarkerSize': 1.5}}}%%` to enlarge arrowheads. \
@@ -87,3 +68,55 @@ flowchart TD
     linkStyle 1,9,10,11 stroke:#fbbf24,stroke-width:4px
     linkStyle 5,6 stroke:#fbbf24,stroke-width:2px
 ```
+
+### 0.6 File Tree Explorer
+*(instruction)* **Block Type:** Use a triple-backtick code block with the language set to `text` (or `plaintext`, or leave it blank). The parser will auto-detect a file tree and render an interactive Explorer widget instead of a plain code block. \
+*(instruction)* **Detection Rules:** For auto-detection to trigger, the block must have at least 2 non-empty lines, at least one folder entry ending with `/`, at least one indented line, and ≥ 80 % of non-empty lines must look like path segments (no mid-line spaces unless the name itself contains one). \
+*(instruction)* **Folders:** Mark a directory by appending a trailing slash to its name (e.g., `agents/`). The parser strips the slash and renders a `Folder` icon; clicking the row expands or collapses its children. \
+*(instruction)* **Files:** Any line without a trailing slash is treated as a file. The parser selects an icon based on the extension: `.json` → yellow, `.md`/`.mdx` → indigo, `.js`/`.ts`/`.jsx`/`.tsx` → blue, images → purple, `.html` → orange, `.env`/`.config` → zinc, everything else → default zinc. \
+*(instruction)* **Indentation:** Depth is determined by the raw leading-space count of each line. Child entries must be indented further than their parent folder. Any consistent spacing (2, 4 spaces, or tabs) works as long as the relative depth ordering is preserved. \
+*(instruction)* **Header Controls:** The Explorer header renders three icon buttons — **Expand/Collapse All Folders** (`FolderPlus` / `FolderMinus`), **Copy Tree** (`Copy` / `Check`), and **Toggle Block** (`ChevronRight` rotates to 90°). All folders start collapsed by default. \
+*(instruction)* **Inline Comments:** Lines containing a `#` suffix (e.g., `skills/                    # optional shared skills`) are preserved verbatim in the raw copy but the comment text appears as part of the file name label in the tree — keep comments short or omit them for cleaner rendering.
+
+```text
+root-dir/
+  config-file
+  shared-resources/
+  agents/
+    agent-name/
+      runtime/
+        auth-file
+        credentials-file
+      sessions/
+        sessions-file
+      workspace/
+        AGENTS.md
+        SOUL.md
+        TOOLS.md
+        IDENTITY.md
+        USER.md
+        HEARTBEAT.md
+        MEMORY.md
+        memory/
+          YYYY-MM-DD.md
+        skills/
+        canvas/
+```
+
+# Chapter X — [Chapter Title]
+
+## X.1 Overview
+
+This is a single-sentence summary outlining the foundational goals of this chapter.
+
+### X.2 [Subchapter Title]
+
+*(optional-tag)* **First Item:** Description of the first item without a bullet point. \
+**Second Item:** Description of the second item, using a backslash at the end for a line break. \
+**Third Item:** The final item in the subchapter.
+
+### X.3 [Another Subchapter Title]
+
+**Sub-item A:** Keep content structured and concise without empty lines between items. \
+**Sub-item B:** Ensure all formatting rules are strictly followed.
+
