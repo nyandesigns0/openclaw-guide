@@ -94,69 +94,198 @@ flowchart TD
     linkStyle 6,7,8,12,13,14,21,22 stroke:#fbbf24,stroke-width:2px
 ```
 
-### 2.4 Delegation Pattern
+### 2.4 Routing and Agentic Pipeline
 
-**`sessions_spawn`:** Use `sessions_spawn(agentId: "<specialist>")` as the primary dispatch for job-style work. \
-**Spawn Benefits:** It creates an isolated background run, returns immediately with `runId` and `childSessionKey`, reports completion back through the announce chain, and can target another agent ID if allowed. \
-**`sessions_send`:** Use `sessions_send` only for persistent specialist conversation where the orchestrator must talk to an already-existing specialist session. \
-**Messaging vs Execution:** `sessions_send` is session-to-session messaging, whereas `sessions_spawn` is task execution.
+**Ingress Resolution:** Inbound routing should be deterministic at the Gateway boundary. Use `bindings` to send normal user traffic to the `orchestrator` by default, and add direct bindings to specialist Full Role Agents only when direct specialist entry is intentionally exposed. OpenClaw resolves bindings by specificity, with peer-level matches ahead of broader scopes, and within a tier the first matching binding wins before fallback to the default agent. ([OpenClaw][1]) \
+**Full-Agent Dispatch:** Inside the agent runtime, the Orchestrator should hand off job-style work with `sessions_spawn(agentId: "<full-role-agent>")`, not `sessions_send`. `sessions_spawn` is non-blocking, returns `runId` and `childSessionKey`, and in current source flows into `spawnSubagentDirect(...)` for native subagent execution with `agentId`, `model`, `thinking`, timeout, thread, cleanup, sandbox, and context parameters. ([OpenClaw][2]) \
+**Nested Execution:** Execution Agents may spawn Worker Subagents only when nested spawning is enabled with `agents.defaults.subagents.maxSpawnDepth >= 2`. At depth 1, the spawned execution session can still orchestrate children; at leaf depth, recursive orchestration tools are removed. This is not only documented behavior but also enforced by the runtime tool-policy code. ([OpenClaw][3]) \
+**Return Path:** Worker Subagents should not be treated as peer messengers. OpenClaw’s native subagent model is announce-driven, and runtime policy places `sessions_send` on the subagent deny list by default. In practice, that means Worker Subagents return results to their parent execution chain, the parent Full Role Agent consolidates, and only then does control move back upward to the Orchestrator or Gateway path. ([OpenClaw][4]) \
+**Cross-Agent Gates:** Cross-agent reach belongs to Full Role Agents, not Worker Subagents. For a Full Role Agent to talk across agent boundaries, `tools.sessions.visibility` must be set to `all`, `tools.agentToAgent.enabled` must be true, and the sender must be allowed by `tools.agentToAgent.allow`. Sandboxed sessions are clamped back to `tree` visibility regardless of global settings, ensuring Worker Subagents remain local to their parent execution tree and preventing lateral orchestrator-level routing from inside a worker. The `sessions-send-tool.ts` runtime path enforces this `agentToAgent` gate directly. ([OpenClaw][5]) \
+**Recommended Control Shape:** The stable control path is therefore: Gateway → Orchestrator → selected Full Role Agent → optional Worker Subagents → parent Full Role Agent → Orchestrator → Gateway response. Optional Gateway → Full Role Agent direct access is valid, but it should be an explicit binding choice, not an implicit lateral routing behavior inside the worker tree. ([OpenClaw][1]) \
+**Validation:** Verify final paths with `openclaw config schema`, since OpenClaw validates against the live merged schema. \
+**Reference Configuration:** The configuration below maps to current documented schema surfaces and runtime behavior for `bindings`, nested subagent depth, and agent-to-agent control. Note that `maxConcurrent: 4` is a recommended deployment value for local hardware rather than a platform default. ([OpenClaw][6])
 
-### 2.5 Orchestration Chain
+```json5
+{
+  agents: {
+    defaults: {
+      subagents: {
+        maxSpawnDepth: 2,
+        maxChildrenPerAgent: 5,
+        maxConcurrent: 4,
+        runTimeoutSeconds: 900
+      }
+    },
+    list: [
+      {
+        id: "orchestrator",
+        default: true,
+        workspace: "~/.openclaw/workspace-orchestrator",
+        subagents: {
+          allowAgents: ["agent-1", "agent-n"],
+          requireAgentId: true
+        }
+      },
+      {
+        id: "agent-1",
+        workspace: "~/.openclaw/workspace-agent-1"
+      },
+      {
+        id: "agent-n",
+        workspace: "~/.openclaw/workspace-agent-n"
+      }
+    ]
+  },
 
-**Depth 0:** `orchestrator` main session. \
-**Depth 1:** Specialist run under `research`, `builder`, or `ops` (gets `sessions_spawn`, `subagents`, etc.). \
-**Depth 2:** Worker leaf subagents spawned by that specialist (never gets recursive spawn). \
-**Execution Flow:** User talks to `orchestrator`, which spawns a specialist under that full agent's profile, the specialist spawns leaf subagents if needed, and results bubble up from child to specialist to orchestrator to user.
+  bindings: [
+    { agentId: "orchestrator", match: { channel: "webchat" } },
 
-### 2.6 Separation Rules
+    // Optional direct specialist entrypoint
+    {
+      agentId: "agent-1",
+      match: { channel: "discord", peer: { kind: "direct", id: "specialist-room" } }
+    }
+  ],
 
-**Orchestrator:** Broad visibility, narrow mutation authority, can route and synthesize, and should not own every dangerous tool. \
-**Research:** Read-heavy tools like web, search, memory, and file read, and likely no `exec` permissions. \
-**Builder:** Code and file mutation, shell/process execution, and may be sandboxed but writable. \
-**Ops:** Diagnostics, logs, maintenance, and probably the strongest approvals. \
-**Policies:** OpenClaw supports per-agent sandbox and per-agent tool policy; agent-specific sandbox settings override global defaults, and tool policy is filtered through all layers with deny always winning.
+  tools: {
+    agentToAgent: {
+      enabled: true,
+      allow: ["orchestrator", "agent-1", "agent-n"]
+    },
+    sessions: {
+      visibility: "all"
+    }
+  }
+}
+```
 
-### 2.7 Cross-Agent Calling
+[1]: https://docs.openclaw.ai/concepts/multi-agent?utm_source=chatgpt.com "Multi-Agent Routing - OpenClaw"
+[2]: https://docs.openclaw.ai/concepts/session-tool?utm_source=chatgpt.com "Session Tools - OpenClaw"
+[3]: https://docs.openclaw.ai/tools/subagents?utm_source=chatgpt.com "Sub-Agents - OpenClaw"
+[4]: https://docs.openclaw.ai/concepts/session-tool "Session Tools - OpenClaw"
+[5]: https://docs.openclaw.ai/gateway/configuration-reference?utm_source=chatgpt.com "Configuration Reference - OpenClaw"
+[6]: https://docs.openclaw.ai/concepts/multi-agent "Multi-Agent Routing - OpenClaw"
 
-**Visibility Gate:** `tools.sessions.visibility: "all"` allows session tools to target any session, while default visibility is `tree` (sees only current session plus spawned subagents). \
-**Targeting Gate:** Cross-agent targeting requires `tools.agentToAgent`. \
-**Worker Visibility:** Workers should usually stay at `tree` visibility. \
-**Orchestrator Visibility:** Only the orchestrator should get cross-agent reach. \
-**Sandbox Verification:** If you sandbox the orchestrator, verify you are not being clamped back to `tree` by sandbox session-visibility rules.
+### 2.5 Workspace Structure and Guidance
 
+**Workspace Layout:** Each Full Role Agent should have its own dedicated workspace under `~/.openclaw/`, while Subagents remain execution-scoped units under their parent Full Role Agent rather than receiving their own top-level workspace. OpenClaw defines an agent as a scoped unit with its own workspace, `agentDir`, and session store, so workspace isolation belongs to Full Role Agents, not Worker Subagents. \
+**Workspace Files:** Each Full Role Agent workspace should contain the standard bootstrap and mind files used by OpenClaw: `AGENTS.md`, `SOUL.md`, `TOOLS.md`, `IDENTITY.md`, `USER.md`, and optionally `HEARTBEAT.md`, `MEMORY.md`, `memory/YYYY-MM-DD.md`, `skills/`, and `canvas/`. These files are the stable project-context surface for agent behavior, operator notes, tool guidance, and memory. \
+**State Separation:** Runtime state should stay outside the workspaces. Per-agent auth profiles belong under `~/.openclaw/agents/<agentId>/agent/auth-profiles.json`, and session transcripts belong under `~/.openclaw/agents/<agentId>/sessions/`. This separation keeps workspace files human-editable while agent state, auth, and session stores remain operational data. \
+**Bootstrap Behavior:** OpenClaw injects the standard workspace files into project context at run time and creates missing bootstrap files during setup unless `agents.defaults.skipBootstrap: true` is set. `BOOTSTRAP.md` is first-run only, and large workspace files are truncated according to bootstrap character limits, so role instructions should stay compact and role-specific. \
+**Role Discipline:** `AGENTS.md` should define the role contract, routing boundary, and escalation rules for that Full Role Agent only. `SOUL.md` should define persona and behavioral boundaries. `TOOLS.md` should describe tool usage conventions rather than tool availability. Do not place large routing registries or duplicated architecture text in every workspace file, because injected bootstrap content directly consumes context window budget. \
+**Skill Placement:** Shared reviewed skills should live in `~/.openclaw/skills`, while agent-specific skills should live in the owning workspace's `skills/` directory. This preserves a clean split between global reusable capabilities and role-local specializations. \
+**Subagent Scope:** Subagents do **not** get sibling folders under `~/.openclaw/workspace-*` or `~/.openclaw/agents/*`. They execute under the owning Full Role Agent's runtime tree and inherit that parent's workspace boundary for task execution.
 
-### 2.8 File Structure
+```text
+dev/
+  openclaw-upstream/
+  openclaw-extensions/
+    router/
+    pipeline/
+    dashboard/
+    sync/
+    skills/
+      route-task/
+      board-read/
+      board-write/
+      memory-append/
+    scripts/
+  openclaw-agent-registry/
+    agents/
+      orchestrator/
+        AGENTS.md
+        SOUL.md
+        TOOLS.md
+        IDENTITY.md
+        USER.md
+      agent-1/
+        AGENTS.md
+        SOUL.md
+        TOOLS.md
+        IDENTITY.md
+        USER.md
+      agent-n/
+        AGENTS.md
+        SOUL.md
+        TOOLS.md
+        IDENTITY.md
+        USER.md
+    schemas/
+      board.schema.json
+      memory.schema.json
+    templates/
+      workspace/
+```
 
-**Workspace Configuration:** Keep each workspace (`workspace-orchestrator`, `workspace-research`, etc.) in `~/.openclaw/` alongside the main `openclaw.json`. \
-**Workspace Contents:** Include `AGENTS.md`, `SOUL.md`, `TOOLS.md`, `IDENTITY.md`, `USER.md`, `HEARTBEAT.md`, and a `skills/` directory. \
-**Agent Data:** Keep `auth-profiles.json` and `sessions/` separated per agent under `~/.openclaw/agents/<agentId>/`. \
-**Context Injection:** Workspace bootstrap files are injected into project context automatically.
+```text
+.openclaw/
+  openclaw.json
+  skills/
+  workspace-orchestrator/
+    AGENTS.md
+    SOUL.md
+    TOOLS.md
+    IDENTITY.md
+    USER.md
+    HEARTBEAT.md
+    MEMORY.md
+    memory/
+      YYYY-MM-DD.md
+    skills/
+    canvas/
+  workspace-agent-1/
+    AGENTS.md
+    SOUL.md
+    TOOLS.md
+    IDENTITY.md
+    USER.md
+    HEARTBEAT.md
+    MEMORY.md
+    memory/
+      YYYY-MM-DD.md
+    skills/
+  workspace-agent-n/
+    AGENTS.md
+    SOUL.md
+    TOOLS.md
+    IDENTITY.md
+    USER.md
+    HEARTBEAT.md
+    MEMORY.md
+    memory/
+      YYYY-MM-DD.md
+    skills/
+  agents/
+    orchestrator/
+      agent/
+        auth-profiles.json
+        auth.json
+      sessions/
+        sessions.json
+    agent-1/
+      agent/
+        auth-profiles.json
+        auth.json
+      sessions/
+        sessions.json
+    agent-n/
+      agent/
+        auth-profiles.json
+        auth.json
+      sessions/
+        sessions.json
+```
 
-### 2.9 Workspace Guidance
-
-**Bootstrap Injection:** OpenClaw injects `AGENTS.md`, `SOUL.md`, `TOOLS.md`, `IDENTITY.md`, `USER.md`, `HEARTBEAT.md`, and first-run `BOOTSTRAP.md` into project context. \
-**Disable Auto-creation:** If you pre-seed workspaces yourself, set `agents.defaults.skipBootstrap: true` to disable auto-creation. \
-**Role Specificity:** Keep each full agent's `AGENTS.md` role-specific and short, focusing only on the role contract, decision boundary, and escalation rules. \
-**Avoid Bloat:** Do not dump giant routing registries into every workspace file; large bootstrap files are truncated by config caps.
-
-### 2.10 Minimal Config Strategy
-
-**Default Agent:** Use one public default agent (`orchestrator`) bound to inbound channels like `webchat`. \
-**Internal Specialists:** Configure internal specialists (`research`, `builder`, `ops`) without direct external bindings. \
-**Subagent Defaults:** Set `maxSpawnDepth: 2`, `maxChildrenPerAgent: 5`, `maxConcurrent: 4`, and a reasonable `runTimeoutSeconds` in `agents.defaults.subagents`. \
-**Orchestrator Setup:** Allow the orchestrator to route to other agents by configuring `allowAgents` and setting `requireAgentId: true`. \
-**Agent Communication:** Enable `tools.agentToAgent` for your designated full agents and set `tools.sessions.visibility: "all"`. \
-**Validation:** Verify final field paths against `openclaw config schema` as config validation is strict.
-
-### 2.11 Agent Invocation
+### 2.7 Agent Invocation
 
 **External User to Orchestrator:** Inbound `bindings` route messages to the orchestrator; the most-specific binding wins, falling back to the default agent. \
-**Orchestrator to Specialist:** Use `sessions_spawn(agentId: "research" | "builder" | "ops")` for isolated task runs. \
+**Orchestrator to Specialist:** Use `sessions_spawn(agentId: "agent-1" | "agent-n")` for isolated task runs. \
 **CLI Testing:** Use `openclaw agent --agent <id> --message "..."` to target a configured agent directly, useful for testing specialist prompts and tools.
 
-### 2.12 Anti-Patterns
+### 2.8 Anti-Patterns
 
 **Context Engine Routing:** Do not put routing logic into a custom context engine first, as `prepareSubagentSpawn` is not invoked yet by runtime. \
 **Day 1 Exposure:** Do not expose every specialist with inbound bindings on day 1; bind only the orchestrator to avoid accidental direct-user access to high-privilege agents. \
 **Session IDs as Auth:** Do not treat session IDs as auth; session identifiers are routing selectors, not authorization tokens.
+
 
