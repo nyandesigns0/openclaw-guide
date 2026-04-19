@@ -255,19 +255,19 @@ export function FileTreeBlock({ content }: FileTreeBlockProps) {
           </button>
           <button
             type="button"
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-100"
-            title={isExpanded ? "Collapse Block" : "Expand Block"}
-          >
-            <ChevronRight size={14} className={cn("transition-transform duration-200", isExpanded ? "rotate-90" : "")} />
-          </button>
-          <button
-            type="button"
             onClick={handleCopy}
             className="rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-100"
             title="Copy Tree"
           >
             {copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-100"
+            title={isExpanded ? "Collapse Block" : "Expand Block"}
+          >
+            <ChevronRight size={14} className={cn("transition-transform duration-200", isExpanded ? "rotate-90" : "")} />
           </button>
         </div>
       </div>
