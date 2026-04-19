@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { 
   ChevronRight, 
   ChevronDown, 
@@ -14,7 +14,9 @@ import {
   LayoutTemplate, 
   Settings,
   Copy,
-  Check
+  Check,
+  FolderMinus,
+  FolderPlus
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { copyText } from "./copy";
@@ -196,20 +198,28 @@ export function FileTreeBlock({ content }: FileTreeBlockProps) {
     window.setTimeout(() => setCopied(false), 2000);
   };
   
-  // By default expand all folders so the user can see the entire structure
-  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(() => {
-    const allFolderIds = new Set<string>();
+  // Memoize all folder IDs so we can easily expand all
+  const allFolderIds = useMemo(() => {
+    const ids = new Set<string>();
     const traverse = (n: FileNode[]) => {
       for (const node of n) {
         if (node.type === "folder") {
-          allFolderIds.add(node.id);
+          ids.add(node.id);
           if (node.children) traverse(node.children);
         }
       }
     };
     traverse(nodes);
-    return allFolderIds;
-  });
+    return ids;
+  }, [nodes]);
+
+  // By default expand all folders so the user can see the entire structure
+  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(allFolderIds);
+
+  // Sync expandedNodes if nodes change (e.g. content updates)
+  useEffect(() => {
+    setExpandedNodes(allFolderIds);
+  }, [allFolderIds]);
 
   const toggleNode = (id: string) => {
     setExpandedNodes(prev => {
@@ -223,15 +233,36 @@ export function FileTreeBlock({ content }: FileTreeBlockProps) {
     });
   };
 
+  const toggleAllFolders = () => {
+    if (expandedNodes.size > 0) {
+      setExpandedNodes(new Set());
+    } else {
+      setExpandedNodes(new Set(allFolderIds));
+    }
+  };
+
+  const isAnyFolderOpen = expandedNodes.size > 0;
+
   return (
     <div className="not-prose isolate relative my-6 overflow-hidden rounded-xl border border-zinc-800 bg-[#0d0d0f] shadow-2xl ring-1 ring-white/5">
       <div className="flex items-center justify-between border-b border-zinc-800/80 bg-zinc-900/40 px-4 py-2 backdrop-blur-md">
-        <div className="flex items-center gap-2 w-20">
+        <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-[0.2em] select-none">
+          Explorer
+        </span>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={toggleAllFolders}
+            className="rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-100"
+            title={isAnyFolderOpen ? "Collapse All Folders" : "Expand All Folders"}
+          >
+            {isAnyFolderOpen ? <FolderMinus size={14} /> : <FolderPlus size={14} />}
+          </button>
           <button
             type="button"
             onClick={() => setIsExpanded(!isExpanded)}
             className="rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-100"
-            title={isExpanded ? "Collapse" : "Expand"}
+            title={isExpanded ? "Collapse Block" : "Expand Block"}
           >
             <ChevronRight size={14} className={cn("transition-transform duration-200", isExpanded ? "rotate-90" : "")} />
           </button>
@@ -239,15 +270,11 @@ export function FileTreeBlock({ content }: FileTreeBlockProps) {
             type="button"
             onClick={handleCopy}
             className="rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-100"
-            title="Copy"
+            title="Copy Tree"
           >
             {copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
           </button>
         </div>
-        <span className="text-[11px] font-semibold text-zinc-400 uppercase tracking-[0.2em]">
-          Explorer
-        </span>
-        <div className="w-20"></div>
       </div>
       
       <div 
