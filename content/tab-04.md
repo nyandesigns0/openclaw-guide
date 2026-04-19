@@ -72,10 +72,90 @@ flowchart TD
       YYYY-MM-DD.md
 ```
 
-### 2.2.3 Agent Memory Write Path
+### 2.2.3 Multi Agent Memory Files
+
+**Shared Folder:** A canonical shared folder at `~/.openclaw/agents/shared/` holds master versions of the tools, user, memory, and dated memory files. Keeping these outside individual agent workspaces provides native compatibility, smaller prompts, reduced cross-role leakage, and no core patching — entirely inside documented workspace behavior. \
+**Two-Stage Consolidation:** Stage 1 is event-driven; best trigger is plugin hook `agent_end` (precise semantic match for "task succeeded" with full run metadata), followed by `session_end` for session boundaries or internal hook `message:sent` as a native fallback. Stage 2 is a scheduled full-system rebuild via built-in cron, ensuring eventual consistency. \
+*Canonical Files:* Use a 3-layer architecture. Do not consolidate by editing every tools, user, memory, and memory/ md file directly.
+
+```text
+~/.openclaw/agents/shared/
+  USER.master.md
+  TOOLS.master.md
+  MEMORY.master.md
+  facts/
+    inbox/
+      orchestrator/
+      agent-1/
+      agent-n/
+    ledger.jsonl
+  daily-memory/
+    orchestrator/
+    agent-1/
+    agent-n/
+```
+
+*Generated Outputs:* Compiled outputs are generated for each individual agent workspace:
+
+```text
+~/.openclaw/agents/
+  orchestrator/
+    workspace/
+      TOOLS.md
+      USER.md
+      MEMORY.md
+      memory/
+  agent-1/
+    workspace/
+      TOOLS.md
+      USER.md
+      MEMORY.md
+      memory/
+  agent-n/
+    workspace/
+      TOOLS.md
+      USER.md
+      MEMORY.md
+      memory/
+```
+
+*`facts/inbox/`:* Raw candidate updates and learned deltas. \
+*`ledger.jsonl`:* Normalized accepted facts and cross-agent ledger. \
+*`daily-memory/`:* Per-agent raw daily logs used as compilation sources. \
+*`*.master.md`:* Canonical global profiles for user, tools, and memory. \
+*Per-agent `TOOLS.md`, `USER.md`, `MEMORY.md`, and `memory/` files:* Filtered generated views. \
+*Per-Agent Path:* A plugin on `agent_end` filters to full agents only (ignoring subagent session keys), inspects the run result, extracts profile deltas on clean completion, appends candidate records to that agent's inbox, then rebuilds that agent's tools, user, memory, and memory/ md files plus the orchestrator's equivalents. \
+**Scripting Architecture:** Two scripts separate concerns. `collect-user-facts.ts` is called by the `agent_end` hook; it takes `agentId`, run metadata, and final messages and appends candidate records to `~/.openclaw/agents/shared/facts/inbox/<agentId>/<timestamp>.json`. `rebuild-user-views.ts` is called by cron (and optionally by `collect-user-facts.ts`); it reads all inbox records, deduplicates, resolves conflicts, updates `ledger.jsonl`, compiles master files, and regenerates every full-agent tools, user, memory, and memory/ md file. \
+**Conflict Policy:** Same key with newer timestamp wins. Higher confidence beats lower when timestamps are close. Agent-scoped facts remain agent-scoped unless explicitly marked global. Privacy-flagged facts never propagate to specialist views. Orchestrator receives a broad summary; specialists receive narrow slices. \
+**Full-System Fallback:** Cron runs `rebuild-user-views.ts` 2–4 times per day as an isolated session, scanning all agent inboxes and regenerating every file. This catches anything missed by the event-driven path and provides eventual consistency without heartbeat or core patches. \
+**Example Cron:**
+
+```bash
+openclaw cron add \
+  --name "Rebuild shared USER profile" \
+  --cron "0 */6 * * *" \
+  --session isolated \
+  --agent orchestrator \
+  --message "Run profile reconciliation and regenerate master files plus all per-agent memory views." \
+  --no-deliver
+```
+
+### 2.2.4 Agent Memory Write Path
 
 **Write Mechanism:** Agents do not “store memory” implicitly; all persistence happens through explicit writes to workspace files. Memory writing is either performed through tool calls (when available) or direct file mutation within the workspace context. \
-**Tool-Level Write Path:** When a memory write tool is available (e.g., file write or structured memory tool), the agent issues a tool call with a payload describing the target file, content, and intent. This follows the same execution pattern as any other tool: the agent plans → selects tool → emits structured arguments → runtime executes → result returns into context. \
+**Tool-Level Write Path:** When a memory write tool is available (e.g., file write or structured memory tool), the agent issues a tool call with a payload describing the target file, content, and intent. This follows the same execution pattern as any other tool:
+
+```mermaid
+%%{init: {'flowchart': {'arrowMarkerSize': 1.5}}}%%
+flowchart LR
+    P[Agent Plans] ==> S[Selects Tool]
+    S ==> E[Emits Structured Arguments]
+    E ==> R[Runtime Executes]
+    R ==> C[Result Returns into Context]
+
+    linkStyle 0,1,2,3 stroke:#818cf8,stroke-width:4px
+```
+\
 **File-Level Write Path:** In native operation without a specialized write tool, the agent writes memory by appending or modifying Markdown files inside its workspace. Typical targets are `memory/YYYY-MM-DD.md` for working memory and `MEMORY.md` for curated long-term memory. The runtime treats these as normal file operations rather than hidden state mutation. \
 **Working Memory Writes:** Short-term observations, task context, and intermediate conclusions are written to the current dated file under `memory/`. This file acts as an append-only log during active execution and is optimized for rapid capture rather than structure. \
 **Long-Term Memory Writes:** Durable knowledge is written into `MEMORY.md`, but not continuously. The agent must first decide that information is stable, relevant beyond the current task, and worth promoting. This introduces a separation between capture and consolidation. \
@@ -101,7 +181,7 @@ flowchart TD
     linkStyle 2,3,4 stroke:#fbbf24,stroke-width:2px
 ```
 
-### 2.2.4 Retrieval, Indexing, and Recall Pipeline
+### 2.2.5 Retrieval, Indexing, and Recall Pipeline
 
 **Memory Tools:** Native recall is exposed through `memory_search` for semantic retrieval and `memory_get` for direct file or line reads. These tools are supplied by the active memory plugin, with `memory-core` as the default native path. \
 **Index Inputs:** The builtin engine indexes `MEMORY.md` plus `memory/*.md`, chunking content into retrieval units and keeping the workspace files as the durable source of truth. \
@@ -163,7 +243,7 @@ flowchart TD
 }
 ```
 
-### 2.2.5 Consolidation, Maintenance, and Dreaming
+### 2.2.6 Consolidation, Maintenance, and Dreaming
 
 **Immediate Capture:** When the user says to remember something, or when a durable decision is made, the correct native behavior is to write it into the workspace rather than trusting the current context window. 
 **Short-Term to Long-Term Flow:** Daily notes are the staging layer. Significant patterns, preferences, lessons, or decisions should later be distilled into `MEMORY.md` instead of leaving them buried in dated logs. 
@@ -174,15 +254,18 @@ flowchart TD
 **Grounded Backfill:** Historical daily notes can be reprocessed into grounded dream entries and promotion candidates, allowing older raw notes to be consolidated without manually rereading the entire archive each time. 
 **Knowledge-Layer Extension:** `memory-wiki` is an optional compiled knowledge layer that sits beside active memory. It does not replace native recall, promotion, indexing, or dreaming; it organizes durable knowledge into deterministic wiki pages, claims, dashboards, and digests. \
 
-### 2.2.6 Storage Boundaries, Multi-Agent Guidance, and Anti-Patterns
+### 2.2.7 Storage Boundaries, Multi-Agent Guidance, and Anti-Patterns
 
-**Workspace vs Runtime State:** Workspace files are the human-authored memory surface. Runtime indexes, credentials, auth profiles, and session transcripts live elsewhere under `~/.openclaw/` and should not be treated as interchangeable with authored memory. 
-**Per-Agent Isolation:** In a multi-agent deployment, each Full Role Agent should keep its own workspace memory, its own retrieval index, and its own long-term memory boundary. This prevents role bleed between orchestrator, specialist, and other durable agents. 
-**Orchestrator Memory Shape:** The orchestrator should keep only coordination-relevant durable memory. Specialist-specific facts belong in the specialist workspace that owns the domain boundary and tools. 
-**Subagent Memory Shape:** Do not model subagents as separate top-level memory owners. They are spawned execution units under a parent agent tree, not independent long-horizon personalities with their own permanent workspace roots. 
-**No Mental Notes:** Do not rely on ephemeral reasoning or session continuity as memory. If it matters later, write it down. 
-**No Raw-Dump `MEMORY.md`:** Do not turn `MEMORY.md` into a chronological scratchpad. Raw recency belongs in dated daily notes, while durable memory should stay distilled and high-signal. 
-**No Transcript-as-Memory Assumption:** Do not assume session transcripts are part of semantic recall by default. Transcript recall should be treated as an explicit indexed source, not a hidden guarantee. 
-**No Cross-Agent Memory Merge by Accident:** Do not point multiple Full Role Agents at the same workspace or SQLite memory store unless deliberate shared-memory behavior is explicitly designed and understood. 
-**No Runtime-State Commits:** Do not version-control the entire runtime tree as if it were safe authored memory. Back up workspace files intentionally; back up auth and session state separately and privately. 
+**Workspace vs Runtime State:** Workspace files are the human-authored memory surface. Runtime indexes, credentials, auth profiles, and session transcripts live elsewhere under `~/.openclaw/` and should not be treated as interchangeable with authored memory. \
+**Per-Agent Isolation:** In a multi-agent deployment, each Full Role Agent should keep its own workspace memory, its own retrieval index, and its own long-term memory boundary. This prevents role bleed between orchestrator, specialist, and other durable agents. \
+**Orchestrator Memory Shape:** The orchestrator should keep only coordination-relevant durable memory. Specialist-specific facts belong in the specialist workspace that owns the domain boundary and tools. \
+**Subagent Memory Shape:** Do not model subagents as separate top-level memory owners. They are spawned execution units under a parent agent tree, not independent long-horizon personalities with their own permanent workspace roots. \
+*(note)* **Subagents:** Subagents are execution-scoped background tasks; they announce upward and do not own their own profile files. Let the parent full agent own all file updates. \
+**No Mental Notes:** Do not rely on ephemeral reasoning or session continuity as memory. If it matters later, write it down. \
+**No Raw-Dump `MEMORY.md`:** Do not turn `MEMORY.md` into a chronological scratchpad. Raw recency belongs in dated daily notes, while durable memory should stay distilled and high-signal. \
+**No Transcript-as-Memory Assumption:** Do not assume session transcripts are part of semantic recall by default. Transcript recall should be treated as an explicit indexed source, not a hidden guarantee. \
+**No Cross-Agent Memory Merge by Accident:** Do not point multiple Full Role Agents at the same workspace or SQLite memory store unless deliberate shared-memory behavior is explicitly designed and understood. \
+**No Runtime-State Commits:** Do not version-control the entire runtime tree as if it were safe authored memory. Back up workspace files intentionally; back up auth and session state separately and privately. \
 **Native-First Rule:** Start with workspace files, builtin memory search, heartbeat, and optional dreaming. Add QMD, active memory, or memory-wiki only when the retrieval or knowledge workload clearly needs those extra layers. \
+*(warning)* **Heartbeat Anti-Pattern:** Do not use heartbeat as the rebuild engine. Heartbeat turns create no task records and are for routine monitoring only — use it at most for a human-readable "profile consolidation stale" reminder. \
+*(reasoning)* **Deterministic Merge:** A structured fact inbox plus compiled Markdown is far more reliable than raw Markdown-only merge logic. \
