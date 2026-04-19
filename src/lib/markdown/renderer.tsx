@@ -11,6 +11,7 @@ import ReactMarkdown from "react-markdown";
 import type { Components } from "react-markdown";
 import { cn } from "@/lib/utils";
 import { CodeBlock } from "./code-block";
+import { FileTreeBlock, isFileTree } from "./file-tree-block";
 
 type InlineCodeProps = ComponentPropsWithoutRef<"code"> & {
   node?: unknown;
@@ -60,6 +61,10 @@ const markdownComponents: Components = {
 
     if (!block) {
       return <pre>{children}</pre>;
+    }
+
+    if (isFileTree(block.code, block.language)) {
+      return <FileTreeBlock content={block.code} />;
     }
 
     return <CodeBlock language={block.language}>{block.code}</CodeBlock>;
