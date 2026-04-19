@@ -3,6 +3,14 @@ const path = require('path');
 
 const tabsHierarchy = [
   {
+    id: 'guide',
+    title: 'Chapter 0: Formatting Guide',
+    icon: 'Book',
+    subtabs: [
+      { id: 'tab-00', title: '0.1 Overview', filename: 'tab-00.md' }
+    ]
+  },
+  {
     id: 'intro',
     title: 'Chapter 1: Introduction',
     icon: 'Info',
