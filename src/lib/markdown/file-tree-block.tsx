@@ -213,13 +213,8 @@ export function FileTreeBlock({ content }: FileTreeBlockProps) {
     return ids;
   }, [nodes]);
 
-  // By default expand all folders so the user can see the entire structure
-  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(allFolderIds);
-
-  // Sync expandedNodes if nodes change (e.g. content updates)
-  useEffect(() => {
-    setExpandedNodes(allFolderIds);
-  }, [allFolderIds]);
+  // By default, folders are collapsed
+  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
 
   const toggleNode = (id: string) => {
     setExpandedNodes(prev => {

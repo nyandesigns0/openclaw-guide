@@ -2,7 +2,7 @@
 
 ## 2.1 Overview
 
-This chapter outlines the multi-agent architecture, mental models, and recommended deployment topologies for OpenClaw.
+This chapter defines the native multi-agent hierarchy, routing pipeline, and workspace boundaries required for an authoritative OpenClaw implementation.
 
 ### 2.2 Agentic Model
 
@@ -96,8 +96,8 @@ flowchart TD
 
 ### 2.4 Routing and Agentic Pipeline
 
-**Ingress Resolution:** Inbound routing is deterministic at the Gateway boundary. `bindings` send normal user traffic to the `orchestrator` by default. Additional bindings expose specialist Full Role Agents only when direct specialist entry is intentionally required. OpenClaw resolves bindings by specificity — peer-level matches win before broader scopes, and within a tier the first matching binding wins before fallback to the default agent. ([OpenClaw][1]) \
-**Full-Agent Dispatch:** The Orchestrator hands off job-style work using the built-in `sessions_spawn` tool with `agentId` set to the target Full Role Agent. `sessions_spawn` supports `allowAgents`, `requireAgentId`, depth limits, timeouts, and concurrency — it is the native, non-blocking mechanism for delegated background subagent execution. ([OpenClaw][2]) \
+**External User to Orchestrator:** Inbound `bindings` route normal user traffic to the `orchestrator`; the most-specific binding wins, and unmatched traffic falls back to the default agent. ([OpenClaw][1]) \
+**Orchestrator to Specialist:** The Orchestrator should delegate isolated task execution with `sessions_spawn(agentId: "agent-1" | "agent-n")`, which runs the task as a background sub-agent session under the selected Full Role Agent profile. ([OpenClaw][2]) \
 **Nested Execution:** Execution Agents may spawn Worker Subagents when nested spawning is enabled via `agents.defaults.subagents.maxSpawnDepth >= 2`. At depth 1, the spawned session can still orchestrate children. At leaf depth, recursive orchestration tools are removed by runtime policy. Depth-1 children can orchestrate depth-2 workers — this is both documented behavior and runtime-enforced. ([OpenClaw][2]) \
 **Return Path:** Worker Subagents return results to their parent Execution Agent. OpenClaw's native subagent model is announce-driven, and `sessions_send` is on the subagent deny list by default. Worker Subagents do not communicate laterally or upward to the Orchestrator directly — the parent Full Role Agent consolidates results before control moves back up the chain. ([OpenClaw][2]) \
 **Cross-Agent Gates:** Cross-agent reach belongs to Full Role Agents, not Worker Subagents. For a Full Role Agent to talk across agent boundaries, `tools.sessions.visibility` must be `all`, `tools.agentToAgent.enabled` must be true, and the sender must be listed in `tools.agentToAgent.allow`. Sandboxed sessions are clamped back to `tree` visibility regardless of global settings, ensuring Worker Subagents remain local to their parent execution tree. ([OpenClaw][1]) \
@@ -162,7 +162,7 @@ flowchart TD
 }
 ```
 
-[1]: https://docs.openclaw.ai/gateway/configuration-reference?utm_source=chatgpt.com "Configuration Reference - OpenClaw"
+[1]: https://docs.openclaw.ai/concepts/multi-agent?utm_source=chatgpt.com "Multi-Agent Routing - OpenClaw"
 [2]: https://docs.openclaw.ai/tools/subagents?utm_source=chatgpt.com "Sub-Agents - OpenClaw"
 
 ### 2.5 Workspace Structure and Guidance
@@ -173,7 +173,8 @@ flowchart TD
 **Bootstrap Behavior:** OpenClaw injects workspace files into project context at runtime and creates missing bootstrap files during setup unless `agents.defaults.skipBootstrap: true` is set. `BOOTSTRAP.md` is first-run only. Large workspace files are truncated according to bootstrap character limits, so role instructions should stay compact and role-specific. \
 **Role Discipline:** `AGENTS.md` should define the role contract, routing boundary, and escalation rules for that Full Role Agent only. `SOUL.md` should define persona and behavioral boundaries. `TOOLS.md` should describe tool usage conventions rather than tool availability. Do not place large routing registries or duplicated architecture text in every workspace file — injected bootstrap content directly consumes context window budget. \
 **Skill Placement:** Agent-local skills live in `<workspace>/skills/` and are natively loaded from there. Shared skills that should be available across all agents live in `~/.openclaw/skills/`. Skill allowlists can be set globally or per agent via `agents.list[].skills`. ([OpenClaw][3]) \
-**Native-Only Approach:** This layout requires only `openclaw.json`, one workspace per Full Role Agent, built-in `sessions_spawn`-based subagents, and workspace or shared skills. No separate extensions repo, agent registry repo, or custom routing layer is needed to achieve the full orchestrator → specialist → worker hierarchy described in this chapter.
+**Native-Only Approach:** This layout requires only `openclaw.json`, one workspace per Full Role Agent, built-in `sessions_spawn`-based subagents, and workspace or shared skills. No separate extensions repo, agent registry repo, or custom routing layer is needed to achieve the full orchestrator → specialist → worker hierarchy described in this chapter. \
+**CLI Testing:** For operator validation and direct specialist testing, use `openclaw agent --agent <id> --message "..."` or the `openclaw agents` command surface to inspect bindings and target configured agents outside the normal external channel path. ([OpenClaw][5])
 
 ```text
 ~/.openclaw/
@@ -237,17 +238,15 @@ flowchart TD
 
 [3]: https://docs.openclaw.ai/tools/skills?utm_source=chatgpt.com "Skills - OpenClaw"
 [4]: https://docs.openclaw.ai/concepts/agent-workspace?utm_source=chatgpt.com "Agent Workspace - OpenClaw"
+[5]: https://docs.openclaw.ai/cli/agents?utm_source=chatgpt.com "agents - OpenClaw"
 
-### 2.7 Agent Invocation
+### 2.6 Anti-Patterns
 
-**External User to Orchestrator:** Inbound `bindings` route messages to the orchestrator; the most-specific binding wins, falling back to the default agent. \
-**Orchestrator to Specialist:** Use `sessions_spawn(agentId: "agent-1" | "agent-n")` for isolated task runs. \
-**CLI Testing:** Use `openclaw agent --agent <id> --message "..."` to target a configured agent directly, useful for testing specialist prompts and tools.
-
-### 2.8 Anti-Patterns
-
-**Context Engine Routing:** Do not put routing logic into a custom context engine first, as `prepareSubagentSpawn` is not invoked yet by runtime. \
-**Day 1 Exposure:** Do not expose every specialist with inbound bindings on day 1; bind only the orchestrator to avoid accidental direct-user access to high-privilege agents. \
-**Session IDs as Auth:** Do not treat session IDs as auth; session identifiers are routing selectors, not authorization tokens.
-
+**Direct Specialist Exposure by Default:** Do not bind every Full Role Agent directly to inbound channels on day one. The default public entrypoint should remain the orchestrator, with specialist Full Role Agents exposed only through explicit bindings when direct access is intentionally required. This preserves a single coordination boundary and matches OpenClaw’s native binding-based routing model. \
+**Subagents as Top-Level Agents:** Do not model Worker Subagents as if they were independent Full Role Agents with their own workspace, agentDir, or direct gateway identity. In OpenClaw, subagents are spawned runs with their own session key, not separate top-level agent definitions. \
+**Message Routing Instead of Task Spawning:** Do not use sessions_send as the default mechanism for delegated execution. Job-style handoff from the Orchestrator to a Full Role Agent, and from a Full Role Agent to a Worker Subagent, should use sessions_spawn, because subagents are native background runs with announce-based return flow. \
+**Lateral Worker Reach:** Do not give Worker Subagents cross-agent routing authority. By default, subagents do not receive session tools, and only depth-1 orchestrator-style subagents regain limited coordination tools when nested spawning is enabled. Worker Subagents should remain local to their parent execution tree rather than acting as peer routers. \
+**Shared Agent State:** Do not reuse agentDir across Full Role Agents and do not treat session identifiers as authorization. OpenClaw stores per-agent auth and session state under each agent’s own runtime path, and reusing that state directory causes auth and session collisions. \
+**Workspace and Runtime Mixing in Version Control:** Do not commit the full ~/.openclaw/agents/<agentId>/ tree as if it were only authored workspace content. Workspace files are meant for private editable memory, while config, credentials, auth profiles, and session transcripts remain runtime state under ~/.openclaw/ and should be backed up separately from the workspace repo. \
+**Context-Engine-First Routing:** Do not begin by pushing routing policy into a custom context engine. The prepareSubagentSpawn hook exists in the interface, but the runtime does not invoke it yet, so the stable routing surface remains bindings, agents.list[], subagents, and session tools defined in the live config schema.
 
