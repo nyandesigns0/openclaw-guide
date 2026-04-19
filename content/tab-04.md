@@ -74,12 +74,20 @@ flowchart TD
 
 ### 2.2.3 Multi Agent Memory Files
 
-**Shared Folder:** A canonical shared folder at `~/.openclaw/agents/shared/` holds master versions of the tools, user, memory, and dated memory files. Keeping these outside individual agent workspaces provides native compatibility, smaller prompts, reduced cross-role leakage, and no core patching — entirely inside documented workspace behavior. \
-**Two-Stage Consolidation:** Stage 1 is event-driven; best trigger is plugin hook `agent_end` (precise semantic match for "task succeeded" with full run metadata), followed by `session_end` for session boundaries or internal hook `message:sent` as a native fallback. Stage 2 is a scheduled full-system rebuild via built-in cron, ensuring eventual consistency. \
-*Canonical Files:* Use a 3-layer architecture. Do not consolidate by editing every tools, user, memory, and memory/ md file directly.
+**Shared Compilation Layer:** A custom shared consolidation layer at `~/.openclaw/agents/_shared/` holds canonical master profiles and structured cross-agent fact ledgers. This is an operator-owned compilation surface rather than a native OpenClaw agent workspace or native memory root; native memory continues to live in each Full Role Agent workspace under `~/.openclaw/agents/<agentId>/workspace/`. \
+**Two-Stage Consolidation:** Stage 1 is event-driven consolidation triggered by plugin hooks, while Stage 2 is a scheduled full-system rebuild via cron to ensure eventual consistency across the multi-agent deployment. \
+**Hook Terminology:** Consolidation logic should primarily trigger on the plugin hooks `agent_end` (for task success) or `session_end` (for session closure). Internal hooks like `message:sent` represent outbound delivery rather than true task success and should only be used as a coarse fallback. \
+**Canonical Files:** Use master files only for stable, profile-like data including `USER.master.md`, `TOOLS.master.md`, and optional `MEMORY.master.md`. Structured candidate facts are staged in `facts/inbox/` before being resolved into the persistent `facts/ledger.jsonl`. \
+**Daily Memory Boundary:** Dated memory files in `memory/YYYY-MM-DD.md` remain local to each Full Role Agent workspace as native append-oriented working memory. Centralized compilation of daily logs is not the default model; instead, durable facts are extracted from local logs into the shared ledger to regenerate profile views. \
+**Generated Outputs:** The consolidation engine generates per-agent `USER.md`, `TOOLS.md`, and optional curated `MEMORY.md` from the shared master layer. These are filtered, agent-specific views of the global context, while daily `memory/` directories remain local and agent-owned. \
+**Scripting Architecture:** Concerns are separated into `collect-shared-facts.ts` for appending candidate facts to the shared inbox and `rebuild-shared-views.ts` for resolving conflicts, updating master files, and regenerating per-agent workspace outputs. \
+**Full-System Fallback:** Run the reconciler via cron several times per day as an isolated background job to ensure missed updates are folded into the shared ledger and all generated workspace files are refreshed. \
+**Conflict Policy:** Same key with newer timestamp wins. Higher confidence beats lower when timestamps are close. Agent-scoped facts remain agent-scoped unless explicitly marked global. Privacy-flagged facts never propagate to specialist views. Orchestrator receives a broad summary; specialists receive narrow slices. 
+
+**Shared Layer Folder Shape**
 
 ```text
-~/.openclaw/agents/shared/
+~/.openclaw/agents/_shared/
   USER.master.md
   TOOLS.master.md
   MEMORY.master.md
@@ -89,13 +97,9 @@ flowchart TD
       agent-1/
       agent-n/
     ledger.jsonl
-  daily-memory/
-    orchestrator/
-    agent-1/
-    agent-n/
 ```
 
-*Generated Outputs:* Compiled outputs are generated for each individual agent workspace:
+**Generated Output Shape**
 
 ```text
 ~/.openclaw/agents/
@@ -119,26 +123,19 @@ flowchart TD
       memory/
 ```
 
-*`facts/inbox/`:* Raw candidate updates and learned deltas. \
-*`ledger.jsonl`:* Normalized accepted facts and cross-agent ledger. \
-*`daily-memory/`:* Per-agent raw daily logs used as compilation sources. \
-*`*.master.md`:* Canonical global profiles for user, tools, and memory. \
-*Per-agent `TOOLS.md`, `USER.md`, `MEMORY.md`, and `memory/` files:* Filtered generated views. \
-*Per-Agent Path:* A plugin on `agent_end` filters to full agents only (ignoring subagent session keys), inspects the run result, extracts profile deltas on clean completion, appends candidate records to that agent's inbox, then rebuilds that agent's tools, user, memory, and memory/ md files plus the orchestrator's equivalents. \
-**Scripting Architecture:** Two scripts separate concerns. `collect-user-facts.ts` is called by the `agent_end` hook; it takes `agentId`, run metadata, and final messages and appends candidate records to `~/.openclaw/agents/shared/facts/inbox/<agentId>/<timestamp>.json`. `rebuild-user-views.ts` is called by cron (and optionally by `collect-user-facts.ts`); it reads all inbox records, deduplicates, resolves conflicts, updates `ledger.jsonl`, compiles master files, and regenerates every full-agent tools, user, memory, and memory/ md file. \
-**Conflict Policy:** Same key with newer timestamp wins. Higher confidence beats lower when timestamps are close. Agent-scoped facts remain agent-scoped unless explicitly marked global. Privacy-flagged facts never propagate to specialist views. Orchestrator receives a broad summary; specialists receive narrow slices. \
-**Full-System Fallback:** Cron runs `rebuild-user-views.ts` 2–4 times per day as an isolated session, scanning all agent inboxes and regenerating every file. This catches anything missed by the event-driven path and provides eventual consistency without heartbeat or core patches. \
 **Example Cron:**
 
 ```bash
 openclaw cron add \
-  --name "Rebuild shared USER profile" \
+  --name "Rebuild shared memory views" \
   --cron "0 */6 * * *" \
   --session isolated \
   --agent orchestrator \
-  --message "Run profile reconciliation and regenerate master files plus all per-agent memory views." \
+  --message "Run shared fact reconciliation and regenerate master files plus all per-agent memory views." \
   --no-deliver
 ```
+
+
 
 ### 2.2.4 Agent Memory Write Path
 
@@ -200,7 +197,7 @@ flowchart TD
       memorySearch: {
         enabled: true,
         provider: "openai",
-        extraPaths: ["../shared-notes"],
+        extraPaths: ["../_shared"],
         query: {
           hybrid: {
             vectorWeight: 0.7,
