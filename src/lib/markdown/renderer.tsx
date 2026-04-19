@@ -12,6 +12,7 @@ import type { Components } from "react-markdown";
 import { cn } from "@/lib/utils";
 import { CodeBlock } from "./code-block";
 import { FileTreeBlock, isFileTree } from "./file-tree-block";
+import { remarkAccordion } from "./remark-accordion";
 
 type InlineCodeProps = ComponentPropsWithoutRef<"code"> & {
   node?: unknown;
@@ -74,7 +75,12 @@ const markdownComponents: Components = {
 export function MarkdownRenderer({ content }: { content: string }) {
   return (
     <div className="prose prose-invert prose-indigo max-w-none prose-headings:font-semibold prose-a:text-indigo-400 prose-pre:border-none prose-pre:bg-transparent prose-pre:p-0 prose-li:my-1 hover:prose-a:text-indigo-300">
-      <ReactMarkdown components={markdownComponents}>{content}</ReactMarkdown>
+      <ReactMarkdown
+        components={markdownComponents}
+        remarkPlugins={[remarkAccordion]}
+      >
+        {content}
+      </ReactMarkdown>
     </div>
   );
 }

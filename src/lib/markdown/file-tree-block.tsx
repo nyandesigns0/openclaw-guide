@@ -12,9 +12,12 @@ import {
   File, 
   FileImage, 
   LayoutTemplate, 
-  Settings 
+  Settings,
+  Copy,
+  Check
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { copyText } from "./copy";
 
 interface FileTreeBlockProps {
   content: string;
@@ -182,6 +185,16 @@ function FileTreeNode({
 
 export function FileTreeBlock({ content }: FileTreeBlockProps) {
   const nodes = useMemo(() => parseFileTree(content), [content]);
+  const [isExpanded, setIsExpanded] = useState(true);
+  const [copied, setCopied] = useState(false);
+  
+  const handleCopy = async () => {
+    // Copy the raw markdown content
+    const didCopy = await copyText(content);
+    if (!didCopy) return;
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 2000);
+  };
   
   // By default expand all folders so the user can see the entire structure
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(() => {
@@ -212,21 +225,37 @@ export function FileTreeBlock({ content }: FileTreeBlockProps) {
 
   return (
     <div className="not-prose isolate relative my-6 overflow-hidden rounded-xl border border-zinc-800 bg-[#0d0d0f] shadow-2xl ring-1 ring-white/5">
-      {/* Mac-like Header */}
-      <div className="flex items-center justify-between border-b border-zinc-800/80 bg-zinc-900/40 px-4 py-3 backdrop-blur-md">
+      <div className="flex items-center justify-between border-b border-zinc-800/80 bg-zinc-900/40 px-4 py-2 backdrop-blur-md">
         <div className="flex items-center gap-2 w-20">
-          <div className="h-3 w-3 rounded-full bg-[#ff5f56] border border-[#e0443e]"></div>
-          <div className="h-3 w-3 rounded-full bg-[#ffbd2e] border border-[#dea123]"></div>
-          <div className="h-3 w-3 rounded-full bg-[#27c93f] border border-[#1aab29]"></div>
+          <button
+            type="button"
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-100"
+            title={isExpanded ? "Collapse" : "Expand"}
+          >
+            <ChevronRight size={14} className={cn("transition-transform duration-200", isExpanded ? "rotate-90" : "")} />
+          </button>
+          <button
+            type="button"
+            onClick={handleCopy}
+            className="rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-100"
+            title="Copy"
+          >
+            {copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
+          </button>
         </div>
         <span className="text-[11px] font-semibold text-zinc-400 uppercase tracking-[0.2em]">
           Explorer
         </span>
-        <div className="w-20"></div> {/* Spacer for centering */}
+        <div className="w-20"></div>
       </div>
       
-      {/* File Tree Content */}
-      <div className="p-3 overflow-x-auto overflow-y-auto max-h-[500px] scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-transparent">
+      <div 
+        className={cn(
+          "overflow-x-auto overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-transparent transition-all duration-300",
+          isExpanded ? "p-3 max-h-[500px]" : "h-0 max-h-0"
+        )}
+      >
         {nodes.map(node => (
           <FileTreeNode 
             key={node.id} 
