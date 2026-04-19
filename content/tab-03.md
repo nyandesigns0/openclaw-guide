@@ -4,14 +4,81 @@
 
 This chapter outlines the multi-agent architecture, mental models, and recommended deployment topologies for OpenClaw.
 
-### 2.2 Mental Model
+### 2.2 Agentic Model
 
-**Full Agent:** A real OpenClaw agent object with its own workspace, `agentDir`, auth store, and session store. \
-**Subagent:** An isolated session run under an agent ID, not a second full agent definition; depth-1 subagents can orchestrate depth-2 workers if `maxSpawnDepth: 2` is set. \
-**Full Agents (Durable Roles):** They own workspace files (`AGENTS.md`, `SOUL.md`, etc.), per-agent auth (`~/.openclaw/agents/<agentId>/agent/auth-profiles.json`), and per-agent transcripts (`~/.openclaw/agents/<agentId>/sessions/*.jsonl`). \
-**Subagents (Task Executions):** They run in their own session keys like `agent:<id>:subagent:<uuid>`, are tracked as background tasks, and do not become new top-level agents with their own `agentDir`.
+**Model Structure:** The agentic model is a three-tier execution hierarchy: one Orchestrator Agent at the top, multiple Full Role Agents as durable domain specialists below it, and task-scoped Subagents as narrower execution units beneath each Full Role Agent. \
+**Full Role Agent:** A first-class agent instance with a defined role boundary, persistent identity, governed instructions, assigned tools, and its own full workspace — including the standard workspace folder and mind files such as `SOUL.md`, `AGENTS.md`, `IDENTITY.md`, and others. The Orchestrator is itself a Full Role Agent, but with a specialized foundational role: it serves as the sole inbound coordination point rather than a domain executor. All other Full Role Agents receive work delegated through the system, plan and execute within their domain, spawn Subagents when deeper specialization is needed, and consolidate results back upward. \
+**Subagent:** A task-scoped execution unit created under a Full Role Agent. Shares the parent's workspace and context boundary but operates with narrower responsibility, reduced tool exposure, and a more constrained skill profile. Subordinate to its parent Full Role Agent and not independently addressable. \
+**Orchestrator Agent:** *(Full Role Agent)* The single top-level coordinator. Receives inbound requests from the gateway, routes work to the appropriate Full Role Agent, and returns the final consolidated response. Does not perform direct worker-level execution and does not spawn its own Subagents. \
+**Execution Agents:** *(Full Role Agent)* Full Role Agents operating below the Orchestrator as domain-specific specialists. Each owns its role logic, determines whether to execute directly or spawn Worker Agents, and controls all subordinate activity within its role boundary. \
+**Worker Agents:** *(Subagent)* Subagents spawned under Execution Agents to perform the most narrowly scoped tasks in the hierarchy. Inherit the parent execution context but with tighter responsibility, constrained reasoning scope, and a more targeted tool profile. Do not communicate directly with the user or gateway and have no independent top-level identity. \
+**Communication Pattern:** The default path is vertical: a user message enters the gateway, routes to the Orchestrator, which delegates to one Execution Agent, which may spawn Worker Agents internally. Results bubble back up through the same chain — Workers to their parent Execution Agent, then to the Orchestrator, then back through the gateway to the user. Optionally, a user may directly address a Full Role Agent via the gateway, bypassing the Orchestrator when direct specialist access is intentional.
+
+
+```mermaid
+%%{init: {'flowchart': {'arrowMarkerSize': 1.5}}}%%
+flowchart TD
+    subgraph UI_Level
+        direction LR
+        UM[User Message]
+    end
+
+    UM ==> G[Gateway]
+    G ==> UM
+
+    G ==> O[Orchestrator Agent]
+
+    subgraph Agent_1_Stack [Agent 1 Stack]
+        direction TB
+        A1[Full Role Agent 1]
+        W11[Subagent 1.1]
+        W12[Subagent 1.2]
+        W1N[Subagent 1.N]
+        
+        A1 -.-> W11
+        A1 -.-> W12
+        A1 -.-> W1N
+        W11 -.-> A1
+        W12 -.-> A1
+        W1N -.-> A1
+    end
+
+    subgraph Agent_N_Stack [Agent N Stack]
+        direction TB
+        A2[Full Role Agent N]
+        W21[Subagent N.1]
+        W22[Subagent N.2]
+        W2N[Subagent N.N]
+        
+        A2 -.-> W21
+        A2 -.-> W22
+        A2 -.-> W2N
+        W21 -.-> A2
+        W22 -.-> A2
+        W2N -.-> A2
+    end
+
+    G -.-> A1
+    G -.-> A2
+
+    O ==> A1
+    O ==> A2
+
+    A1 ==> O
+    A2 ==> O
+
+    A1 -.-> G
+    A2 -.-> G
+    O ==> G
+
+    linkStyle 0,2,17,18 stroke:#818cf8,stroke-width:4px
+    linkStyle 3,4,5,9,10,11,15,16 stroke:#818cf8,stroke-width:2px
+    linkStyle 1,19,20,23 stroke:#fbbf24,stroke-width:4px
+    linkStyle 6,7,8,12,13,14,21,22 stroke:#fbbf24,stroke-width:2px
+```
 
 ### 2.3 Recommended Shape
+
 
 **Orchestrator:** Only public/bound entrypoint. \
 **Research:** Full agent specialist. \

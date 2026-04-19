@@ -12,6 +12,7 @@ import type { Components } from "react-markdown";
 import { cn } from "@/lib/utils";
 import { CodeBlock } from "./code-block";
 import { FileTreeBlock, isFileTree } from "./file-tree-block";
+import { MermaidBlock, isMermaid } from "./mermaid-block";
 import { remarkAccordion } from "./remark-accordion";
 
 type InlineCodeProps = ComponentPropsWithoutRef<"code"> & {
@@ -72,6 +73,10 @@ const markdownComponents: Components = {
 
     if (isFileTree(block.code, block.language)) {
       return <FileTreeBlock content={block.code} />;
+    }
+
+    if (isMermaid(block.code, block.language)) {
+      return <MermaidBlock content={block.code} />;
     }
 
     return <CodeBlock language={block.language}>{block.code}</CodeBlock>;

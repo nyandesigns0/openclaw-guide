@@ -38,3 +38,52 @@ This is a single-sentence summary outlining the foundational goals of this chapt
 
 **Sub-item A:** Keep content structured and concise without empty lines between items. \
 **Sub-item B:** Ensure all formatting rules are strictly followed.
+
+### 0.6 Flow Charts (Mermaid)
+*(instruction)* **Mermaid Parser:** The UI can parse mermaid code blocks into actual flowcharts. \
+*(instruction)* **Syntax:** Use triple backticks with `mermaid` as the language identifier. \
+*(instruction)* **Init Block:** Always begin with `%%{init: {'flowchart': {'arrowMarkerSize': 1.5}}}%%` to enlarge arrowheads. \
+*(instruction)* **Direction:** Use `flowchart TD` for top-down architecture diagrams. \
+*(instruction)* **Thick Arrows:** Use `==>` for primary (solid, thick) connections representing the main communication path. \
+*(instruction)* **Dashed Arrows:** Use `-.->` for secondary connections such as internal delegation between agents and subagents. \
+*(instruction)* **Subgraphs:** Use `subgraph [ID] [Label]` blocks to visually group related nodes (e.g., a Full Role Agent alongside its Subagents). \
+*(instruction)* **Direction in Subgraph:** Use `direction TB` inside subgraphs to enforce top-to-bottom layout within the group. \
+*(instruction)* **Color Coding:** Use `linkStyle` at the end of the diagram to apply directional color. Indigo (`#818cf8`) for downward/request flow. Amber (`#fbbf24`) for upward/response flow. \
+*(instruction)* **Link Indices:** `linkStyle` targets connections by their zero-based index in the order they are declared in the diagram source.
+
+```mermaid
+%%{init: {'flowchart': {'arrowMarkerSize': 1.5}}}%%
+flowchart TD
+    subgraph UI_Level
+        direction LR
+        UM[User Message]
+    end
+
+    UM ==> G[Gateway]
+    G ==> UM
+
+    G ==> O[Orchestrator Agent]
+
+    subgraph Agent_1_Stack [Agent 1 Stack]
+        direction TB
+        A1[Full Role Agent 1]
+        W11[Subagent 1.1]
+        W12[Subagent 1.N]
+
+        A1 -.-> W11
+        A1 -.-> W12
+        W11 -.-> A1
+        W12 -.-> A1
+    end
+
+    G -.-> A1
+    O ==> A1
+    A1 ==> O
+    A1 -.-> G
+    O ==> G
+
+    linkStyle 0,2,6,7 stroke:#818cf8,stroke-width:4px
+    linkStyle 3,4,8 stroke:#818cf8,stroke-width:2px
+    linkStyle 1,9,10,11 stroke:#fbbf24,stroke-width:4px
+    linkStyle 5,6 stroke:#fbbf24,stroke-width:2px
+```
