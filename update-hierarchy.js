@@ -7,7 +7,8 @@ const tabsHierarchy = [
     title: 'Chapter 0: Formatting Guide',
     icon: 'Book',
     subtabs: [
-      { id: 'tab-00', title: '0.1 Overview', filename: 'tab-00.md' }
+      { id: 'chapter-0.1', title: '0.1 Overview', filename: 'chapter-0.1.md' },
+      { id: 'chapter-0.2', title: '0.2 Installation Guide', filename: 'chapter-0.2.md' }
     ]
   },
   {
@@ -15,8 +16,8 @@ const tabsHierarchy = [
     title: 'Chapter 1: Introduction',
     icon: 'Info',
     subtabs: [
-      { id: 'tab-01', title: '1.1 Overview', filename: 'tab-01.md' },
-      { id: 'tab-02', title: '1.2 Feature List', filename: 'tab-02.md' }
+      { id: 'chapter-1.1', title: '1.1 Overview', filename: 'chapter-1.1.md' },
+      { id: 'chapter-1.2', title: '1.2 Feature List', filename: 'chapter-1.2.md' }
     ]
   },
   {
@@ -24,7 +25,8 @@ const tabsHierarchy = [
     title: 'Chapter 2: Architecture',
     icon: 'Layers',
     subtabs: [
-      { id: 'tab-03', title: '2.1 Multi-Agent Architecture', filename: 'tab-03.md' }
+      { id: 'chapter-2.1', title: '2.1 Multi-Agent Architecture', filename: 'chapter-2.1.md' },
+      { id: 'chapter-2.2', title: '2.2 Native Memory Architecture', filename: 'chapter-2.2.md' }
     ]
   }
 ];
