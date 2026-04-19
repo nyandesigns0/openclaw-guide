@@ -25,6 +25,7 @@ xli241999@gmail.com
 ### 0.2.3 Application Installation
 **Google Chrome:** [Download](https://www.google.com/chrome/) \
 **Micorsoft VC++:** [Download](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist) \
+**Node.js:** [Download](https://nodejs.org/en/download/) \
 **Git:** [Download](https://git-scm.com/download/win) \
 **VS Code:** [Download](https://code.visualstudio.com/) \
 **OpenAICodex:** [Download](https://openai.com/codex) \
