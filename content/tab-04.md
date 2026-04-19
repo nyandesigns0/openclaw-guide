@@ -1,4 +1,4 @@
-# Chapter 2.2 — Native Memory Architecture
+# Chapter 2.2 — Memory Architecture
 
 ## 2.2.0 Overview
 
@@ -53,60 +53,65 @@ flowchart TD
 **Security Discipline:** Treat the workspace as private memory. Durable personal context belongs in agent-owned files, not in shared channel transcripts or assumptions kept only in ephemeral reasoning. 
 
 ```text
-~/.openclaw/
-  openclaw.json
-  memory/
-    <agentId>.sqlite
-
-  agents/
-    orchestrator/
-      agent/
-        auth-profiles.json
-        auth.json
-      sessions/
-        sessions.json
-      workspace/
-        AGENTS.md
-        SOUL.md
-        TOOLS.md
-        IDENTITY.md
-        USER.md
-        HEARTBEAT.md
-        MEMORY.md
-        DREAMS.md
-        memory/
-          YYYY-MM-DD.md
-    agent-1/
-      agent/
-        auth-profiles.json
-        auth.json
-      sessions/
-        sessions.json
-      workspace/
-        AGENTS.md
-        SOUL.md
-        TOOLS.md
-        IDENTITY.md
-        USER.md
-        HEARTBEAT.md
-        MEMORY.md
-        DREAMS.md
-        memory/
-          YYYY-MM-DD.md
+~/.openclaw/agents/<agentId>/
+  agent/
+    auth-profiles.json
+    auth.json
+  sessions/
+    sessions.json
+  workspace/
+    AGENTS.md
+    SOUL.md
+    TOOLS.md
+    IDENTITY.md
+    USER.md
+    HEARTBEAT.md
+    MEMORY.md
+    DREAMS.md
+    memory/
+      YYYY-MM-DD.md
 ```
 
-### 2.2.3 Retrieval, Indexing, and Recall Pipeline
+### 2.2.3 Agent Memory Write Path
 
-**Memory Tools:** Native recall is exposed through `memory_search` for semantic retrieval and `memory_get` for direct file or line reads. These tools are supplied by the active memory plugin, with `memory-core` as the default native path. 
-**Default Backend:** The builtin memory engine is the default backend and stores a per-agent index in SQLite, requiring no external memory service to start. 
-**Index Inputs:** The builtin engine indexes `MEMORY.md` plus `memory/*.md`, chunking content into retrieval units and keeping the workspace files as the durable source of truth. 
-**Hybrid Retrieval:** OpenClaw can combine keyword retrieval and embedding-based vector retrieval, then merge results into a single recall set instead of relying on one search mode only. 
-**Reindex Behavior:** File changes trigger debounced reindexing, while provider, model, or chunking changes trigger a full rebuild of the per-agent memory index. 
-**Recall Quality Controls:** MMR reduces duplicate retrievals, temporal decay boosts recency for older daily notes, and evergreen files such as `MEMORY.md` remain exempt from decay. 
-**Additional Sources:** `memorySearch.extraPaths` can extend recall beyond the default workspace memory roots, while experimental session memory can index transcripts into the same retrieval surface. 
-**Optional Sidecar Backend:** QMD is an optional local-first sidecar backend for reranking, query expansion, extra directories, and stronger transcript-oriented recall. It extends the native architecture without changing the file-backed source-of-truth model. 
-**Citation Surface:** Memory snippets can carry path-and-line provenance, allowing retrieved memory to remain inspectable rather than opaque. 
-**Reference Configuration:** The configuration below shows a native-first layout using the builtin engine, hybrid retrieval controls, transcript indexing, and dreaming support. \
+**Write Mechanism:** Agents do not “store memory” implicitly; all persistence happens through explicit writes to workspace files. Memory writing is either performed through tool calls (when available) or direct file mutation within the workspace context. \
+**Tool-Level Write Path:** When a memory write tool is available (e.g., file write or structured memory tool), the agent issues a tool call with a payload describing the target file, content, and intent. This follows the same execution pattern as any other tool: the agent plans → selects tool → emits structured arguments → runtime executes → result returns into context. \
+**File-Level Write Path:** In native operation without a specialized write tool, the agent writes memory by appending or modifying Markdown files inside its workspace. Typical targets are `memory/YYYY-MM-DD.md` for working memory and `MEMORY.md` for curated long-term memory. The runtime treats these as normal file operations rather than hidden state mutation. \
+**Working Memory Writes:** Short-term observations, task context, and intermediate conclusions are written to the current dated file under `memory/`. This file acts as an append-only log during active execution and is optimized for rapid capture rather than structure. \
+**Long-Term Memory Writes:** Durable knowledge is written into `MEMORY.md`, but not continuously. The agent must first decide that information is stable, relevant beyond the current task, and worth promoting. This introduces a separation between capture and consolidation. \
+**Promotion Boundary:** The transition from working memory to long-term memory is a deliberate step. The agent either performs this directly (by editing `MEMORY.md`) or emits a structured promotion instruction that is later applied. This prevents pollution of long-term memory with transient data. \
+**Subagent Write Constraints:** Subagents do not own independent memory roots. They write only within the execution scope of their parent agent, typically contributing to working memory or returning structured results. They must not directly modify long-term memory without parent mediation. \
+**Isolation Rules:** Each Full Role Agent writes only within its own workspace directory. Cross-agent memory writes require explicit tool-level permission and are not part of the default execution path. This preserves memory boundaries and prevents unintended state sharing. \
+**Write Visibility:** Once a file is written, it becomes immediately visible to subsequent reads in the same session. Indexing layers update asynchronously, so semantic retrieval may lag behind direct file reads. \
+**Consistency Model:** File writes are atomic at the runtime level but not transactional across multiple files. Agents should avoid partial multi-file updates and instead write complete, self-contained entries. \
+**Recommended Control Flow:**
+
+```mermaid
+%%{init: {'flowchart': {'arrowMarkerSize': 1.5}}}%%
+flowchart TD
+    T[Agent Turn] ==> C[Classify Information]
+    C ==> W[Write to memory/YYYY-MM-DD.md]
+    W -.-> P[Optionally Promote]
+    P -.-> U[Update MEMORY.md]
+    U -.-> R[Retrieval Layer Reindexes]
+    W ==> R
+    R ==> A[Future Turns Access Updated Memory]
+
+    linkStyle 0,1,5,6 stroke:#818cf8,stroke-width:4px
+    linkStyle 2,3,4 stroke:#fbbf24,stroke-width:2px
+```
+
+### 2.2.4 Retrieval, Indexing, and Recall Pipeline
+
+**Memory Tools:** Native recall is exposed through `memory_search` for semantic retrieval and `memory_get` for direct file or line reads. These tools are supplied by the active memory plugin, with `memory-core` as the default native path. \
+**Index Inputs:** The builtin engine indexes `MEMORY.md` plus `memory/*.md`, chunking content into retrieval units and keeping the workspace files as the durable source of truth. \
+**Hybrid Retrieval:** OpenClaw can combine keyword retrieval and embedding-based vector retrieval, then merge results into a single recall set instead of relying on one search mode only. \
+**Reindex Behavior:** File changes trigger debounced reindexing, while provider, model, or chunking changes trigger a full rebuild of the per-agent memory index. \
+**Recall Quality Controls:** MMR reduces duplicate retrievals, temporal decay boosts recency for older daily notes, and evergreen files such as `MEMORY.md` remain exempt from decay. \
+**Additional Sources:** `memorySearch.extraPaths` can extend recall beyond the default workspace memory roots, while experimental session memory can index transcripts into the same retrieval surface. \
+**Optional Sidecar Backend:** QMD is an optional local-first sidecar backend for reranking, query expansion, extra directories, and stronger transcript-oriented recall. It extends the native architecture without changing the file-backed source-of-truth model. \
+**Citation Surface:** Memory snippets can carry path-and-line provenance, allowing retrieved memory to remain inspectable rather than opaque. \
+**Reference Configuration:** The configuration below shows a native-first layout using the builtin engine, hybrid retrieval controls, transcript indexing, and dreaming support. 
 
 ```json5
 {
@@ -158,7 +163,7 @@ flowchart TD
 }
 ```
 
-### 2.2.4 Consolidation, Maintenance, and Dreaming
+### 2.2.5 Consolidation, Maintenance, and Dreaming
 
 **Immediate Capture:** When the user says to remember something, or when a durable decision is made, the correct native behavior is to write it into the workspace rather than trusting the current context window. 
 **Short-Term to Long-Term Flow:** Daily notes are the staging layer. Significant patterns, preferences, lessons, or decisions should later be distilled into `MEMORY.md` instead of leaving them buried in dated logs. 
@@ -169,7 +174,7 @@ flowchart TD
 **Grounded Backfill:** Historical daily notes can be reprocessed into grounded dream entries and promotion candidates, allowing older raw notes to be consolidated without manually rereading the entire archive each time. 
 **Knowledge-Layer Extension:** `memory-wiki` is an optional compiled knowledge layer that sits beside active memory. It does not replace native recall, promotion, indexing, or dreaming; it organizes durable knowledge into deterministic wiki pages, claims, dashboards, and digests. \
 
-### 2.2.5 Storage Boundaries, Multi-Agent Guidance, and Anti-Patterns
+### 2.2.6 Storage Boundaries, Multi-Agent Guidance, and Anti-Patterns
 
 **Workspace vs Runtime State:** Workspace files are the human-authored memory surface. Runtime indexes, credentials, auth profiles, and session transcripts live elsewhere under `~/.openclaw/` and should not be treated as interchangeable with authored memory. 
 **Per-Agent Isolation:** In a multi-agent deployment, each Full Role Agent should keep its own workspace memory, its own retrieval index, and its own long-term memory boundary. This prevents role bleed between orchestrator, specialist, and other durable agents. 

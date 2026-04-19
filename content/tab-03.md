@@ -9,27 +9,29 @@ This chapter defines the native multi-agent hierarchy, routing pipeline, and wor
 **Model Structure:** The agentic model is a three-tier execution hierarchy: one Orchestrator Agent at the top, multiple Full Role Agents as durable domain specialists below it, and task-scoped Subagents as narrower execution units beneath each Full Role Agent. \
 **Full Role Agent:** A first-class agent instance with a defined role boundary, persistent identity, governed instructions, assigned tools, and its own full workspace — including `SOUL.md`, `AGENTS.md`, `IDENTITY.md`, `TOOLS.md`, and others. Each Full Role Agent is declared in `agents.list[]` with its own `id`, `workspace`, `agentDir`, model/tool policy, and subagent policy. The Orchestrator is itself a Full Role Agent, but with a specialized foundational role: it serves as the sole inbound coordination point rather than a domain executor. All other Full Role Agents receive work delegated through the system, plan and execute within their domain, spawn Subagents when deeper specialization is needed, and consolidate results back upward. \
 **Subagent:** A task-scoped execution unit created natively via `sessions_spawn` under a Full Role Agent. Subagents operate in their own session key with narrower responsibility, reduced tool exposure, and a constrained skill profile. They are not independently addressable at the gateway and do not receive their own top-level workspace. \
-**Communication Pattern:** The default path is vertical: a user message enters the gateway, routes to the Orchestrator via `bindings`, which delegates to one Full Role Agent via `sessions_spawn`, which may spawn Worker Subagents internally. Results bubble back up through the same chain — Workers to their parent Full Role Agent, then to the Orchestrator, then back through the gateway to the user. Optionally, a user may directly address a Full Role Agent via the gateway when an explicit `bindings` entry exposes that agent.
+**Communication Pattern:** A user message enters the gateway and routes to the Orchestrator via `bindings`. The Orchestrator delegates to one Full Role Agent via `sessions_spawn`. The Orchestrator does not deliver the final product; instead, it provides the user with step-by-step progress updates. Upon completion, the assigned Full Role Agent directly contacts the user with the final deliverable, allowing the user to continue the thread for further changes. Finally, the Orchestrator compiles and delivers a final report (success or failure) from its perspective. Optionally, a user may directly address a Full Role Agent via the gateway when an explicit `bindings` entry exposes that agent.
 
 ```mermaid
 %%{init: {'flowchart': {'arrowMarkerSize': 1.5}}}%%
 flowchart LR
     U[User] ==> G[Gateway]
-    G ==> FRA[Full Role Agent]
+    G ==> O[Orchestrator]
+    O ==> FRA[Full Role Agent]
     FRA ==> SA[Subagent]
     
     SA -.-> FRA
-    FRA -.-> G
+    O -. "Progress & Report" .-> G
+    FRA -. "Final Product" .-> G
     G -.-> U
     
-    linkStyle 0,1,2 stroke:#818cf8,stroke-width:4px
-    linkStyle 3,4,5 stroke:#fbbf24,stroke-width:2px
+    linkStyle 0,1,2,3 stroke:#818cf8,stroke-width:4px
+    linkStyle 4,5,6,7 stroke:#fbbf24,stroke-width:2px
 ```
 
 ### 2.1.2 Agentic Roles
 
-**Orchestrator Agent:** *(Full Role Agent)* The single top-level coordinator. Receives inbound requests from the gateway via `bindings`, routes work to the appropriate Full Role Agent using `sessions_spawn`, and returns the final consolidated response. Does not perform direct worker-level execution and does not spawn its own Subagents. \
-**Execution Agents:** *(Full Role Agent)* Full Role Agents operating below the Orchestrator as domain-specific specialists. Each owns its role logic, determines whether to execute directly or spawn Worker Subagents, and controls all subordinate activity within its role boundary. Declared in `agents.list[]` with their own workspace, model policy, and subagent allowlist. \
+**Orchestrator Agent:** *(Full Role Agent)* The single top-level coordinator. Receives inbound requests from the gateway via `bindings` and routes work to the appropriate Full Role Agent using `sessions_spawn`. It does not return the final product; instead, it provides step-by-step progress updates to the user and a final execution report. It does not perform direct worker-level execution and does not spawn its own Subagents. \
+**Execution Agents:** *(Full Role Agent)* Full Role Agents operating below the Orchestrator as domain-specific specialists. Each owns its role logic, determines whether to execute directly or spawn Worker Subagents, and controls all subordinate activity within its role boundary. Once execution is complete, the Execution Agent contacts the user directly with the final deliverable, enabling continued conversation. Declared in `agents.list[]` with their own workspace, model policy, and subagent allowlist. \
 **Worker Agents:** *(Subagent)* Subagents spawned natively under Execution Agents using `sessions_spawn` to perform the most narrowly scoped tasks in the hierarchy. Inherit the parent execution context but with tighter responsibility, constrained reasoning scope, and a more targeted tool profile. Do not communicate directly with the user or gateway and have no independent top-level identity.
 
 ```mermaid
@@ -84,9 +86,9 @@ flowchart TD
     A1 ==> O
     A2 ==> O
 
-    A1 -.-> G
-    A2 -.-> G
-    O ==> G
+    A1 -. "Final Product" .-> G
+    A2 -. "Final Product" .-> G
+    O -. "Progress & Report" .-> G
 
     linkStyle 0,2,17,18 stroke:#818cf8,stroke-width:4px
     linkStyle 3,4,5,9,10,11,15,16 stroke:#818cf8,stroke-width:2px
@@ -99,9 +101,9 @@ flowchart TD
 **External User to Orchestrator:** Inbound `bindings` route normal user traffic to the `orchestrator`; the most-specific binding wins, and unmatched traffic falls back to the default agent. ([OpenClaw][1]) \
 **Orchestrator to Specialist:** The Orchestrator should delegate isolated task execution with `sessions_spawn(agentId: "agent-1" | "agent-n")`, which runs the task as a background sub-agent session under the selected Full Role Agent profile. ([OpenClaw][2]) \
 **Nested Execution:** Execution Agents may spawn Worker Subagents when nested spawning is enabled via `agents.defaults.subagents.maxSpawnDepth >= 2`. At depth 1, the spawned session can still orchestrate children. At leaf depth, recursive orchestration tools are removed by runtime policy. Depth-1 children can orchestrate depth-2 workers — this is both documented behavior and runtime-enforced. ([OpenClaw][2]) \
-**Return Path:** Worker Subagents return results to their parent Execution Agent. OpenClaw's native subagent model is announce-driven, and `sessions_send` is on the subagent deny list by default. Worker Subagents do not communicate laterally or upward to the Orchestrator directly — the parent Full Role Agent consolidates results before control moves back up the chain. ([OpenClaw][2]) \
+**Return Path:** Worker Subagents return results to their parent Execution Agent. OpenClaw's native subagent model is announce-driven, and `sessions_send` is on the subagent deny list by default. Worker Subagents do not communicate laterally or upward to the Orchestrator directly — the parent Full Role Agent consolidates results. The Full Role Agent then delivers the final product directly to the user, allowing the user to continue the thread. ([OpenClaw][2]) \
 **Cross-Agent Gates:** Cross-agent reach belongs to Full Role Agents, not Worker Subagents. For a Full Role Agent to talk across agent boundaries, `tools.sessions.visibility` must be `all`, `tools.agentToAgent.enabled` must be true, and the sender must be listed in `tools.agentToAgent.allow`. Sandboxed sessions are clamped back to `tree` visibility regardless of global settings, ensuring Worker Subagents remain local to their parent execution tree. ([OpenClaw][1]) \
-**Recommended Control Shape:** Gateway → Orchestrator → selected Full Role Agent → optional Worker Subagents → parent Full Role Agent → Orchestrator → Gateway response. Optional Gateway → Full Role Agent direct access is valid when an explicit `bindings` entry is defined for it. \
+**Recommended Control Shape:** Gateway → Orchestrator (provides progress updates to user) → selected Full Role Agent → optional Worker Subagents → parent Full Role Agent (delivers final product to user) → Orchestrator (delivers final report). Optional Gateway → Full Role Agent direct access is valid when an explicit `bindings` entry is defined for it. \
 **Validation:** Verify final paths with `openclaw config schema` — OpenClaw validates against the live merged schema, and staying within that schema is the safest path for upgrades. \
 **Reference Configuration:** The configuration below maps to current documented schema surfaces for `agents.list[]`, `bindings`, nested subagent depth, and agent-to-agent control. All agent workspaces use the native per-agent path under `~/.openclaw/agents/<id>/workspace`. Note that `maxConcurrent: 4` is a recommended deployment value for local hardware rather than a platform default. ([OpenClaw][1])
 
