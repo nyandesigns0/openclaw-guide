@@ -13,6 +13,7 @@ xli241999@gmail.com
 **Windows Checklist:** \
 *Clipboard History:* Press `Windows + V` and select **Turn on** to enable multi-item clipboard history for efficient management. \
 *Power Settings:* Set the power plan to **High Performance** and configure sleep timers to **Never** to ensure uninterrupted agent operations. \
+*Start-up Apps:* Disable all non-essential applications in **Task Manager > Startup** to maximize system resources for agent execution. \
 
 
 ### 0.2.2 Driver Installation 
@@ -22,5 +23,10 @@ xli241999@gmail.com
 
 
 ### 0.2.3 Application Installation
-**Google Chrome:** [Download Google Chrome](https://www.google.com/chrome/) \
+**Google Chrome:** [Download](https://www.google.com/chrome/) \
+**Micorsoft VC++:** [Download](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist) \
+**Git:** [Download](https://git-scm.com/download/win) \
+**VS Code:** [Download](https://code.visualstudio.com/) \
+**OpenAICodex:** [Download](https://openai.com/codex) \
+**ChatGPT:** [Download](https://openai.com/chatgpt) \
 
