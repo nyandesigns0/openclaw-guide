@@ -2,7 +2,7 @@
 
 ## 2.2.0 Overview
 
-This chapter defines how OpenClaw persists, retrieves, consolidates, and isolates native memory across agent workspaces, memory backends, and optional memory-adjacent plugins.
+This chapter defines how OpenClaw persists, retrieves, consolidates, and isolates native memory across agent workspaces, memory backends, and optional memory-adjacent plugins. It also covers the compiled knowledge plane built on `memory-wiki`, the shared consolidation layer under `_shared/`, and the `memory-retainer` maintainer agent that owns the wiki write path.
 
 ### 2.2.1 Native Memory Model
 
@@ -72,19 +72,12 @@ flowchart TD
       YYYY-MM-DD.md
 ```
 
-### 2.2.3 Multi Agent Memory Files
+### 2.2.3 Multi-Agent Memory and Knowledge Planes
 
-**Shared Compilation Layer:** A custom shared consolidation layer at `~/.openclaw/agents/_shared/` holds canonical master profiles and structured cross-agent fact ledgers. This is an operator-owned compilation surface rather than a native OpenClaw agent workspace or native memory root; native memory continues to live in each Full Role Agent workspace under `~/.openclaw/agents/<agentId>/workspace/`. \
-**Two-Stage Consolidation:** Stage 1 is event-driven consolidation triggered by plugin hooks, while Stage 2 is a scheduled full-system rebuild via cron to ensure eventual consistency across the multi-agent deployment. \
-**Hook Terminology:** Consolidation logic should primarily trigger on the plugin hooks `agent_end` (for task success) or `session_end` (for session closure). Internal hooks like `message:sent` represent outbound delivery rather than true task success and should only be used as a coarse fallback. \
-**Canonical Files:** Use master files only for stable, profile-like data including `USER.master.md`, `TOOLS.master.md`, and optional `MEMORY.master.md`. Structured candidate facts are staged in `facts/inbox/` before being resolved into the persistent `facts/ledger.jsonl`. \
-**Daily Memory Boundary:** Dated memory files in `memory/YYYY-MM-DD.md` remain local to each Full Role Agent workspace as native append-oriented working memory. Centralized compilation of daily logs is not the default model; instead, durable facts are extracted from local logs into the shared ledger to regenerate profile views. \
-**Generated Outputs:** The consolidation engine generates per-agent `USER.md`, `TOOLS.md`, and optional curated `MEMORY.md` from the shared master layer. These are filtered, agent-specific views of the global context, while daily `memory/` directories remain local and agent-owned. \
-**Scripting Architecture:** Concerns are separated into `collect-shared-facts.ts` for appending candidate facts to the shared inbox and `rebuild-shared-views.ts` for resolving conflicts, updating master files, and regenerating per-agent workspace outputs. \
-**Full-System Fallback:** Run the reconciler via cron several times per day as an isolated background job to ensure missed updates are folded into the shared ledger and all generated workspace files are refreshed. \
-**Conflict Policy:** Same key with newer timestamp wins. Higher confidence beats lower when timestamps are close. Agent-scoped facts remain agent-scoped unless explicitly marked global. Privacy-flagged facts never propagate to specialist views. Orchestrator receives a broad summary; specialists receive narrow slices. 
-
-**Shared Layer Folder Shape**
+**Primary Knowledge Layer:** `memory-wiki` is the main shared knowledge surface for compiled, durable knowledge. It sits above the active memory plugin rather than replacing it — `memory-core` (or equivalent) remains enabled underneath and continues to own recall, promotion, indexing, and dreaming. `memory-retainer` is the sole write-grade maintainer of this surface, receiving `wiki_status`, `wiki_search`, `wiki_get`, `wiki_apply`, and `wiki_lint`, while other Full Role Agents receive primarily `wiki_search` and `wiki_get`. \
+**Shared Consolidation Layer:** A custom operator-owned layer at `~/.openclaw/agents/_shared/` holds canonical master profiles and structured cross-agent fact ledgers. `_shared` is not a native OpenClaw agent workspace and not a native memory root; native memory continues to live in each Full Role Agent workspace. A strict split is maintained between user-profile context (`USER.master.md`, per-agent `USER.md`) and operational memory (daily notes, facts ledger). \
+**Canonical Files:** Use master files only for stable, profile-like data: `USER.master.md`, `TOOLS.master.md`, and optional `MEMORY.master.md`. Structured candidate facts are staged in `facts/inbox/<agentId>/` before being resolved into the persistent `facts/ledger.jsonl`. Novelty classification, task-not-done-before scoring, and skill-generation decisions are custom `memory-retainer` policies — not built-in OpenClaw or `memory-wiki` features. Successful new workflows and novel task outcomes are staged as skill, tool guidance, or wiki synthesis candidates. Novelty and maintenance reports land in `reports/`. \
+*Shared Layer Folder Shape*
 
 ```text
 ~/.openclaw/agents/_shared/
@@ -96,14 +89,26 @@ flowchart TD
       orchestrator/
       agent-1/
       agent-n/
+      memory-retainer/
     ledger.jsonl
+  reports/
+    novelty/
+    maintenance/
 ```
-
-**Generated Output Shape**
+**Wiki Ingestion Path:** Treat `_shared` as a source layer, not a search layer. `memory-wiki` bridge mode can import public artifacts from the active memory plugin such as daily notes, memory-root files, dream reports, and memory event logs — but `_shared` itself is not a native bridge source. `memory-retainer` must therefore project `_shared` content into the wiki vault as source or synthesis pages, or ingest selected `_shared` files through the wiki CLI/tooling before running compile and lint. This keeps `_shared` and the wiki aligned without adding a separate custom retriever. \
+**Daily Memory Boundary:** Dated memory files in `memory/YYYY-MM-DD.md` remain local to each Full Role Agent workspace as native append-oriented working memory. Centralized compilation of daily logs is not the default model; durable facts are extracted from local logs into the shared ledger to regenerate profile views. \
+**Generated Outputs:** `memory-retainer` regenerates only profile-style workspace files for each Full Role Agent: `USER.md`, `TOOLS.md`, and optional curated `MEMORY.md`. Local `memory/YYYY-MM-DD.md` remains append-oriented working memory owned by the active memory layer plus optional dreaming. The wiki is the main retrieval surface, `_shared` is the canonical control plane, and local daily memory is the native capture layer. \
+*Generated Output Shape*
 
 ```text
 ~/.openclaw/agents/
   orchestrator/
+    workspace/
+      TOOLS.md
+      USER.md
+      MEMORY.md
+      memory/
+  memory-retainer/
     workspace/
       TOOLS.md
       USER.md
@@ -122,24 +127,20 @@ flowchart TD
       MEMORY.md
       memory/
 ```
-
-**Example Cron:**
-
-```bash
-openclaw cron add \
-  --name "Rebuild shared memory views" \
-  --cron "0 */6 * * *" \
-  --session isolated \
-  --agent orchestrator \
-  --message "Run shared fact reconciliation and regenerate master files plus all per-agent memory views." \
-  --no-deliver
-```
-
+**Conflict Policy:** Same key with newer timestamp wins. Higher confidence beats lower when timestamps are close. Agent-scoped facts remain agent-scoped unless explicitly marked global. Privacy-flagged facts never propagate to specialist views. Orchestrator receives a broad summary; specialists receive narrow slices.
 
 
 ### 2.2.4 Agent Memory Write Path
 
-**Write Mechanism:** Agents do not “store memory” implicitly; all persistence happens through explicit writes to workspace files. Memory writing is either performed through tool calls (when available) or direct file mutation within the workspace context. \
+**Write Path Philosophy:** Agents read memory through dedicated memory retrieval tools, but memory is usually written by updating workspace files through the normal file/tool execution path. Retrieval is memory-native; writes are file-native. \
+
+**Conceptual Write Flow:**
+1. **Decision:** Agent decides "this should be remembered." \
+2. **Execution:** Agent uses normal file-writing path/tooling to update workspace Markdown. \
+3. **Indexing:** Memory system indexes those files. \
+4. **Recall:** Later reads happen through `memory_search` or `memory_get`. \
+
+**Write Mechanism:** Agents do not “store memory” implicitly; all persistence happens through explicit writes to workspace files. Memory writing is performed via standard tool calls or direct file mutation within the workspace context. \
 **Tool-Level Write Path:** When a memory write tool is available (e.g., file write or structured memory tool), the agent issues a tool call with a payload describing the target file, content, and intent. This follows the same execution pattern as any other tool:
 
 ```mermaid
@@ -180,7 +181,8 @@ flowchart TD
 
 ### 2.2.5 Retrieval, Indexing, and Recall Pipeline
 
-**Memory Tools:** Native recall is exposed through `memory_search` for semantic retrieval and `memory_get` for direct file or line reads. These tools are supplied by the active memory plugin, with `memory-core` as the default native path. \
+**Primary Retrieval Surface:** `wiki_search` and `wiki_get` are the primary agent-facing retrieval tools in this architecture. `memory-retainer` additionally holds `wiki_apply` and `wiki_lint`. Under the hood, `memory-wiki` can search with shared or local backends and across wiki, memory, or all corpora — but the surface agents interact with is wiki-native. Do not add a custom search layer on top of `_shared`; expose the wiki tools instead. \
+**Active Memory Recall:** Native recall from the active memory plugin is exposed through `memory_search` for semantic retrieval and `memory_get` for direct file or line reads, with `memory-core` as the default native path. These remain active underneath `memory-wiki` and continue to own the recall, indexing, and dreaming pipeline. \
 **Index Inputs:** The builtin engine indexes `MEMORY.md` plus `memory/*.md`, chunking content into retrieval units and keeping the workspace files as the durable source of truth. \
 **Hybrid Retrieval:** OpenClaw can combine keyword retrieval and embedding-based vector retrieval, then merge results into a single recall set instead of relying on one search mode only. \
 **Reindex Behavior:** File changes trigger debounced reindexing, while provider, model, or chunking changes trigger a full rebuild of the per-agent memory index. \
@@ -188,7 +190,7 @@ flowchart TD
 **Additional Sources:** `memorySearch.extraPaths` can extend recall beyond the default workspace memory roots, while experimental session memory can index transcripts into the same retrieval surface. \
 **Optional Sidecar Backend:** QMD is an optional local-first sidecar backend for reranking, query expansion, extra directories, and stronger transcript-oriented recall. It extends the native architecture without changing the file-backed source-of-truth model. \
 **Citation Surface:** Memory snippets can carry path-and-line provenance, allowing retrieved memory to remain inspectable rather than opaque. \
-**Reference Configuration:** The configuration below shows a native-first layout using the builtin engine, hybrid retrieval controls, transcript indexing, and dreaming support. 
+**Reference Configuration:** The configuration below shows a native-first layout using the builtin engine, hybrid retrieval controls, transcript indexing, dreaming support, and `memory-wiki` as the compiled knowledge layer.
 
 ```json5
 {
@@ -234,6 +236,30 @@ flowchart TD
             frequency: "0 3 * * *"
           }
         }
+      },
+      "memory-wiki": {
+        config: {
+          vault: "~/.openclaw/wiki",
+          bridge: {
+            enabled: true,
+            // Imports daily notes, memory-root files, dream reports, and
+            // memory event logs from the active memory plugin.
+            // _shared is NOT a native bridge source; memory-retainer
+            // projects _shared content into wiki sources directly.
+            sources: ["memory", "dreams", "events"]
+          },
+          tools: {
+            // All Full Role Agents receive wiki_search and wiki_get.
+            // wiki_apply and wiki_lint are narrowed to memory-retainer.
+            default: ["wiki_status", "wiki_search", "wiki_get"],
+            overrides: [
+              {
+                agentId: "memory-retainer",
+                tools: ["wiki_status", "wiki_search", "wiki_get", "wiki_apply", "wiki_lint"]
+              }
+            ]
+          }
+        }
       }
     }
   }
@@ -242,14 +268,46 @@ flowchart TD
 
 ### 2.2.6 Consolidation, Maintenance, and Dreaming
 
-**Immediate Capture:** When the user says to remember something, or when a durable decision is made, the correct native behavior is to write it into the workspace rather than trusting the current context window. 
-**Short-Term to Long-Term Flow:** Daily notes are the staging layer. Significant patterns, preferences, lessons, or decisions should later be distilled into `MEMORY.md` instead of leaving them buried in dated logs. 
-**Heartbeat Maintenance:** Heartbeat runs scheduled main-session turns that can review `HEARTBEAT.md`, surface follow-ups, and maintain the memory surface without creating detached background-task records. 
-**Dreaming System:** Dreaming is the background consolidation system with light, REM, and deep phases. Light stages short-term material, REM reflects and surfaces themes, and deep promotion is the phase that writes durable updates into `MEMORY.md`. 
-**Dream Output:** Dreaming writes machine state under `memory/.dreams/` and human-readable narrative output into `DREAMS.md`, keeping promotion artifacts inspectable by the operator. 
-**Promotion Discipline:** Durable memory should be distilled, stable, and reviewable. `MEMORY.md` should contain lasting truths and operator-relevant conclusions, not every transient observation from the daily stream. 
-**Grounded Backfill:** Historical daily notes can be reprocessed into grounded dream entries and promotion candidates, allowing older raw notes to be consolidated without manually rereading the entire archive each time. 
-**Knowledge-Layer Extension:** `memory-wiki` is an optional compiled knowledge layer that sits beside active memory. It does not replace native recall, promotion, indexing, or dreaming; it organizes durable knowledge into deterministic wiki pages, claims, dashboards, and digests. \
+**The Consolidation Engine:** Consolidation is the process of moving captured information through the staging layers into durable storage. OpenClaw uses a two-stage approach to ensure that high-frequency data doesn't overwhelm the long-term memory plane. \
+**Two-Stage Maintenance:** *Stage 1* is event-driven maintenance through the Orchestrator handoff or lifecycle hooks. *Stage 2* is scheduled full-system maintenance through isolated cron jobs bound to `memory-retainer`, which holds authority to compile, lint, summarize, and reconcile contradictions. \
+**Immediate Capture:** When the user says to remember something, or when a durable decision is made, the correct native behavior is to write it into the workspace rather than trusting the current context window. \
+**Short-Term to Long-Term Flow:** Daily notes are the staging layer. Significant patterns, preferences, lessons, or decisions are first captured in the `_shared/facts/` inbox before being distilled into the shared ledger and promoted into `MEMORY.md`. \
+**Hook Terminology:** Consolidation logic should primarily trigger on the plugin hooks `agent_end` (for task success) or `session_end` (for session closure). Internal hooks like `message:sent` represent outbound delivery rather than true task success and should only be used as a coarse fallback. \
+**Heartbeat Maintenance:** Heartbeat runs scheduled main-session turns that can review `HEARTBEAT.md`, surface follow-ups, and maintain the memory surface without creating detached background-task records. \
+**Dreaming System:** Dreaming is the background consolidation system with light, REM, and deep phases. Light stages short-term material, REM reflects and surfaces themes, and deep promotion is the phase that writes durable updates into `MEMORY.md`. \
+**Dream Output:** Dreaming writes machine state under `memory/.dreams/` and human-readable narrative output into `DREAMS.md`, keeping promotion artifacts inspectable by the operator. \
+**Promotion Discipline:** Durable memory should be distilled, stable, and reviewable. `MEMORY.md` should contain lasting truths and operator-relevant conclusions, not every transient observation. \
+**Grounded Backfill:** Historical daily notes can be reprocessed into grounded dream entries and promotion candidates, allowing older raw notes to be consolidated. 
+
+**Event-Driven Handoff Flow**
+
+```mermaid
+%%{init: {'flowchart': {'arrowMarkerSize': 1.5}}}%%
+flowchart TD
+    Task[Successful Full-Agent Task] ==> Package[Orchestrator Packages Result + Report]
+    Package ==> Spawn[sessions_spawn agentId='memory-retainer']
+    Spawn ==> Classify[Classify Novelty and Durable Lessons]
+    Classify ==> Shared[Update ~/.openclaw/agents/_shared/]
+    Shared ==> Project[Project Shared Facts into Wiki Sources/Syntheses]
+    Project ==> Compile[Wiki Compile]
+    Compile ==> Lint[Wiki Lint]
+    Lint ==> Regen[Regenerate per-agent USER.md / TOOLS.md / MEMORY.md]
+    Regen ==> Future[Future Agents Retrieve via wiki_search / wiki_get]
+
+    linkStyle 0,1,2,3,4,5,6,7,8 stroke:#818cf8,stroke-width:4px
+```
+
+**Scheduled Maintenance Cron:**
+
+```bash
+openclaw cron add \
+  --name "Wiki maintenance and shared regeneration" \
+  --cron "0 */6 * * *" \
+  --session isolated \
+  --agent memory-retainer \
+  --message "Run wiki lint, wiki compile, shared-fact reconciliation, and regenerate per-agent USER.md, TOOLS.md, and curated MEMORY.md views." \
+  --no-deliver
+```
 
 ### 2.2.7 Storage Boundaries, Multi-Agent Guidance, and Anti-Patterns
 

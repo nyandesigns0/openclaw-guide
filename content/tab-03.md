@@ -31,6 +31,7 @@ flowchart LR
 ### 2.1.2 Agentic Roles
 
 **Orchestrator Agent:** *(Full Role Agent)* The single top-level coordinator. Receives inbound requests from the gateway via `bindings` and routes work to the appropriate Full Role Agent using `sessions_spawn`. It does not return the final product; instead, it provides step-by-step progress updates to the user and a final execution report. It does not perform direct worker-level execution and does not spawn its own Subagents. \
+**Maintainer Agent:** *(Full Role Agent)* A dedicated internal Full Role Agent — `memory-retainer` — with no user-facing communication surface. Triggered by Orchestrator handoff via `sessions_spawn(agentId: "memory-retainer")` after successful task completion, or automatically by an `agent_end` plugin hook. Holds write-grade wiki tools (`wiki_apply`, `wiki_lint`) in addition to the standard read surface (`wiki_status`, `wiki_search`, `wiki_get`). Responsible for novelty classification, fact ledger reconciliation, wiki compile and lint, and regenerating per-agent profile files. Runs on a scheduled cron as the Stage 2 full-system maintenance pass. Declared in `agents.list[]` like any other Full Role Agent but never bound to an inbound channel. \
 **Execution Agents:** *(Full Role Agent)* Full Role Agents operating below the Orchestrator as domain-specific specialists. Each owns its role logic, determines whether to execute directly or spawn Worker Subagents, and controls all subordinate activity within its role boundary. Once execution is complete, the Execution Agent contacts the user directly with the final deliverable, enabling continued conversation. Declared in `agents.list[]` with their own workspace, model policy, and subagent allowlist. \
 **Worker Agents:** *(Subagent)* Subagents spawned natively under Execution Agents using `sessions_spawn` to perform the most narrowly scoped tasks in the hierarchy. Inherit the parent execution context but with tighter responsibility, constrained reasoning scope, and a more targeted tool profile. Do not communicate directly with the user or gateway and have no independent top-level identity.
 
@@ -103,7 +104,25 @@ flowchart TD
 **Nested Execution:** Execution Agents may spawn Worker Subagents when nested spawning is enabled via `agents.defaults.subagents.maxSpawnDepth >= 2`. At depth 1, the spawned session can still orchestrate children. At leaf depth, recursive orchestration tools are removed by runtime policy. Depth-1 children can orchestrate depth-2 workers — this is both documented behavior and runtime-enforced. ([OpenClaw][2]) \
 **Return Path:** Worker Subagents return results to their parent Execution Agent. OpenClaw's native subagent model is announce-driven, and `sessions_send` is on the subagent deny list by default. Worker Subagents do not communicate laterally or upward to the Orchestrator directly — the parent Full Role Agent consolidates results. The Full Role Agent then delivers the final product directly to the user, allowing the user to continue the thread. ([OpenClaw][2]) \
 **Cross-Agent Gates:** Cross-agent reach belongs to Full Role Agents, not Worker Subagents. For a Full Role Agent to talk across agent boundaries, `tools.sessions.visibility` must be `all`, `tools.agentToAgent.enabled` must be true, and the sender must be listed in `tools.agentToAgent.allow`. Sandboxed sessions are clamped back to `tree` visibility regardless of global settings, ensuring Worker Subagents remain local to their parent execution tree. ([OpenClaw][1]) \
-**Recommended Control Shape:** Gateway → Orchestrator (provides progress updates to user) → selected Full Role Agent → optional Worker Subagents → parent Full Role Agent (delivers final product to user) → Orchestrator (delivers final report). Optional Gateway → Full Role Agent direct access is valid when an explicit `bindings` entry is defined for it. \
+**Recommended Control Shape:**
+
+```mermaid
+%%{init: {'flowchart': {'arrowMarkerSize': 1.5}}}%%
+flowchart TD
+    GW[Gateway] ==> OR[Orchestrator]
+    OR -. "Progress Updates" .-> GW
+    OR ==> FRA[Full Role Agent]
+    FRA -. "sessions_spawn" .-> SA[Worker Subagents]
+    SA -. "announce" .-> FRA
+    FRA -. "Final Product" .-> GW
+    FRA ==> OR
+    OR -. "Final Report" .-> GW
+    OR ==> MR[memory-retainer]
+    
+    linkStyle 0,2,6,8 stroke:#818cf8,stroke-width:4px
+    linkStyle 1,3,4,5,7 stroke:#fbbf24,stroke-width:2px
+```
+On task success, the Orchestrator hands the result package to `memory-retainer` via `sessions_spawn(agentId: "memory-retainer")` for wiki maintenance and shared-layer regeneration. Alternatively, an `agent_end` plugin hook may enqueue the same maintenance task automatically. Optional Gateway → Full Role Agent direct access is valid when an explicit `bindings` entry is defined for it. \
 **Validation:** Verify final paths with `openclaw config schema` — OpenClaw validates against the live merged schema, and staying within that schema is the safest path for upgrades. \
 **Reference Configuration:** The configuration below maps to current documented schema surfaces for `agents.list[]`, `bindings`, nested subagent depth, and agent-to-agent control. All agent workspaces use the native per-agent path under `~/.openclaw/agents/<id>/workspace`. Note that `maxConcurrent: 4` is a recommended deployment value for local hardware rather than a platform default. ([OpenClaw][1])
 
@@ -125,9 +144,16 @@ flowchart TD
         workspace: "~/.openclaw/agents/orchestrator/workspace",
         agentDir: "~/.openclaw/agents/orchestrator/agent",
         subagents: {
-          allowAgents: ["agent-1", "agent-n"],
+          allowAgents: ["agent-1", "agent-n", "memory-retainer"],
           requireAgentId: true
         }
+      },
+      {
+        id: "memory-retainer",
+        workspace: "~/.openclaw/agents/memory-retainer/workspace",
+        agentDir: "~/.openclaw/agents/memory-retainer/agent"
+        // Sole write-grade wiki maintainer. Receives wiki_apply and wiki_lint
+        // in addition to the default wiki_search / wiki_get surface.
       },
       {
         id: "agent-1",
@@ -155,7 +181,7 @@ flowchart TD
   tools: {
     agentToAgent: {
       enabled: true,
-      allow: ["orchestrator", "agent-1", "agent-n"]
+      allow: ["orchestrator", "memory-retainer", "agent-1", "agent-n"]
     },
     sessions: {
       visibility: "all"
