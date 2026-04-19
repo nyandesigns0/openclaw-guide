@@ -1,28 +1,16 @@
 import React from "react";
-import fs from "fs/promises";
-import path from "path";
-import tabsData from "../../content/index.json";
 import { Sidebar } from "@/components/Sidebar";
-import { MarkdownViewer } from "@/components/MarkdownViewer";
+import { getTabDocument } from "@/lib/content";
+import { MarkdownRenderer } from "@/lib/markdown";
 
 export default async function Page(props: { searchParams: Promise<{ tab?: string }> }) {
   const searchParams = await props.searchParams;
-  const tabId = searchParams.tab || tabsData[0].subtabs[0].id;
-  
-  let tab = null;
-  for (const group of tabsData) {
-    const found = group.subtabs.find(t => t.id === tabId);
-    if (found) { tab = found; break; }
-  }
-  if (!tab) tab = tabsData[0].subtabs[0];
-  
-  const filePath = path.join(process.cwd(), "content", tab.filename);
-  const content = await fs.readFile(filePath, "utf-8");
+  const { content, tab, tabs } = await getTabDocument(searchParams.tab);
 
   return (
     <div className="flex min-h-screen bg-zinc-950 text-zinc-50 font-sans selection:bg-indigo-500/30 w-full">
       <React.Suspense fallback={<div className="w-80 bg-zinc-950 border-r border-zinc-800/50 p-6">Loading sidebar...</div>}>
-        <Sidebar tabs={tabsData} activeTabId={tabId} />
+        <Sidebar tabs={tabs} activeTabId={tab.id} />
       </React.Suspense>
       <main className="flex-1 flex flex-col relative overflow-hidden h-screen">
         {/* Fancy background gradient */}
@@ -33,7 +21,7 @@ export default async function Page(props: { searchParams: Promise<{ tab?: string
 
         <div className="flex-1 overflow-y-auto p-8 md:p-12 lg:p-20 pt-16 lg:pt-20 scrollbar-thin">
           <div className="max-w-3xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700">
-            <MarkdownViewer content={content} />
+            <MarkdownRenderer content={content} />
           </div>
         </div>
       </main>

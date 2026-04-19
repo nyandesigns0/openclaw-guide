@@ -3,52 +3,60 @@ const path = require('path');
 
 const contentDir = path.join(__dirname, 'content');
 
+/**
+ * Standardized Metadata Extractor & Converter
+ * 
+ * This script transforms a directory of markdown files into a structured 
+ * JSON index used by the documentation engine.
+ */
+
 if (!fs.existsSync(contentDir)) {
-  console.error('Content directory does not exist.');
+  console.error('Error: Content directory does not exist.');
   process.exit(1);
 }
 
 const files = fs.readdirSync(contentDir).filter(file => file.endsWith('.md'));
-
 const chaptersMap = new Map();
+
+console.log(`Processing ${files.length} markdown files...`);
 
 files.forEach(filename => {
   const filePath = path.join(contentDir, filename);
   const content = fs.readFileSync(filePath, 'utf8');
   
-  const lines = content.split(/\r?\n/);
+  // Robust Header Extraction
+  const h1Match = content.match(/^#\s+(.+)$/m);
+  const h2Match = content.match(/^##\s+(.+)$/m);
   
-  let chapterTitle = null;
-  let tabTitle = null;
+  let chapterTitle = h1Match ? h1Match[1].trim() : 'General';
+  let tabTitle = h2Match ? h2Match[1].trim() : filename.replace('.md', '');
   
-  for (const line of lines) {
-    if (!chapterTitle && line.startsWith('# ')) {
-      chapterTitle = line.substring(2).trim();
-      // Normalize "Chapter 1 — Introduction" to "Chapter 1: Introduction" for index
-      chapterTitle = chapterTitle.replace(' — ', ': ');
-    } else if (!tabTitle && line.startsWith('## ')) {
-      tabTitle = line.substring(3).trim();
-    }
-    if (chapterTitle && tabTitle) break;
-  }
+  // Standardize Chapter Title (e.g., "Chapter 1 — Intro" -> "Chapter 1: Intro")
+  chapterTitle = chapterTitle.replace(/\s*[—–-]\s*/, ': ');
   
-  if (!chapterTitle) chapterTitle = 'Unknown Chapter';
-  if (!tabTitle) tabTitle = 'Unknown Tab';
+  // Generate stable IDs
+  const createId = (text) => text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
   
-  // Create an ID for the chapter
-  let chapterId = chapterTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-  if (chapterTitle.includes('Introduction')) chapterId = 'intro';
-  else if (chapterTitle.includes('Architecture')) chapterId = 'architecture';
-  
+  let chapterId = createId(chapterTitle);
+  if (chapterTitle.toLowerCase().includes('introduction')) chapterId = 'intro';
+  if (chapterTitle.toLowerCase().includes('architecture')) chapterId = 'architecture';
+
+  // Determine Icon based on title keywords
+  const getIcon = (title) => {
+    const t = title.toLowerCase();
+    if (t.includes('intro')) return "Info";
+    if (t.includes('archi')) return "Layers";
+    if (t.includes('config') || t.includes('setup')) return "Settings";
+    if (t.includes('guide') || t.includes('how')) return "BookOpen";
+    if (t.includes('api') || t.includes('dev')) return "Code";
+    return "FileText";
+  };
+
   if (!chaptersMap.has(chapterTitle)) {
-    let icon = "FileText";
-    if (chapterTitle.includes("Introduction")) icon = "Info";
-    else if (chapterTitle.includes("Architecture")) icon = "Layers";
-    
     chaptersMap.set(chapterTitle, {
       id: chapterId,
       title: chapterTitle,
-      icon: icon,
+      icon: getIcon(chapterTitle),
       subtabs: []
     });
   }
@@ -56,20 +64,24 @@ files.forEach(filename => {
   chaptersMap.get(chapterTitle).subtabs.push({
     id: filename.replace('.md', ''),
     title: tabTitle,
-    filename: filename
+    filename: filename,
+    // Add metadata for "Standardized" conversion
+    updatedAt: fs.statSync(filePath).mtime
   });
 });
 
-const indexContent = Array.from(chaptersMap.values());
+// Sort and Finalize
+const indexContent = Array.from(chaptersMap.values())
+  .sort((a, b) => a.title.localeCompare(b.title, undefined, { numeric: true, sensitivity: 'base' }));
 
-// Sort chapters
-indexContent.sort((a, b) => a.title.localeCompare(b.title));
-
-// Sort subtabs by filename
 indexContent.forEach(chapter => {
-  chapter.subtabs.sort((a, b) => a.filename.localeCompare(b.filename));
+  chapter.subtabs.sort((a, b) => a.filename.localeCompare(b.filename, undefined, { numeric: true }));
 });
 
-fs.writeFileSync(path.join(contentDir, 'index.json'), JSON.stringify(indexContent, null, 2));
+// Output standardized JSON
+fs.writeFileSync(
+  path.join(contentDir, 'index.json'), 
+  JSON.stringify(indexContent, null, 2)
+);
 
-console.log('index.json generated successfully from markdown files in the content directory!');
+console.log('✅ Standardized index.json generated successfully!');
