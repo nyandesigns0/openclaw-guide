@@ -44,6 +44,12 @@ function extractCodeBlock(children: ReactNode) {
 }
 
 const markdownComponents: Components = {
+  em({ children }) {
+    return <em className="text-amber-400">{children}</em>;
+  },
+  strong({ children }) {
+    return <strong className="text-sky-400">{children}</strong>;
+  },
   code({ node: _node, className, children, ...props }: InlineCodeProps) {
     return (
       <code
