@@ -47,6 +47,48 @@
         "id": "chapter-2.2",
         "title": "2.2 Native Memory Architecture",
         "filename": "chapter-2.2.md"
+      },
+      {
+        "id": "chapter-2.3",
+        "title": "2.3 Pipeline Architecture",
+        "filename": "chapter-2.3.md"
+      }
+    ]
+  },
+  {
+    "id": "aaa",
+    "title": "Chapter 3: AAA",
+    "icon": "Box",
+    "subtabs": [
+      {
+        "id": "chapter-3.1",
+        "title": "3.1 Introduction",
+        "filename": "chapter-3.1.md"
+      },
+      {
+        "id": "chapter-3.2",
+        "title": "3.2 Feature List",
+        "filename": "chapter-3.2.md"
+      },
+      {
+        "id": "chapter-3.3",
+        "title": "3.3 Architecture",
+        "filename": "chapter-3.3.md"
+      },
+      {
+        "id": "chapter-3.4",
+        "title": "3.4 Frontend",
+        "filename": "chapter-3.4.md"
+      },
+      {
+        "id": "chapter-3.5",
+        "title": "3.5 Backend",
+        "filename": "chapter-3.5.md"
+      },
+      {
+        "id": "chapter-3.6",
+        "title": "3.6 Task Breakdown",
+        "filename": "chapter-3.6.md"
       }
     ]
   }
