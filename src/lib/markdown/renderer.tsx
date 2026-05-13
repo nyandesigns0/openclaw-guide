@@ -59,8 +59,8 @@ type CollapsibleListItemProps = ComponentPropsWithoutRef<"li"> & {
 function getSubtaskCount(nestedList: ReactNode[]) {
   let count = 0;
   Children.forEach(nestedList, (listNode) => {
-    if (isValidElement(listNode) && (listNode as ReactElement).props && (listNode as ReactElement).props.children) {
-      Children.forEach((listNode as ReactElement).props.children, (item) => {
+    if (isValidElement<{ children?: ReactNode }>(listNode) && listNode.props.children) {
+      Children.forEach(listNode.props.children, (item) => {
         if (isValidElement(item)) {
           count++;
         }

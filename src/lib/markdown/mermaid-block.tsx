@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import mermaid from "mermaid";
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 import { ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
@@ -10,7 +10,6 @@ mermaid.initialize({
   theme: "dark",
   securityLevel: "loose",
   fontFamily: "inherit",
-  background: "transparent",
 });
 
 export function isMermaid(code: string, language?: string) {
