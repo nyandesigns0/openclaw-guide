@@ -2,7 +2,7 @@
 
 ## 0.1.0 Overview
 
-This file serves as the instruction manual and structural template for formatting all OpenClaw documentation chapters.
+This file serves as the instruction manual and structural template for formatting all AAS documentation chapters.
 
 ### 0.1.1 Typography and Highlighting
 *(instruction)* **Bold Text:** Used for labels and emphasis. The UI highlights bold text in a specific color. \

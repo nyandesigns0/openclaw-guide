@@ -6,7 +6,7 @@
 The frontend talks directly to the backend using JSON fetch calls.
 
 Configured by:
-- `NEXT_PUBLIC_AAA_API_URL`
+- `NEXT_PUBLIC_AAS_API_URL`
 
 Main bootstrap connector:
 - `GET /api/bootstrap`
@@ -73,7 +73,7 @@ Frontend
 ## Future connectors not yet active
 
 These are planned but not live yet:
-- backend -> OpenClaw controller plugin
+- backend -> AAS controller plugin
 - controller plugin -> TaskFlow
 - controller plugin -> real worker agents
 - backend -> upload/media-serving path

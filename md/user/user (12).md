@@ -66,7 +66,7 @@ The user seems to work in a Pacific time context and has repeatedly referenced P
 - Evidence: “Financior” was defined as “a finance budgeting app that manages my finances, and help me plan my future,” with repeated dashboard recreation and budget/cashflow planning requests.
 - Why it belongs in USER.md: This is durable product context, not a one-off topic.
 
-- Finding: The user is building or configuring agent identity/docs such as SOUL.md and USER.md for an OpenClaw agent.
+- Finding: The user is building or configuring agent identity/docs such as SOUL.md and USER.md for an AAS agent.
 - Confidence: High
 - Evidence: Multiple extraction tasks: “Search through my previous chats and extract only information relevant to building SOUL.md…” and now the same for USER.md.
 - Why it belongs in USER.md: This is an active recurring project area where continuity helps.
@@ -188,7 +188,7 @@ The user seems to work in a Pacific time context and has repeatedly referenced P
 
 ## Context
 - Recurring project area: finance/budgeting app experiences (for example, Financior) and dashboard-heavy product UIs.
-- Recurring meta-project area: defining assistant identity/config docs such as SOUL.md and USER.md for an OpenClaw agent.
+- Recurring meta-project area: defining assistant identity/config docs such as SOUL.md and USER.md for an AAS agent.
 - Stable constraints: preserve existing UI/structure/comments when fixing issues, keep bugfixes minimal, and ensure controls are functional rather than decorative.
 - Core output criteria: precision, completeness, maintainability, and strong alignment with the requested reference or spec.
 

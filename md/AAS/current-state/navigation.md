@@ -10,7 +10,7 @@ A.A.A/
     shared/
   docs/
     current-state/
-  openclaw/
+  AAS/
     plugins/
     taskflow/
   scripts/
@@ -38,17 +38,17 @@ A.A.A/
 - path: `app/shared/src/contracts.ts`
 - update this first when changing DTOs, API payloads, runtime enums, artifacts, approvals, or project-state shapes
 
-### OpenClaw integration area
-- path: `openclaw/plugins/aaa-controller`
+### AAS integration area
+- path: `AAS/plugins/AAS-controller`
 - currently scaffolded, not yet wired to the live backend flow
 
 ### TaskFlow placeholders
-- path: `openclaw/taskflow`
+- path: `AAS/taskflow`
 - currently contains pipeline and schema placeholders, not the live execution path yet
 
 ### Local runtime storage
 - path: `storage/`
-- DB location: `storage/db/aaa.db`
+- DB location: `storage/db/AAS.db`
 - project artifact roots: `storage/projects/*`
 
 ## Key files for resuming work fast
@@ -68,4 +68,4 @@ If you only have a few minutes to orient:
 
 - active product code belongs here in `projects/_active/A.A.A`
 - scratch is not the long-term home of this app
-- OpenClaw system architecture changes belong in the OpenClaw system workspace unless they are explicitly part of A.A.A. integration work
+- AAS system architecture changes belong in the AAS system workspace unless they are explicitly part of A.A.S. integration work

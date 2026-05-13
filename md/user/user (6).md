@@ -1,6 +1,6 @@
 # 1) Executive summary
 - You appear to be an **architecture competition / conceptual design** user who uses ChatGPT to **develop narratives (storyboards) and generate/iterate image-generation prompts** for atmospheric architectural visuals.
-- You also work on **agent configuration documents** (SOUL.md / USER.md) for an **OpenClaw agent**.
+- You also work on **agent configuration documents** (SOUL.md / USER.md) for an **AAS agent**.
 - You collaborate iteratively and steer with precise constraints (composition/geometry locks, mood shifts, “hostile architecture,” etc.).
 
 > **Evidence base note:** I’m only using evidence available in this project thread plus the visible project metadata (e.g., default timezone). Prior chat bodies are not accessible here beyond truncated titles.
@@ -14,9 +14,9 @@
 - **Evidence:** “It’s for architecture competition… story… four panels… hallway… door… pit… look back…”
 - **Why it belongs in USER.md:** Primary context for the kind of assistance you request (concept + visualization + narrative).
 
-- **Finding:** User is building an **OpenClaw agent** and wants configuration docs (SOUL.md / USER.md).
+- **Finding:** User is building an **AAS agent** and wants configuration docs (SOUL.md / USER.md).
 - **Confidence:** High
-- **Evidence:** Repeated requests: “building SOUL.md for an OpenClaw agent… building USER.md…”
+- **Evidence:** Repeated requests: “building SOUL.md for an AAS agent… building USER.md…”
 - **Why it belongs in USER.md:** Explains meta-work: you use the assistant for agent profiling/spec writing.
 
 - **Finding:** Likely working timezone is **UTC−07:00**.
@@ -62,7 +62,7 @@
 - **Evidence:** “describe panel one into the prompt so the second panel have continuity… maintain geometry… framing…”
 - **Why it belongs in USER.md:** The assistant should track continuity details by default.
 
-- **Finding (tentative):** Work related to **OpenClaw agent design** / “SOUL.md/USER.md” specification.
+- **Finding (tentative):** Work related to **AAS agent design** / “SOUL.md/USER.md” specification.
 - **Confidence:** Medium
 - **Evidence:** Repeated explicit requests.
 - **Why it belongs in USER.md:** Indicates the assistant may be used for agent governance/docs beyond architecture.
@@ -109,7 +109,7 @@
 
 # 7) Suggested USER.md fields
 
-- **Finding:** Primary domains: architecture competition concepts, narrative spatial design, visualization/prompting; secondary: agent documentation (OpenClaw).
+- **Finding:** Primary domains: architecture competition concepts, narrative spatial design, visualization/prompting; secondary: agent documentation (AAS).
 - **Confidence:** Medium–High
 - **Evidence:** Architecture competition storyline + repeated SOUL/USER doc requests.
 - **Why it belongs in USER.md:** High-level routing for assistance.
@@ -137,7 +137,7 @@
 
 ## Notes
 - Uses ChatGPT for **architecture competition work**: narrative concepts, storyboard sequences, and **image-generation prompt engineering**.
-- Also uses ChatGPT to draft **OpenClaw agent docs** (SOUL.md/USER.md).
+- Also uses ChatGPT to draft **AAS agent docs** (SOUL.md/USER.md).
 
 ## Context
 - Prefers **surreal-but-architectural** imagery: dreamlike atmospheres grounded in architectural logic.

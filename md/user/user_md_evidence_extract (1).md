@@ -6,9 +6,9 @@ There is **strong evidence** that the user works repeatedly on web app and UI-bu
 
 # Explicit user facts
 
-- Finding: The user is building configuration/context files for an OpenClaw agent, including `SOUL.md` and `USER.md`.
+- Finding: The user is building configuration/context files for an AAS agent, including `SOUL.md` and `USER.md`.
 - Confidence: High
-- Evidence: Repeated requests to “extract only information relevant to building SOUL.md for an OpenClaw agent” and now “building USER.md for an OpenClaw agent.”
+- Evidence: Repeated requests to “extract only information relevant to building SOUL.md for an AAS agent” and now “building USER.md for an AAS agent.”
 - Why it belongs in USER.md: This is a recurring, durable project context that helps the assistant understand why profile extraction matters.
 
 - Finding: The user works heavily on UI/web app implementation tasks.
@@ -52,7 +52,7 @@ There is **strong evidence** that the user works repeatedly on web app and UI-bu
 
 - Finding: Recurring work on agent persona/configuration documents.
 - Confidence: High
-- Evidence: Requests centered on extracting evidence for `SOUL.md` and `USER.md` for an OpenClaw agent.
+- Evidence: Requests centered on extracting evidence for `SOUL.md` and `USER.md` for an AAS agent.
 - Why it belongs in USER.md: This is a durable meta-project relevant to future assistance.
 
 - Finding: Recurring interest in reference-driven product demos and interface polish.
@@ -215,7 +215,7 @@ There is **strong evidence** that the user works repeatedly on web app and UI-bu
 - Cares most about fidelity, polish, precision, and maintainability.
 
 ## Context
-- Active themes include budgeting app UI demos and OpenClaw agent docs (`SOUL.md`, `USER.md`).
+- Active themes include budgeting app UI demos and AAS agent docs (`SOUL.md`, `USER.md`).
 - Preferred implementation stack includes ReactJS, TypeScript, Tailwind CSS, Radix UI, shadcn/ui, Lucide React, Vercel AI SDK, and Context for global state.
 - Prefers shell-command-based file operations and minimal-disruption technical edits.
 - Often collaborates through terse iteration loops rather than long explanatory exchanges.

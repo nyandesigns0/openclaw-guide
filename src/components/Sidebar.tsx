@@ -62,7 +62,7 @@ export function Sidebar({ tabs, activeTabId }: { tabs: any[], activeTabId: strin
       )}>
         <div className="p-6 border-b border-zinc-800/50 shrink-0">
           <h1 className="text-2xl font-semibold bg-gradient-to-br from-indigo-400 to-cyan-300 bg-clip-text text-transparent tracking-tight">
-            OpenClaw Setup
+            AAS Setup
           </h1>
           <p className="text-xs text-zinc-400 mt-1 uppercase tracking-wider font-semibold">Windows Guide</p>
         </div>

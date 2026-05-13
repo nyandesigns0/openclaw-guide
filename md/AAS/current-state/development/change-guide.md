@@ -18,7 +18,7 @@ Start in:
 
 If the Prisma schema changes:
 1. update schema
-2. run `npm run db:generate --workspace @aaa/backend`
+2. run `npm run db:generate --workspace @AAS/backend`
 3. run `npx prisma migrate dev --name <name> --schema app/backend/prisma/schema.prisma`
 4. update mappers and DTOs
 5. run `npm run build`
@@ -44,12 +44,12 @@ That file now seeds:
 - initial project state
 - initial artifacts
 
-## When moving toward real OpenClaw execution
+## When moving toward real AAS execution
 
 The likely integration seam is:
 - keep backend as product control plane
 - replace or wrap the local executor in `pipeline-engine.ts`
-- route execution into `openclaw/plugins/aaa-controller`
+- route execution into `AAS/plugins/AAS-controller`
 - move durable orchestration continuity into TaskFlow rather than keeping the whole flow local inside the backend executor
 
 ## Editing caution

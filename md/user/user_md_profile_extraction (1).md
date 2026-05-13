@@ -32,7 +32,7 @@ No explicit name or pronouns were found in the prior chats reviewed. A likely wo
 
 - Finding: The user also works repeatedly on AI / software product tasks around an analysis app and agent behavior.
 - Confidence: High
-- Evidence: Repeated chats focus on understanding the SemiChan app, improving report pipelines, dimensionality logic, PDF export issues, and building SOUL.md / USER.md for an OpenClaw agent.
+- Evidence: Repeated chats focus on understanding the SemiChan app, improving report pipelines, dimensionality logic, PDF export issues, and building SOUL.md / USER.md for an AAS agent.
 - Why it belongs in USER.md: This is stable work context.
 
 - Finding: The user uses Cursor as a recurring implementation tool.
@@ -78,7 +78,7 @@ No explicit name or pronouns were found in the prior chats reviewed. A likely wo
 - Evidence: Long-running discussion of app documentation, clustering behavior, dimensions, labeling, report quality, export, and new tabs/features.
 - Why it belongs in USER.md: This is clearly a durable project context.
 
-- Finding: OpenClaw agent memory/persona files are a recurring interest.
+- Finding: AAS agent memory/persona files are a recurring interest.
 - Confidence: High
 - Evidence: Repeated requests to build SOUL.md and USER.md from prior chats.
 - Why it belongs in USER.md: This is directly relevant to future agent support.
@@ -145,7 +145,7 @@ No explicit name or pronouns were found in the prior chats reviewed. A likely wo
 - Pronouns: Not explicitly stated
 - Timezone: Likely UTC-07:00 (assumption from project context)
 - Professional domains: Architecture / design competitions; AI-assisted product and analysis tooling
-- Recurring projects: SemiChan app, OpenClaw persona/profile files, architecture competition design strategy
+- Recurring projects: SemiChan app, AAS persona/profile files, architecture competition design strategy
 - Recurring tools: Cursor, PDF reports, analysis dashboards, app/codebase workflows
 - Recurring goals: Improve report quality, understand juror values, translate analysis into design action, produce implementation-ready prompts
 - Recurring frustrations: Report/export mismatches, stale artifacts, fragmented concepts, unclear labels, under-explained systems
@@ -174,7 +174,7 @@ Likely UTC-07:00 (assumption based on project conversation context, not explicit
 - Cares about provenance and whether a report/export reflects the current build.
 
 ### Context
-- Recurring projects include the SemiChan analysis app, OpenClaw memory/persona docs, and architecture competition design development.
+- Recurring projects include the SemiChan analysis app, AAS memory/persona docs, and architecture competition design development.
 - Often wants help interpreting jury/report data and converting it into concrete design or implementation plans.
 - Typical useful outputs: comparisons, diagnosis, action lists, prompt drafts, implementation checklists, and design strategy translations.
 - No stable budget/device/admin constraints were explicitly found in prior chats.

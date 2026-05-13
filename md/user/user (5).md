@@ -1,6 +1,6 @@
 # Executive summary
 
-The user appears to work in a design/analysis context centered on architecture competitions, jury interpretation, and AI-assisted tooling for concept extraction, reporting, and design strategy. They repeatedly use the assistant as a thinking partner for: interpreting complex outputs, designing analysis systems, debugging product/report behavior, drafting implementation plans/prompts, and translating raw technical analysis into practical design direction. The most durable context is not personal biography but a working profile: they are building and refining systems like SemiChan/OpenClaw-related artifacts, care strongly about analytical usefulness, and repeatedly return to architecture-jury analysis, model interpretation, and productization of AI workflows.
+The user appears to work in a design/analysis context centered on architecture competitions, jury interpretation, and AI-assisted tooling for concept extraction, reporting, and design strategy. They repeatedly use the assistant as a thinking partner for: interpreting complex outputs, designing analysis systems, debugging product/report behavior, drafting implementation plans/prompts, and translating raw technical analysis into practical design direction. The most durable context is not personal biography but a working profile: they are building and refining systems like SemiChan/AAS-related artifacts, care strongly about analytical usefulness, and repeatedly return to architecture-jury analysis, model interpretation, and productization of AI workflows.
 
 The user’s likely working timezone is America/Los_Angeles based on project/system context used repeatedly in this workspace, but this should still be treated as environment context rather than a self-stated personal fact. The user consistently works across technical and design layers: APIs, clustering/vector analysis, prompts, reports, architecture competition strategy, and documentation.
 
@@ -18,9 +18,9 @@ The user’s likely working timezone is America/Los_Angeles based on project/sys
   - Evidence: Repeated requests about SemiChan reports, architecture, AutoK, AutoSeed, concepts, axes, jurors, interpretation docs, prompts, and report evaluation.
   - Why it belongs in USER.md: This is an active recurring project and central working context.
 
-- Finding: The user is also working with OpenClaw-related documentation/persona files such as SOUL.md and USER.md.
+- Finding: The user is also working with AAS-related documentation/persona files such as SOUL.md and USER.md.
   - Confidence: High
-  - Evidence: Repeated requests to extract behavior/context relevant to building SOUL.md and now USER.md for an OpenClaw agent.
+  - Evidence: Repeated requests to extract behavior/context relevant to building SOUL.md and now USER.md for an AAS agent.
   - Why it belongs in USER.md: This is a recurring project/tooling context directly relevant to future assistance.
 
 - Finding: The user works with report outputs, uploaded PDFs, and structured analysis artifacts.
@@ -66,9 +66,9 @@ The user’s likely working timezone is America/Los_Angeles based on project/sys
   - Evidence: The majority of the conversation centers on SemiChan’s clustering, concepts, axes, jurors, prompts, reports, and interpretation layers.
   - Why it belongs in USER.md: This is the most important recurring project.
 
-- Finding: OpenClaw agent configuration files such as SOUL.md and USER.md.
+- Finding: AAS agent configuration files such as SOUL.md and USER.md.
   - Confidence: High
-  - Evidence: Multiple explicit requests to build persona/profile docs for an OpenClaw agent.
+  - Evidence: Multiple explicit requests to build persona/profile docs for an AAS agent.
   - Why it belongs in USER.md: It is a direct recurring meta-project.
 
 - Finding: Architecture competition strategy and jury alignment.
@@ -135,7 +135,7 @@ The user’s likely working timezone is America/Los_Angeles based on project/sys
 
 - Finding: Include current major projects and artifacts.
   - Confidence: High
-  - Evidence: SemiChan and OpenClaw/SOUL.md/USER.md recur constantly.
+  - Evidence: SemiChan and AAS/SOUL.md/USER.md recur constantly.
   - Why it belongs in USER.md: These are the most useful context anchors.
 
 - Finding: Include domain context: architecture competitions, jury analysis, AI/product tooling.
@@ -172,7 +172,7 @@ The user’s likely working timezone is America/Los_Angeles based on project/sys
 ## Notes
 - Works at the intersection of architecture, jury interpretation, and AI-assisted analysis/reporting.
 - Building/refining SemiChan, especially around concepts, axes, jurors, prompts, reports, AutoK/AutoSeed, and interpretation layers.
-- Also working on OpenClaw-related persona/context docs such as SOUL.md and USER.md.
+- Also working on AAS-related persona/context docs such as SOUL.md and USER.md.
 - Frequently uses the assistant for report interpretation, implementation planning, Cursor prompts, prompt design, and turning raw technical outputs into design strategy.
 
 ## Context

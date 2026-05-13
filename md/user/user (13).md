@@ -1,4 +1,4 @@
-# USER.md Evidence Synthesis for OpenClaw Agent
+# USER.md Evidence Synthesis for AAS Agent
 
 ## 1. Executive summary
 The available evidence points to a user who works primarily on **technical product and engineering implementation**, especially around **AI-assisted tooling, chat workflows, React/TypeScript applications, backend integrations, and agent/tool-calling systems**. The user repeatedly uses the assistant to help design and implement **practical systems**, especially UI-to-backend flows with real execution paths.

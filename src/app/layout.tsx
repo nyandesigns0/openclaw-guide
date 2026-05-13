@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "OpenClaw Guide",
-  description: "Comprehensive documentation for the OpenClaw agentic framework.",
+  title: "AAS Guide",
+  description: "Comprehensive documentation for the AAS agentic framework.",
 };
 
 export default function RootLayout({

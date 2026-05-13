@@ -2,13 +2,13 @@
 
 ## Canonical project home
 
-`D:\OpenClaw\agents\developer\projects\_active\A.A.A`
+`D:\AAS\agents\developer\projects\_active\A.A.A`
 
-This is the long-term home of the A.A.A. app. Scratch was only used for early staging and design-note intake.
+This is the long-term home of the A.A.S. app. Scratch was only used for early staging and design-note intake.
 
-## What A.A.A. currently is
+## What A.A.S. currently is
 
-A.A.A. is now a working local-first monorepo with a real operator shell and a richer backend runtime layer.
+A.A.S. is now a working local-first monorepo with a real operator shell and a richer backend runtime layer.
 
 Implemented now:
 - Next.js frontend operator console
@@ -52,16 +52,16 @@ That path works locally.
 
 ## Important implementation milestone history
 
-- UI redesign shell commit: `29887aa` (`Implement AAA UI redesign shell`)
-- UI polish tightening commit: `e02f58e` (`Tighten AAA UI layout polish`)
-- backend runtime layer commit: `d2a0ef5` (`Complete AAA backend runtime layer`)
+- UI redesign shell commit: `29887aa` (`Implement AAS UI redesign shell`)
+- UI polish tightening commit: `e02f58e` (`Tighten AAS UI layout polish`)
+- backend runtime layer commit: `d2a0ef5` (`Complete AAS backend runtime layer`)
 
 ## What is not done yet
 
 The project is still not final against the original design doc.
 
 Still missing or intentionally simulated:
-- real OpenClaw plugin/controller execution path
+- real AAS plugin/controller execution path
 - real worker agent dispatch instead of the current backend simulator
 - live event streaming to the UI
 - real uploads and media serving workflows
@@ -75,14 +75,14 @@ Still missing or intentionally simulated:
 - `app/frontend`: operator console UI
 - `app/backend`: API, persistence, bootstrap, and local runtime logic
 - `app/shared`: shared contracts used by frontend and backend
-- `openclaw/plugins/aaa-controller`: scaffolded future integration surface
-- `openclaw/taskflow`: scaffolded future orchestration surface
+- `AAS/plugins/AAS-controller`: scaffolded future integration surface
+- `AAS/taskflow`: scaffolded future orchestration surface
 - `storage`: SQLite DB and local runtime storage roots
 
 ## Verification completed on the current state
 
 The current repo state has passed:
-- `npm run db:generate --workspace @aaa/backend`
+- `npm run db:generate --workspace @AAS/backend`
 - `npx prisma migrate dev --name richer_runtime --schema app/backend/prisma/schema.prisma`
 - `npm run build`
 

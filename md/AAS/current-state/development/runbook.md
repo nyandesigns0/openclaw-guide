@@ -5,7 +5,7 @@
 ```bash
 copy .env.example .env
 npm install
-npm run db:generate --workspace @aaa/backend
+npm run db:generate --workspace @AAS/backend
 npx prisma migrate dev --name init --schema app/backend/prisma/schema.prisma
 ```
 

@@ -66,7 +66,7 @@ This chapter provides the implementation plan for A.A.S. Field Runtime. The work
    2. Include valid moves, blocked moves, output contract, warnings, and relevant references.
    3. Keep large artifacts by reference.
 2. **Memory Integration**
-   1. Query OpenClaw memory only when move requirements need it.
+   1. Query AAS memory only when move requirements need it.
    2. Filter retrieved context against committed decisions.
    3. Convert conflicts into warnings or tensions.
 
@@ -75,7 +75,7 @@ This chapter provides the implementation plan for A.A.S. Field Runtime. The work
 1. **Move Execution**
    1. Validate preconditions.
    2. Load required context.
-   3. Map move type to OpenClaw agents, tools, files, or specialized services.
+   3. Map move type to AAS agents, tools, files, or specialized services.
    4. Execute and capture structured output.
    5. Register artifacts.
    6. Update WorldState.
@@ -169,7 +169,7 @@ This chapter provides the implementation plan for A.A.S. Field Runtime. The work
 | 2 | Field Navigator UI | Spatial design-field interface |
 | 3 | Affordance Compiler | Available and blocked moves with scoring |
 | 4 | Context Distiller | Agent Brief generation |
-| 5 | MoveExecutor | Typed move execution through OpenClaw/tools |
+| 5 | MoveExecutor | Typed move execution through AAS/tools |
 | 6 | Branch Ecology | Branch lifecycle and comparison |
 | 7 | Commitment Ledger | Project-truth decisions and reversibility |
 | 8 | Tension Engine | Design conflict tracking and resolution |
@@ -227,7 +227,7 @@ The schedule below keeps the original weekend cadence but redirects work toward 
 | Day | Hours | Tasks |
 |-----|:-----:|-------|
 | **Fri Eve** | 3h | Implement move precondition validation and execution status transitions. |
-| **Sat** | 10h | Map MVP move types to local/OpenClaw execution, artifact registration, WorldState updates, and event emission. |
+| **Sat** | 10h | Map MVP move types to local/AAS execution, artifact registration, WorldState updates, and event emission. |
 | **Sun Eve** | 4h | Add retry, cancel, failure preservation, and blocked-move recovery UI. |
 
 **Deliverable:** Typed moves execute and update WorldState end to end.

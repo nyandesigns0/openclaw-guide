@@ -27,7 +27,7 @@ The user likely works in a **U.S. Pacific timezone context** and appears comfort
 - **Why it belongs in USER.md:** This is durable context about the kinds of tasks the assistant should expect.
 
 ## 4) The user works with AI-agent configuration and persona documents
-- **Finding:** The user repeatedly asks for extraction work to build `SOUL.md` and `USER.md` for an OpenClaw agent.
+- **Finding:** The user repeatedly asks for extraction work to build `SOUL.md` and `USER.md` for an AAS agent.
 - **Confidence:** High
 - **Evidence:** Multiple repeated requests in project history ask to search prior chats and extract evidence for `SOUL.md`; current request asks for `USER.md`.
 - **Why it belongs in USER.md:** This is a recurring project domain and helps the assistant anticipate future support needs.
@@ -70,7 +70,7 @@ The user likely works in a **U.S. Pacific timezone context** and appears comfort
 
 # Recurring projects and interests
 
-## 10) OpenClaw agent profile files (`SOUL.md`, `USER.md`)
+## 10) AAS agent profile files (`SOUL.md`, `USER.md`)
 - **Finding:** The user is actively building agent guidance/profile documents.
 - **Confidence:** High
 - **Evidence:** Repeated chat requests specifically about extracting prior-chat evidence to build `SOUL.md`, and now `USER.md`.
@@ -171,7 +171,7 @@ The user likely works in a **U.S. Pacific timezone context** and appears comfort
 - Pronouns: Not explicitly stated
 - Timezone: Likely Pacific (`-0700` project context)
 - Professional domains: Web app development, frontend engineering, AI-agent/product configuration
-- Recurring projects: OpenClaw agent docs, React/TypeScript app builds, UI debugging, persona/profile extraction workflows
+- Recurring projects: AAS agent docs, React/TypeScript app builds, UI debugging, persona/profile extraction workflows
 - Recurring tools/platforms: ReactJS, TypeScript, Tailwind CSS, Radix UI, shadcn/ui, Lucide React, Vercel AI SDK, canvas-based artifact workflows
 - Recurring goals: Build working responsive apps, debug surgically, create structured guidance/profile docs for agents
 - Recurring frustrations: Unnecessary changes, regression risk, unsupported invention, non-functional UI, vague fixes
@@ -201,7 +201,7 @@ Likely Pacific (`-0700` project context)
 
 ## Context
 - Recurring stack: ReactJS, TypeScript, Tailwind CSS, Radix UI, shadcn/ui, Lucide React, Vercel AI SDK, context-based state management.
-- Recurring project themes: OpenClaw profile docs (`SOUL.md`, `USER.md`), one-page web apps, UI refinement, debugging, and app planning.
+- Recurring project themes: AAS profile docs (`SOUL.md`, `USER.md`), one-page web apps, UI refinement, debugging, and app planning.
 - Likely working style: iterative build/test/fix loop with strong emphasis on maintainability, responsiveness, and preserving existing work during troubleshooting.
 - No explicit stable evidence yet for pronouns, budget limits, device constraints, or org/admin-access restrictions.
 

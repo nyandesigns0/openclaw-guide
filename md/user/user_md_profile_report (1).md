@@ -22,9 +22,9 @@ Several important profile fields are **not established** in the available eviden
 - Evidence: No explicit pronoun preference appears in the available record.
 - Why it belongs in USER.md: It is relevant when known, but should stay unset when unsupported.
 
-- Finding: The user is actively building OpenClaw agent documents such as SOUL.md and USER.md.
+- Finding: The user is actively building AAS agent documents such as SOUL.md and USER.md.
 - Confidence: High
-- Evidence: Repeated requests explicitly mention “building SOUL.md for an OpenClaw agent” and now “building USER.md for an OpenClaw agent.”
+- Evidence: Repeated requests explicitly mention “building SOUL.md for an AAS agent” and now “building USER.md for an AAS agent.”
 - Why it belongs in USER.md: This is a durable current project context that shapes useful assistance.
 
 ## Stable inferred user context
@@ -46,9 +46,9 @@ Several important profile fields are **not established** in the available eviden
 
 ## Recurring projects and interests
 
-- Finding: OpenClaw agent identity/spec work is a recurring project.
+- Finding: AAS agent identity/spec work is a recurring project.
 - Confidence: High
-- Evidence: Multiple prior project conversations repeat the same SOUL.md-extraction request for an OpenClaw agent.
+- Evidence: Multiple prior project conversations repeat the same SOUL.md-extraction request for an AAS agent.
 - Why it belongs in USER.md: This is clearly recurring and current.
 
 - Finding: SemiChan appears to be a recurring project.
@@ -92,7 +92,7 @@ Several important profile fields are **not established** in the available eviden
 
 - Finding: The user appears to revisit projects over time rather than treating chats as one-offs.
 - Confidence: Medium
-- Evidence: Repeated named projects across prior conversation titles and repeated meta-spec work for the same OpenClaw effort.
+- Evidence: Repeated named projects across prior conversation titles and repeated meta-spec work for the same AAS effort.
 - Why it belongs in USER.md: Continuity across sessions is likely valuable.
 
 - Finding: The user likely values outputs that can become reusable artifacts.
@@ -107,7 +107,7 @@ Several important profile fields are **not established** in the available eviden
 - Pronouns: Unknown
 - Timezone: Unknown
 - Primary domains: Architecture/design, conceptual project development, UI/interface work, agent/spec design
-- Recurring projects: OpenClaw, SemiChan, BibleTimeline, conceptual architecture/design work
+- Recurring projects: AAS, SemiChan, BibleTimeline, conceptual architecture/design work
 - Typical assistant uses: synthesis, structured documentation, extraction, UI/HTML help, concept development
 - Output priorities: precise, structured, reusable, grounded
 - Constraints: avoid unsupported assumptions; no stable environment constraints yet established
@@ -130,7 +130,7 @@ Unknown.
 - Works across design, architecture/urbanism, interface-building, and agent/spec-writing contexts.
 - Uses the assistant for extraction, synthesis, structured documentation, and project support.
 - Likely values outputs that are reusable, grounded, and practically actionable.
-- Repeatedly returns to agent-identity/spec work and named projects such as OpenClaw and SemiChan.
+- Repeatedly returns to agent-identity/spec work and named projects such as AAS and SemiChan.
 
 ### Context
 - Recurring domains include conceptual design, architecture/urban theory, UI/frontend work, and computational/design-tool workflows.

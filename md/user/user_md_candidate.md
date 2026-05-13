@@ -14,7 +14,7 @@ The user works on web app and AI-related product building.
 - Confidence: High
 - Evidence:
   - Repeated requests to create web apps, prototypes, and one-file previewable apps.
-  - Repeated requests involving tool-calling, agent behavior, OpenClaw, SOUL.md, and USER.md.
+  - Repeated requests involving tool-calling, agent behavior, AAS, SOUL.md, and USER.md.
 - Why it belongs in USER.md:
   - This is core context for the kinds of tasks they bring to the assistant.
 
@@ -35,10 +35,10 @@ The user uses Replit AI / a Replit-oriented development workflow.
   - This is stable environment context for how the assistant should frame implementation and prototyping help.
 
 ### Finding:
-The user works on OpenClaw agent configuration and identity documents.
+The user works on AAS agent configuration and identity documents.
 - Confidence: High
 - Evidence:
-  - Repeated requests about building SOUL.md and USER.md for an OpenClaw agent.
+  - Repeated requests about building SOUL.md and USER.md for an AAS agent.
 - Why it belongs in USER.md:
   - This is a recurring project area.
 
@@ -96,7 +96,7 @@ A recurring project area is AI-assisted context extraction, auto tool-calling, a
 - Confidence: High
 - Evidence:
   - Requests around analyzing pasted text to trigger actions like new contact, update task, save file, and craft emails.
-  - Requests about OpenClaw SOUL.md and USER.md.
+  - Requests about AAS SOUL.md and USER.md.
 - Why it belongs in USER.md:
   - This is a recurring domain that helps the assistant anticipate useful structures and examples.
 
@@ -220,7 +220,7 @@ Include stable project/work context rather than biography.
 Include recurring tools/platforms and recurring project areas.
 - Confidence: High
 - Evidence:
-  - React/TypeScript/Replit/OpenClaw/color systems recur across chats.
+  - React/TypeScript/Replit/AAS/color systems recur across chats.
 - Why it belongs in USER.md:
   - These are among the most useful durable facts for future support.
 
@@ -256,7 +256,7 @@ Likely America/Los_Angeles.
 - Often wants one-file or tightly scoped demos/prototypes.
 
 ## Context
-- Recurring projects include OpenClaw agent identity/config files, context-aware automation/tool-calling systems, and interactive color preference products.
+- Recurring projects include AAS agent identity/config files, context-aware automation/tool-calling systems, and interactive color preference products.
 - Strong interest in rich interactive UIs, node graphs, phylogenetic/tree views, infinite canvases, and 3D/physics-driven interfaces.
 - Values concrete, implementation-ready help and durable context continuity across conversations.
 - Likely works in modern React/Next.js environments where dependency/runtime issues and UI iteration are common.

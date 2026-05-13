@@ -1,4 +1,4 @@
-# USER.md Evidence Report for OpenClaw Agent
+# USER.md Evidence Report for AAS Agent
 
 ## 1. Executive summary
 
@@ -10,9 +10,9 @@ The available evidence is materially thinner for personal identity fields such a
 
 ## 2. Explicit user facts
 
-- **Finding:** The user is building or refining OpenClaw agent support files such as `SOUL.md` and `USER.md`.
+- **Finding:** The user is building or refining AAS agent support files such as `SOUL.md` and `USER.md`.
   - **Confidence:** High
-  - **Evidence:** Repeated requests across prior chats to extract information relevant to building `SOUL.md` for an OpenClaw agent; current request asks for `USER.md` for an OpenClaw agent.
+  - **Evidence:** Repeated requests across prior chats to extract information relevant to building `SOUL.md` for an AAS agent; current request asks for `USER.md` for an AAS agent.
   - **Why it belongs in USER.md:** This is a recurring working context and directly affects how the assistant should support documentation, memory, and agent-configuration tasks.
 
 - **Finding:** The user works on projects under or associated with **Nyan Designs**.
@@ -46,7 +46,7 @@ The available evidence is materially thinner for personal identity fields such a
 
 - **Finding:** The user likely operates at the intersection of creative direction, product/system design, and agent/workflow design.
   - **Confidence:** Medium
-  - **Evidence:** Project titles combine conceptual creative work (“Museum of Emotion,” “Home of Shadows”), interface/product work (“BibleTimeline UI,” “SemiChan Dashboard HTML”), and agent-instruction work (`SOUL.md`, `USER.md`, OpenClaw).
+  - **Evidence:** Project titles combine conceptual creative work (“Museum of Emotion,” “Home of Shadows”), interface/product work (“BibleTimeline UI,” “SemiChan Dashboard HTML”), and agent-instruction work (`SOUL.md`, `USER.md`, AAS).
   - **Why it belongs in USER.md:** This contextual blend helps the assistant support both conceptual and implementation-oriented tasks.
 
 - **Finding:** The user likely values continuity across projects and wants persistent context carried between conversations.
@@ -85,7 +85,7 @@ The available evidence is materially thinner for personal identity fields such a
 
 - **Finding:** The user is actively designing assistant/agent persona and memory structures.
   - **Confidence:** High
-  - **Evidence:** Repeated SOUL.md extraction requests and current USER.md request for OpenClaw.
+  - **Evidence:** Repeated SOUL.md extraction requests and current USER.md request for AAS.
   - **Why it belongs in USER.md:** This is one of the clearest recurring meta-projects.
 
 ---
@@ -131,7 +131,7 @@ The available evidence is materially thinner for personal identity fields such a
 ## 7. Suggested USER.md fields
 
 - Current project umbrella: Nyan Designs
-- Recurring projects: SemiChan; BibleTimeline UI; Museum of Emotion; Home of Shadows; OpenClaw agent docs
+- Recurring projects: SemiChan; BibleTimeline UI; Museum of Emotion; Home of Shadows; AAS agent docs
 - Domains: concept design; UI/dashboard design; architecture/system thinking; research; agent configuration
 - Common assistant use: synthesis; extracting durable context from prior chats; project framing; implementation support
 - Known identity fields: unknown unless explicitly confirmed
@@ -162,7 +162,7 @@ Unknown; possibly America/Los_Angeles, but not explicitly confirmed
 
 ## Context
 - Project umbrella: Nyan Designs
-- Recurring projects: SemiChan; BibleTimeline UI; Museum of Emotion; Home of Shadows; OpenClaw support files
+- Recurring projects: SemiChan; BibleTimeline UI; Museum of Emotion; Home of Shadows; AAS support files
 - Common tasks for the assistant: synthesis, profiling, context distillation, project framing, and implementation-oriented support
 - Likely benefits from continuity across conversations and recognition of recurring project threads
 

@@ -1,4 +1,4 @@
-# USER.md Evidence Extract for OpenClaw Agent
+# USER.md Evidence Extract for AAS Agent
 
 ## Executive summary
 
@@ -49,13 +49,13 @@ Several requested USER.md fields cannot be filled confidently from the visible m
 ### 6) User likely builds interfaces, tools, or systems rather than only discussing ideas abstractly
 - **Finding:** The user repeatedly engages in project work that suggests making artifacts, systems, or implementations.
 - **Confidence:** High
-- **Evidence:** Titles referencing "UI," "Dashboard HTML," and simulation indicate practical build-oriented work; repeated requests to create structured docs for OpenClaw agent files indicate system design/documentation work.
+- **Evidence:** Titles referencing "UI," "Dashboard HTML," and simulation indicate practical build-oriented work; repeated requests to create structured docs for AAS agent files indicate system design/documentation work.
 - **Why it belongs in USER.md:** It informs how the assistant should frame support: toward deliverables, implementation context, and project continuity.
 
 ### 7) User uses the assistant for long-horizon project continuity
 - **Finding:** The user appears to use the assistant to consolidate recurring patterns across many chats into reusable artifacts.
 - **Confidence:** High
-- **Evidence:** Repeated request across multiple prior chats to synthesize history into SOUL.md, and now USER.md, for an OpenClaw agent.
+- **Evidence:** Repeated request across multiple prior chats to synthesize history into SOUL.md, and now USER.md, for an AAS agent.
 - **Why it belongs in USER.md:** This is durable workflow context: continuity and synthesis are central use cases.
 
 ### 8) User values only context that improves assistance
@@ -66,10 +66,10 @@ Several requested USER.md fields cannot be filled confidently from the visible m
 
 ## Recurring projects and interests
 
-### 9) OpenClaw agent configuration / persona-memory architecture is a recurring project
-- **Finding:** The user is actively building files such as SOUL.md and USER.md for an OpenClaw agent.
+### 9) AAS agent configuration / persona-memory architecture is a recurring project
+- **Finding:** The user is actively building files such as SOUL.md and USER.md for an AAS agent.
 - **Confidence:** High
-- **Evidence:** Current task and repeated earlier tasks explicitly target building SOUL.md for an OpenClaw agent.
+- **Evidence:** Current task and repeated earlier tasks explicitly target building SOUL.md for an AAS agent.
 - **Why it belongs in USER.md:** This is a live recurring project and likely central context for future assistance.
 
 ### 10) Interface / dashboard / UI work is recurring
@@ -149,7 +149,7 @@ Several requested USER.md fields cannot be filled confidently from the visible m
 - Pronouns: Unknown
 - Timezone: America/Los_Angeles (project-context evidence)
 - Domains: cross-disciplinary technical + design + conceptual/creative work
-- Recurring projects: OpenClaw agent docs; UI/dashboard work; conceptual/creative systems; occasional simulation/modeling
+- Recurring projects: AAS agent docs; UI/dashboard work; conceptual/creative systems; occasional simulation/modeling
 - Common assistant uses: synthesis, structured extraction, spec writing, concept refinement, project continuity
 - Output priorities: practical usefulness, durable context, concise documentation, evidence-backed summaries
 - Privacy rule: exclude sensitive facts unless clearly useful and explicitly provided
@@ -177,7 +177,7 @@ America/Los_Angeles
 - Prefers durable facts and clearly labeled assumptions.
 
 ### Context
-- Recurring project area includes OpenClaw agent memory/persona files such as SOUL.md and USER.md.
+- Recurring project area includes AAS agent memory/persona files such as SOUL.md and USER.md.
 - Recurring interests/projects appear to include UI/dashboard work, simulations or modeled systems, and conceptual/creative design exploration.
 - Best support style for profile memory: keep only stable, assistance-relevant facts; omit sensitive or weakly supported details.
 

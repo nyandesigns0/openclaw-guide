@@ -2,8 +2,8 @@
 
 ## Important framing
 
-The current execution path is a local backend runtime for validating the A.A.A. operator loop.
-It is richer than the original first-test executor, but it is still not the final OpenClaw + TaskFlow runtime.
+The current execution path is a local backend runtime for validating the A.A.S. operator loop.
+It is richer than the original first-test executor, but it is still not the final AAS + TaskFlow runtime.
 
 ## Execution entry points
 
@@ -18,7 +18,7 @@ It is richer than the original first-test executor, but it is still not the fina
 
 1. load the chat session, pipeline, nodes, edges, prior messages, and project state
 2. mark the session as running
-3. create an `AaaRun` record
+3. create an `AASRun` record
 4. create a `run.started` event
 5. topologically order the nodes using edges and the entry node
 6. for each node:
@@ -38,7 +38,7 @@ It is richer than the original first-test executor, but it is still not the fina
    - persist an agent or system message
    - persist step-complete events
 7. if the node type is `approval`:
-   - create an `AaaApproval`
+   - create an `AASApproval`
    - move the run and session to `waiting`
    - create approval-related events
    - return the session detail without executing remaining nodes
@@ -61,16 +61,16 @@ It is richer than the original first-test executor, but it is still not the fina
 ## Runtime outputs now persisted
 
 - `ChatMessage`
-- `AaaRun`
-- `AaaRunStep`
+- `AASRun`
+- `AASRunStep`
 - `ProjectAsset`
-- `AaaEvent`
-- `AaaApproval`
+- `AASEvent`
+- `AASApproval`
 - `ProjectState`
 
 ## Why this exists
 
-This executor makes the saved pipeline structure operational now, gives the frontend a real backend to target, and establishes the data model that a future OpenClaw-native runtime should preserve.
+This executor makes the saved pipeline structure operational now, gives the frontend a real backend to target, and establishes the data model that a future AAS-native runtime should preserve.
 
 ## What is still simulated
 

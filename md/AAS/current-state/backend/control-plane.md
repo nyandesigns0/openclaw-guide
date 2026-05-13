@@ -2,7 +2,7 @@
 
 ## Role
 
-The backend is the current source of truth for user-facing A.A.A. state.
+The backend is the current source of truth for user-facing A.A.S. state.
 
 It owns:
 - projects
@@ -61,4 +61,4 @@ Executes the current local runtime path, including artifact creation, event logg
 
 ## Why this matters
 
-Even before full OpenClaw integration, the backend now behaves like a real product control plane rather than a thin placeholder API.
+Even before full AAS integration, the backend now behaves like a real product control plane rather than a thin placeholder API.

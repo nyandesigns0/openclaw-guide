@@ -1,7 +1,7 @@
 # 1) Executive summary
-- **Finding:** You use this assistant primarily as a **senior engineering + product-UX copilot** for building **high-fidelity interactive prototypes**, drafting **implementation prompts/specs**, and designing **agent docs** (SOUL.md/USER.md) for OpenClaw.
+- **Finding:** You use this assistant primarily as a **senior engineering + product-UX copilot** for building **high-fidelity interactive prototypes**, drafting **implementation prompts/specs**, and designing **agent docs** (SOUL.md/USER.md) for AAS.
   - **Confidence:** High
-  - **Evidence:** You requested a “high-fidelity UI prototype” with detailed interaction requirements and later requested a “full prompt… Nextjs, tailwind and TS”; you also repeatedly request extraction for “SOUL.md for an OpenClaw agent” and now “USER.md for an OpenClaw agent.”
+  - **Evidence:** You requested a “high-fidelity UI prototype” with detailed interaction requirements and later requested a “full prompt… Nextjs, tailwind and TS”; you also repeatedly request extraction for “SOUL.md for an AAS agent” and now “USER.md for an AAS agent.”
   - **Why it belongs in USER.md:** It tells the agent what kinds of tasks you routinely delegate and what context to assume.
 
 - **Finding:** You operate in a workflow centered on **clear specifications**, **hard constraints**, and **iterative polish**.
@@ -43,9 +43,9 @@
   - **Evidence:** You directed: “You are a senior frontend engineer and UX designer…” and requested implementation details (scroll/zoom, ruler ticks, responsiveness, maintainable UI logic).
   - **Why it belongs in USER.md:** Guides default technical framing and vocabulary.
 
-- **Finding:** You frequently work on **agent design / prompt engineering** (OpenClaw) alongside UI prototyping.
+- **Finding:** You frequently work on **agent design / prompt engineering** (AAS) alongside UI prototyping.
   - **Confidence:** High
-  - **Evidence:** Repeated requests to extract preferences for building SOUL.md/USER.md for an OpenClaw agent.
+  - **Evidence:** Repeated requests to extract preferences for building SOUL.md/USER.md for an AAS agent.
   - **Why it belongs in USER.md:** The agent should expect meta-work: specs, prompts, and operating guidelines.
 
 ---
@@ -57,7 +57,7 @@
   - **Evidence:** You specified an “investigative historical timeline web application” comparing “Egyptian baseline, Early Exodus model, Late Exodus model,” plus a “Biblical timeline overlay.”
   - **Why it belongs in USER.md:** The agent can reuse common UI patterns and terminology for future iterations.
 
-- **Finding:** You repeatedly reference **OpenClaw agent documentation** tasks (SOUL.md + USER.md).
+- **Finding:** You repeatedly reference **AAS agent documentation** tasks (SOUL.md + USER.md).
   - **Confidence:** High
   - **Evidence:** Multiple prior chat titles/messages request SOUL.md extraction; current request targets USER.md.
   - **Why it belongs in USER.md:** Signals ongoing need for structured agent docs.
@@ -167,7 +167,7 @@
 ## Notes
 - Primary use: senior-level **frontend + UX prototyping** and **prompt/spec drafting**.
 - Often requests **runnable artifacts** (Canvas-friendly single-file demos) and/or **Next.js + Tailwind + TS** implementations.
-- Frequently working on **OpenClaw agent documentation** (SOUL.md / USER.md) and structured agent prompts.
+- Frequently working on **AAS agent documentation** (SOUL.md / USER.md) and structured agent prompts.
 
 ## Context
 - Recurring project theme: **comparative investigative timelines** (multi-lane timelines, zoom/pan, ruler ticks, range selectors, tooltips, detail panels, connectors).

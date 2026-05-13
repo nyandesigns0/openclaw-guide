@@ -2,7 +2,7 @@
 
 The user appears to work primarily in architecture/design-adjacent creative and analytical workflows, with a strong recurring focus on architecture competitions, concept development, visual presentation, and agent/persona-document design. They use the assistant as a research, synthesis, formatting, critique, and document-structuring partner. Their most stable needs are not biographical but operational: they want the assistant to preserve context across long-running projects, support iterative analysis, and produce outputs that are reusable in briefs, strategy documents, diagrams, and agent configuration files.
 
-The user's chats suggest recurring involvement with architecture competition research, presentation analysis, project framing, and design-evaluation tasks, alongside meta-work on building agent documents like SOUL.md and USER.md for OpenClaw. Their highest-value output traits seem to be precision, usefulness, structure, and decision support.
+The user's chats suggest recurring involvement with architecture competition research, presentation analysis, project framing, and design-evaluation tasks, alongside meta-work on building agent documents like SOUL.md and USER.md for AAS. Their highest-value output traits seem to be precision, usefulness, structure, and decision support.
 
 # Explicit user facts
 
@@ -26,9 +26,9 @@ The user's chats suggest recurring involvement with architecture competition res
 - Evidence: Multiple chats center on “Home of Shadows,” architecture competition briefs, winners, jury comments, and architecture competition research.
 - Why it belongs in USER.md: This is stable project context that materially improves assistance.
 
-- Finding: The user is actively building OpenClaw agent documents such as SOUL.md and USER.md.
+- Finding: The user is actively building AAS agent documents such as SOUL.md and USER.md.
 - Confidence: High
-- Evidence: Multiple chats explicitly ask for extraction relevant to “building SOUL.md for an OpenClaw agent,” and the current request asks for USER.md.
+- Evidence: Multiple chats explicitly ask for extraction relevant to “building SOUL.md for an AAS agent,” and the current request asks for USER.md.
 - Why it belongs in USER.md: This is a recurring meta-project and a stable context for future support.
 
 # Stable inferred user context
@@ -40,7 +40,7 @@ The user's chats suggest recurring involvement with architecture competition res
 
 - Finding: The user likely operates across both creative design work and systems/agent-design work.
 - Confidence: Medium
-- Evidence: The user alternates between architecture competition analysis and meta-instruction tasks for OpenClaw persona/profile docs.
+- Evidence: The user alternates between architecture competition analysis and meta-instruction tasks for AAS persona/profile docs.
 - Why it belongs in USER.md: This dual-context explains why both design analysis and behavioral-document drafting are common assistance needs.
 
 - Finding: The user likely values long-horizon project continuity over one-off casual answers.
@@ -60,9 +60,9 @@ The user's chats suggest recurring involvement with architecture competition res
 - Evidence: Prior chat titles include “SemiChan Dashboard HTML,” “SemiChan App Understanding,” “SemiChan Concept Quality Diagnostics,” “SemiChan Main,” and “SemiChan Ref 1 - done.”
 - Why it belongs in USER.md: Repeated project naming indicates durable ongoing work.
 
-- Finding: SOUL.md / USER.md / OpenClaw agent configuration is a recurring interest.
+- Finding: SOUL.md / USER.md / AAS agent configuration is a recurring interest.
 - Confidence: High
-- Evidence: Multiple prior chats ask to infer assistant persona and now user profile for OpenClaw.
+- Evidence: Multiple prior chats ask to infer assistant persona and now user profile for AAS.
 - Why it belongs in USER.md: This is clearly an enduring meta-project.
 
 - Finding: Architecture competitions more broadly are a repeated area of interest, not just a one-off contest.
@@ -106,7 +106,7 @@ The user's chats suggest recurring involvement with architecture competition res
 
 - Finding: The user often returns to the same topic and progressively deepens it rather than asking one broad question once.
 - Confidence: High
-- Evidence: The Home of Shadows thread moves from winners to editions to brief analysis to jury comments to rules interpretation; OpenClaw threads revisit persona extraction repeatedly.
+- Evidence: The Home of Shadows thread moves from winners to editions to brief analysis to jury comments to rules interpretation; AAS threads revisit persona extraction repeatedly.
 - Why it belongs in USER.md: Signals that continuity and incremental refinement are useful default behaviors.
 
 # Suggested USER.md fields
@@ -126,7 +126,7 @@ The user's chats suggest recurring involvement with architecture competition res
 - Evidence: Project context default timezone is -0700.
 - Why it belongs in USER.md: Useful for scheduling and deadlines.
 
-- Finding: Notes should emphasize architecture competitions, iterative design analysis, and OpenClaw persona/profile document building.
+- Finding: Notes should emphasize architecture competitions, iterative design analysis, and AAS persona/profile document building.
 - Confidence: High
 - Evidence: Repeated presence across prior chats.
 - Why it belongs in USER.md: These are the most assistance-relevant stable contexts.
@@ -152,7 +152,7 @@ The user's chats suggest recurring involvement with architecture competition res
 
 ## Notes
 - Works repeatedly on architecture competition research and analysis, especially Home of Shadows.
-- Has recurring OpenClaw meta-work: SOUL.md and USER.md style agent documents.
+- Has recurring AAS meta-work: SOUL.md and USER.md style agent documents.
 - Likely operates in an architecture/design-related domain or adjacent visual/creative strategy work.
 - Frequently uses the assistant for structured extraction, analysis, reformatting, and reusable document drafting.
 

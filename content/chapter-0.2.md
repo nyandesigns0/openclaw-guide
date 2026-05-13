@@ -2,7 +2,7 @@
 
 ## 0.2.0 Overview
 
-This chapter provides a step-by-step guide for installing and configuring OpenClaw on a Windows environment.
+This chapter provides a step-by-step guide for installing and configuring AAS on a Windows environment.
 
 ### 0.2.1 Operating System Setup
 

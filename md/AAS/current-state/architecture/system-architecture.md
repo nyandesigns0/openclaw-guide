@@ -50,9 +50,9 @@ Responsibilities:
 
 The current runtime is a backend-local simulation layer for product validation.
 
-It is not yet the final OpenClaw-driven execution engine described in the original design document.
+It is not yet the final AAS-driven execution engine described in the original design document.
 
 ## Design intent versus implementation
 
 The repo now has a real control plane, a polished frontend shell, and a richer runtime surface.
-The OpenClaw controller and TaskFlow directories still exist as future integration surfaces rather than the active runtime backbone.
+The AAS controller and TaskFlow directories still exist as future integration surfaces rather than the active runtime backbone.

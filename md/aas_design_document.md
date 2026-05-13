@@ -8,10 +8,10 @@ The new system should be an **Affordance-Oriented Agent Environment**: a runtime
 
 The agent chooses among moves. The system maps the chosen move to tools, files, memory retrieval, validation, and execution.
 
-This creates a new layer above OpenClaw:
+This creates a new layer above AAS:
 
 ```text
-OpenClaw = body, files, tools, base workspace, memory substrate
+AAS = body, files, tools, base workspace, memory substrate
 A.A.S. Field Runtime = environment physics for architectural agents
 ```
 
@@ -57,7 +57,7 @@ A graph can show what happened. It should not be the main way the agent thinks.
 
 ### 2.2 Why more memory categories are not enough
 
-OpenClaw already provides the foundation: agent body, world, workspace, and memory substrate. Adding more memory buckets does not solve the main problem. It can make the agent worse by forcing it to decide which memory tool to use, when to call it, and how to reconcile competing context fragments.
+AAS already provides the foundation: agent body, world, workspace, and memory substrate. Adding more memory buckets does not solve the main problem. It can make the agent worse by forcing it to decide which memory tool to use, when to call it, and how to reconcile competing context fragments.
 
 The problem is not lack of storage. The problem is lack of **environmental mediation**.
 
@@ -185,7 +185,7 @@ User
       -> CommitmentLedger
       -> MoveExecutor
       -> Critic / Supervisor
-  -> OpenClaw
+  -> AAS
       -> Agents
       -> Workspace
       -> Memory substrate
@@ -211,9 +211,9 @@ Owns product state, persistence, permissions, artifact records, run records, ses
 
 #### Field Runtime
 
-Creates the agent's operating physics. It decides what moves are available, how they are scored, what context is given to agents, how branches evolve, when decisions become project truth, and how execution maps to OpenClaw/tool calls.
+Creates the agent's operating physics. It decides what moves are available, how they are scored, what context is given to agents, how branches evolve, when decisions become project truth, and how execution maps to AAS/tool calls.
 
-#### OpenClaw
+#### AAS
 
 Provides base agent execution, files, memory substrate, workspace, tools, and gateway runtime.
 
@@ -659,14 +659,14 @@ Agents should receive compact, relevant context. They should not be expected to 
 
 ## 6.9 MoveExecutor
 
-The MoveExecutor maps typed moves to OpenClaw/tool operations.
+The MoveExecutor maps typed moves to AAS/tool operations.
 
 ```text
 Move selected
   -> validate preconditions
   -> load required context
   -> choose tool chain
-  -> execute through OpenClaw
+  -> execute through AAS
   -> capture artifacts
   -> update WorldState
   -> emit events
@@ -734,7 +734,7 @@ Responsibilities:
 4. ContextDistiller prepares Agent Brief.
 5. Agent selects move or proposes new move.
 6. Supervisor validates move.
-7. MoveExecutor executes move through OpenClaw/tools.
+7. MoveExecutor executes move through AAS/tools.
 8. Artifacts, tensions, branches, commits, and events update.
 9. Critic evaluates result when needed.
 10. AffordanceCompiler regenerates available moves.
@@ -1703,7 +1703,7 @@ Commits should be revertible when possible, but revert must create a new event r
 
 ## Phase 5 — MoveExecutor MVP
 
-- Map typed moves to OpenClaw tasks.
+- Map typed moves to AAS tasks.
 - Execute through existing agents/tools.
 - Register artifacts.
 - Update WorldState.
@@ -1811,7 +1811,7 @@ User prompt
   -> WorldState initialized
   -> Compiler creates 5 moves
   -> Agent selects move
-  -> Executor runs OpenClaw task
+  -> Executor runs AAS task
   -> Artifact created
   -> Commit or next move generated
 ```
@@ -1884,9 +1884,9 @@ Let decisions become truth only through commitment.
 Let branches evolve, compete, die, merge, and commit.
 ```
 
-This is the new orchestration layer A.A.S. should build above OpenClaw: not workflow automation, but architectural world dynamics.
+This is the new orchestration layer A.A.S. should build above AAS: not workflow automation, but architectural world dynamics.
 
-Yes. Hermes can replace OpenClaw better than expected.
+Yes. Hermes can replace AAS better than expected.
 
 Not as “AAS controls raw agents.” Better:
 
@@ -2307,7 +2307,7 @@ Hermes Kanban may be shared globally or profile-aware depending version/config. 
 
 ## Recommendation
 
-Yes, replace OpenClaw with Hermes Agent.
+Yes, replace AAS with Hermes Agent.
 
 But do it like this:
 
@@ -2334,7 +2334,7 @@ AAS Affordance Field
   committed into AAS truth ledger
 ```
 
-This is cleaner than OpenClaw version. Hermes already gives multi-agent durability. AAS becomes higher-level design engine.
+This is cleaner than AAS version. Hermes already gives multi-agent durability. AAS becomes higher-level design engine.
 
 [1]: https://hermes-agent.nousresearch.com/docs/user-guide/features/kanban "Kanban (Multi-Agent Board) | Hermes Agent"
 [2]: https://hermes-agent.nousresearch.com/docs/user-guide/profiles?utm_source=chatgpt.com "Profiles: Running Multiple Agents - Hermes Agent"

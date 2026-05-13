@@ -1,6 +1,6 @@
 # Executive summary
 
-The strongest durable profile signal is that the user is a **technical builder working on front-end/web app implementation and agent-behavior design**, with repeated focus on **React/TypeScript/Tailwind/Radix/shadcn-style app work** and on defining assistant operating documents such as **SOUL.md** and now **USER.md** for an OpenClaw agent.
+The strongest durable profile signal is that the user is a **technical builder working on front-end/web app implementation and agent-behavior design**, with repeated focus on **React/TypeScript/Tailwind/Radix/shadcn-style app work** and on defining assistant operating documents such as **SOUL.md** and now **USER.md** for an AAS agent.
 
 The user appears to use the assistant primarily for:
 - building and iterating on demo apps and UI behavior
@@ -16,9 +16,9 @@ There is **not enough grounded evidence** in the available prior chats to state 
 
 # Explicit user facts
 
-- Finding: The user is working on building configuration documents for an OpenClaw agent, including SOUL.md and USER.md.
+- Finding: The user is working on building configuration documents for an AAS agent, including SOUL.md and USER.md.
 - Confidence: High
-- Evidence: Repeated prompts: “Search through my previous chats and extract only information relevant to building SOUL.md for an OpenClaw agent.” Current prompt requests the same for USER.md.
+- Evidence: Repeated prompts: “Search through my previous chats and extract only information relevant to building SOUL.md for an AAS agent.” Current prompt requests the same for USER.md.
 - Why it belongs in USER.md: This is a stable ongoing context about what the user is building and why memory/profile extraction matters.
 
 - Finding: The user works on one-page demo apps and interface behavior.
@@ -77,7 +77,7 @@ There is **not enough grounded evidence** in the available prior chats to state 
 
 - Finding: The user is building or refining AI-agent behavior/configuration systems in parallel with UI/app work.
 - Confidence: High
-- Evidence: Repeated SOUL.md extraction prompts and the current USER.md prompt for an OpenClaw agent.
+- Evidence: Repeated SOUL.md extraction prompts and the current USER.md prompt for an AAS agent.
 - Why it belongs in USER.md: This is a recurring project and a major context for how the assistant can help.
 
 - Finding: The user values structured comparative reasoning before implementation.
@@ -99,7 +99,7 @@ There is **not enough grounded evidence** in the available prior chats to state 
 - Evidence: Current project includes multiple iterations on a countdown timer app, including display modes, defaults, and one-page demo behavior.
 - Why it belongs in USER.md: It is a concrete recurring project in the available chats.
 
-- Finding: OpenClaw agent configuration and persona/profile extraction.
+- Finding: AAS agent configuration and persona/profile extraction.
 - Confidence: High
 - Evidence: Multiple prior chats are dedicated to extracting evidence for SOUL.md, and the current request expands that to USER.md.
 - Why it belongs in USER.md: Clearly recurring and central.
@@ -186,7 +186,7 @@ There is **not enough grounded evidence** in the available prior chats to state 
 - Pronouns: Unknown
 - Timezone: Likely `-0700` / US Pacific-like offset (assumption only)
 - Professional domains: Web app development; front-end/full-stack prototyping; AI agent configuration/design
-- Recurring projects: OpenClaw SOUL.md and USER.md; demo apps; countdown timer UI iteration; possible data visualization/tool-call experiments
+- Recurring projects: AAS SOUL.md and USER.md; demo apps; countdown timer UI iteration; possible data visualization/tool-call experiments
 - Recurring tools/platforms: ReactJS, TypeScript, Tailwind CSS, Radix UI, shadcn/ui, Lucide React, Vercel AI SDK, context-based state management
 - Typical assistant tasks: Build and refine apps; make surgical code edits; analyze and compare solutions; formalize assistant behavior/profile docs
 - Output priorities: Precision, maintainability, minimal-change implementation, structure, auditability, preservation of existing work
@@ -215,7 +215,7 @@ There is **not enough grounded evidence** in the available prior chats to state 
 - Prefers exact scope control, maintainable changes, and outputs that are easy to inspect.
 
 ## Context
-- Recurring domains: web app development, front-end/full-stack prototyping, OpenClaw agent configuration.
+- Recurring domains: web app development, front-end/full-stack prototyping, AAS agent configuration.
 - Recurring tools: ReactJS, TypeScript, Tailwind CSS, Radix UI, shadcn/ui, Lucide React, Vercel AI SDK, context/state patterns.
 - Recurring tasks: build demo pages, refine UI behavior, patch code surgically, compare implementation options, extract durable context into agent docs.
 - Output priorities: precision, structured reasoning, preservation of existing work, debugging visibility, and minimal-change execution.

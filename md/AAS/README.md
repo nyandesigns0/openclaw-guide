@@ -1,17 +1,17 @@
-# A.A.A. Documentation Index
+# A.A.S. Documentation Index
 
-This documentation set describes the current implemented state of A.A.A. (Autonomous Architectural Agent), not just the original design intent.
+This documentation set describes the current implemented state of A.A.S. (Autonomous Architectural System), not just the original design intent.
 
 ## Current snapshot
 
-A.A.A. is now a working local-first product skeleton with:
+A.A.S. is now a working local-first product skeleton with:
 - a redesigned two-mode frontend shell for Build and Chat
 - a Fastify + Prisma + SQLite backend control plane
 - persisted pipelines, sessions, runs, run steps, artifacts, approvals, events, and project state
 - a local simulated execution runtime that can pause on approval nodes and resume execution
 - a richer bootstrap workspace with a default multi-stage pipeline and demo artifacts
 
-It is still not the final OpenClaw-native runtime from the design document. Real OpenClaw dispatch, live streaming, and production artifact generation remain future work.
+It is still not the final AAS-native runtime from the design document. Real AAS dispatch, live streaming, and production artifact generation remain future work.
 
 ## Start here
 
@@ -25,7 +25,7 @@ It is still not the final OpenClaw-native runtime from the design document. Real
 - `current-state/architecture/system-architecture.md`
 - `current-state/architecture/connectors-and-data-flow.md`
 - `current-state/architecture/runtime-status-vs-design.md`
-- `architecture/AAA_PROJECT_DESIGN_DOC.md` (reference design intent, not the current implementation snapshot)
+- `architecture/AAS_PROJECT_DESIGN_DOC.md` (reference design intent, not the current implementation snapshot)
 
 ## Frontend
 

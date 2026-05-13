@@ -11,9 +11,9 @@ There is **no explicit evidence** in the available chats for the user’s name, 
 - Evidence: “Create a web app named [Ethor]. The [Ethor] application is designed as [a sophisticated AI-powered sentiment analysis app utilizing knowledge graphs and RAG...”
 - Why it belongs in USER.md: This is a concrete recurring project context that helps future assistance.
 
-- Finding: The user wants support for an **OpenClaw agent** and is building both **SOUL.md** and **USER.md**.
+- Finding: The user wants support for an **AAS agent** and is building both **SOUL.md** and **USER.md**.
 - Confidence: High
-- Evidence: Current and prior request explicitly ask to build SOUL.md and USER.md “for an OpenClaw agent.”
+- Evidence: Current and prior request explicitly ask to build SOUL.md and USER.md “for an AAS agent.”
 - Why it belongs in USER.md: This is direct project context for future agent/persona work.
 
 - Finding: The user evaluates backend technologies for AI systems.
@@ -114,7 +114,7 @@ There is **no explicit evidence** in the available chats for the user’s name, 
 - Technical domain: AI app development / software architecture / LLM systems
 - Primary stack: ReactJS, TypeScript, Tailwind CSS, Radix UI, Shadcn/ui, Lucide React
 - Recurring backend interests: LangChain, LangGraph, LangSmith, vector DBs, Neo4j and alternatives, RAG, knowledge graphs
-- Current project(s): Ethor; OpenClaw persona files
+- Current project(s): Ethor; AAS persona files
 - Typical assistant use: architecture comparison, system design, implementation planning, stack/tool selection
 - Constraints: prefers free or low-cost options when feasible
 - Collaboration pattern: starts with narrow tool questions, often expands to full-system design
@@ -141,7 +141,7 @@ There is **no explicit evidence** in the available chats for the user’s name, 
 
 ## Context
 - Current recurring project context includes **Ethor**, an AI-powered sentiment/concept analysis web app using knowledge graphs and RAG.
-- Also building **SOUL.md** and **USER.md** for an **OpenClaw agent**.
+- Also building **SOUL.md** and **USER.md** for an **AAS agent**.
 - Likely primary web stack: ReactJS, TypeScript, Tailwind CSS, Radix UI, Shadcn/ui, Lucide React.
 - Recurring technical interests: LangChain, LangGraph, LangSmith, Neo4j and alternatives, Supabase/pgvector, vector DB choices, hybrid AI architectures.
 - Common task pattern: begin with focused tool or architecture questions, then expand toward integrated end-to-end system design.

@@ -6,7 +6,7 @@ This document records the consolidation process from 41 source markdown files in
 - `md/user/user.md`
 - `md/user/user (1).md` through `md/user (13).md`
 - `md/user/user_md_extraction.md`
-- `md/user/user_md_findings_for_open_claw.md`
+- `md/user/user_md_findings_for_aas.md`
 - `md/user/user_md_profile_report.md`
 - ... and 24 other extraction/analysis files in the `md/user/` directory.
 
@@ -17,7 +17,7 @@ This document records the consolidation process from 41 source markdown files in
 - **Domain Context**: Multi-domain profile (Architecture/AEC + Software Development). This explains the diverse requests ranging from "setback requirements" to "Clerk RBAC integration."
 - **Response Preferences**: "Concise," "Surgical edits," and "Forwarding-ready." These are stable preferences for how the user wants to be helped.
 - **Strategic Constraints**: SEO preservation on the main domain and secure token handling. These are durable architectural decisions the user has repeatedly defended.
-- **Recurring Projects**: 3262 Forest Meadow Dr, OpenClaw, SemiChan, and Financior. These provide immediate context for incoming tasks.
+- **Recurring Projects**: 3262 Forest Meadow Dr, AAS, SemiChan, and Financior. These provide immediate context for incoming tasks.
 
 ### Dropped Items
 - **Transient Session Notes**: Specific one-off questions about a particular door schedule or a single email draft that didn't establish a pattern were omitted to keep the file "high-signal."

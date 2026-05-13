@@ -34,7 +34,7 @@ Fields include:
 - lineage JSON
 - metadata JSON
 
-### `AaaPipeline`
+### `AASPipeline`
 Saved pipeline definition.
 Fields include:
 - name
@@ -42,7 +42,7 @@ Fields include:
 - status
 - entryNodeId
 
-### `AaaPipelineNode`
+### `AASPipelineNode`
 One block in the execution graph.
 Fields include:
 - key
@@ -56,7 +56,7 @@ Fields include:
 - sortOrder
 - x / y
 
-### `AaaPipelineEdge`
+### `AASPipelineEdge`
 Directed connection between pipeline nodes.
 Fields include:
 - sourceNodeId
@@ -80,7 +80,7 @@ Fields include:
 - pipelineNodeId
 - metadataJson
 
-### `AaaRun`
+### `AASRun`
 Execution record for a pipeline run.
 Fields include:
 - projectId
@@ -90,7 +90,7 @@ Fields include:
 - currentStep
 - triggerSource
 
-### `AaaRunStep`
+### `AASRunStep`
 Per-step execution history.
 Fields include:
 - pipelineNodeId
@@ -105,7 +105,7 @@ Fields include:
 - agentName
 - agentRole
 
-### `AaaApproval`
+### `AASApproval`
 Approval checkpoint record.
 Fields include:
 - run and chat-session links
@@ -119,7 +119,7 @@ Fields include:
 - note
 - responseJson
 
-### `AaaEvent`
+### `AASEvent`
 Simplified execution log record.
 Fields include:
 - project, run, session, pipeline, step, and node links
@@ -129,14 +129,14 @@ Fields include:
 - payloadJson
 - agent attribution
 
-### `AaaBoard`
+### `AASBoard`
 Reserved board package record for later rendering and final-delivery workflows.
 
 ## Relationship summary
 
 - one `Project` owns many pipelines, sessions, runs, assets, and events
 - one `Project` owns one `ProjectState`
-- one `AaaRun` owns many steps, approvals, assets, and events
+- one `AASRun` owns many steps, approvals, assets, and events
 - one `ChatSession` can accumulate many messages, approvals, assets, and events across runs
 - `ProjectAsset` can reference a source asset for lineage chains
 

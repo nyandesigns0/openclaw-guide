@@ -48,7 +48,7 @@ You appear to be an architecture / computational design practitioner working on 
   - **Evidence:** Multiple requests in this conversation: summary + intro formatting.
   - **Why it belongs in USER.md:** Provides continuity for future related prompts.
 
-- **Finding:** **OpenClaw agent docs** (SOUL.md / USER.md).
+- **Finding:** **AAS agent docs** (SOUL.md / USER.md).
   - **Confidence:** High
   - **Evidence:** Repeated requests across the project chat list for building SOUL.md; current request for USER.md.
   - **Why it belongs in USER.md:** Indicates you are building an agent spec and will iterate on its behavior/profile.
@@ -105,9 +105,9 @@ You appear to be an architecture / computational design practitioner working on 
   - **Evidence:** Titles + current work.
   - **Why it belongs in USER.md:** Improves relevance of suggestions and terminology.
 
-- **Finding:** Capture core tools: Grasshopper (Rhino ecosystem), plus “OpenClaw agent” documentation workflow.
+- **Finding:** Capture core tools: Grasshopper (Rhino ecosystem), plus “AAS agent” documentation workflow.
   - **Confidence:** Medium
-  - **Evidence:** “Grasshopper foot traffic simulation” title; repeated OpenClaw doc requests.
+  - **Evidence:** “Grasshopper foot traffic simulation” title; repeated AAS doc requests.
   - **Why it belongs in USER.md:** Informs implementation-oriented help.
 
 - **Finding:** Capture project continuity: Sojourner; Nyan Designs.
@@ -132,7 +132,7 @@ Unspecified.
 UTC−07:00 (likely).
 
 ## Notes
-Works in architecture / computational design with interest in agent-based simulation and experiential evaluation. Uses the assistant for structured writing deliverables and agent specification documents (OpenClaw).
+Works in architecture / computational design with interest in agent-based simulation and experiential evaluation. Uses the assistant for structured writing deliverables and agent specification documents (AAS).
 
 ## Context
 Current recurring threads include the **Sojourner** simulation framework and the **Nyan Designs** umbrella project. Common needs include clarifying concepts, structuring systems/agents, and producing concise, well-formatted documentation suitable for iteration.

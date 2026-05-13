@@ -1,14 +1,14 @@
-# A.A.A. Autonomous Architectural Agent Project Design Document
+# A.A.S. Autonomous Architectural System Project Design Document
 
 ## 1. Purpose
 
-**A.A.A. (Autonomous Architectural Agent)** is a local-first architectural generation system built on top of OpenClaw. It turns a design brief, reference assets, and revision feedback into structured intermediate artifacts and final reviewable outputs, including presentation boards.
+**A.A.S. (Autonomous Architectural System)** is a local-first architectural generation system built on top of AAS. It turns a design brief, reference assets, and revision feedback into structured intermediate artifacts and final reviewable outputs, including presentation boards.
 
 This design chooses one architecture only:
 
 - **Frontend:** Next.js + TypeScript
-- **Backend control plane:** TypeScript API inside the A.A.A. app root
-- **Agent runtime:** OpenClaw plugin/controller + TaskFlow + worker agents
+- **Backend control plane:** TypeScript API inside the A.A.S. app root
+- **Agent runtime:** AAS plugin/controller + TaskFlow + worker agents
 - **Persistence:** local database + local file storage
 - **Final output assembly:** deterministic renderer, not freeform end-to-end agent output
 
@@ -21,25 +21,25 @@ The system is designed to be inspectable, resumable, and human-steerable.
 ### App root
 
 ```text
-D:\openclaw\agents\developer\A.A.A.
+D:\AAS\agents\developer\A.A.S.
 ```
 
 This app root is owned by the **developer** domain. Developer manages that folder and the application artifacts inside it.
 
 ### Naming rule
 
-All app-facing backend, storage, events, services, and runtime identifiers should be branded for **A.A.A. (Autonomous Architectural Agent)** and not use old project-specific naming such as `presentation-board`.
+All app-facing backend, storage, events, services, and runtime identifiers should be branded for **A.A.S. (Autonomous Architectural System)** and not use old project-specific naming such as `presentation-board`.
 
 Examples:
 
-- `aaa-api`
-- `aaa-controller`
-- `aaa-renderer`
-- `aaa-run-service`
-- `aaa-project-service`
-- `aaa-flow-started`
-- `aaa-step-completed`
-- `aaa-render-failed`
+- `AAS-api`
+- `AAS-controller`
+- `AAS-renderer`
+- `AAS-run-service`
+- `AAS-project-service`
+- `AAS-flow-started`
+- `AAS-step-completed`
+- `AAS-render-failed`
 
 ---
 
@@ -49,14 +49,14 @@ Examples:
 
 ```text
 User
-  -> A.A.A. Frontend (Autonomous Architectural Agent) (Next.js)
-  -> A.A.A. Backend API / Control Plane
+  -> A.A.S. Frontend (Autonomous Architectural System) (Next.js)
+  -> A.A.S. Backend API / Control Plane
   -> Local DB + Local Storage
-  -> OpenClaw A.A.A. Controller Plugin
+  -> AAS A.A.S. Controller Plugin
   -> TaskFlow
   -> Worker Agents + Media Tools
   -> Structured Outputs + Assets
-  -> A.A.A. Deterministic Renderer
+  -> A.A.S. Deterministic Renderer
   -> Final Reviewable Deliverables
 ```
 
@@ -64,7 +64,7 @@ User
 
 The **backend is the product control plane** and the **source of truth for user-facing state**.
 
-OpenClaw is the **execution engine**.
+AAS is the **execution engine**.
 
 TaskFlow is the **durable orchestration spine**.
 
@@ -75,14 +75,14 @@ Agents do not directly own product state. They produce bounded, typed, reviewabl
 ## 4. Top-Level Directory Layout
 
 ```text
-D:\openclaw\agents\developer\A.A.A.\
+D:\AAS\agents\developer\A.A.S.\
   app\
     frontend\
     backend\
     shared\
-  openclaw\
+  AAS\
     plugins\
-      aaa-controller\
+      AAS-controller\
     taskflow\
       pipelines\
       schemas\
@@ -125,7 +125,7 @@ D:\openclaw\agents\developer\A.A.A.\
 - API routes
 - workflow services
 - project/run/asset services
-- OpenClaw integration adapter
+- AAS integration adapter
 - render job creation
 - WebSocket or SSE event streaming
 
@@ -135,8 +135,8 @@ D:\openclaw\agents\developer\A.A.A.\
 - Zod or JSON schemas
 - event contracts
 
-#### `openclaw/plugins/aaa-controller`
-- product-specific OpenClaw controller plugin
+#### `AAS/plugins/AAS-controller`
+- product-specific AAS controller plugin
 - TaskFlow creation
 - step dispatch
 - worker coordination
@@ -155,7 +155,7 @@ D:\openclaw\agents\developer\A.A.A.\
 
 ## 5. Major Components
 
-## 5.1 A.A.A. Frontend (Autonomous Architectural Agent)
+## 5.1 A.A.S. Frontend (Autonomous Architectural System)
 
 **Stack:** Next.js + TypeScript + Tailwind + React Query + WebSocket client
 
@@ -176,13 +176,13 @@ The frontend should not:
 - call worker agents directly
 - own workflow transition logic
 - write final files directly
-- couple itself to raw OpenClaw runtime details
+- couple itself to raw AAS runtime details
 
 It is a product shell over the backend API.
 
 ---
 
-## 5.2 A.A.A. Backend API / Control Plane
+## 5.2 A.A.S. Backend API / Control Plane
 
 **Stack:** TypeScript, preferably Fastify first. Prisma for DB access. SQLite first, Postgres later if needed.
 
@@ -194,7 +194,7 @@ It is a product shell over the backend API.
 - mapping UI commands into pipeline actions
 - database persistence
 - local storage management
-- OpenClaw integration
+- AAS integration
 - event normalization and broadcast
 - renderer job orchestration
 - audit trail and activity history
@@ -204,9 +204,9 @@ This is not just an API wrapper. It is the product logic layer and the stable in
 
 ---
 
-## 5.3 OpenClaw A.A.A. Controller Plugin
+## 5.3 AAS A.A.S. Controller Plugin
 
-**Location:** `D:\openclaw\agents\developer\A.A.A.\openclaw\plugins\aaa-controller`
+**Location:** `D:\AAS\agents\developer\A.A.S.\AAS\plugins\AAS-controller`
 
 ### Responsibilities
 - create and manage TaskFlow flows
@@ -261,7 +261,7 @@ Worker agents handle bounded tasks such as:
 
 ---
 
-## 5.6 A.A.A. Deterministic Renderer
+## 5.6 A.A.S. Deterministic Renderer
 
 ### Responsibilities
 - consume a structured board package
@@ -293,7 +293,7 @@ The backend database is the source of truth for:
 - user-facing statuses
 - event history
 
-## 6.2 OpenClaw-owned orchestration state
+## 6.2 AAS-owned orchestration state
 
 TaskFlow `stateJson` is the source of truth for:
 - current step execution
@@ -312,7 +312,7 @@ This separation keeps the product stable even if the runtime is restarted or rep
 ## 7.1 Storage root
 
 ```text
-D:\openclaw\agents\developer\A.A.A.\storage
+D:\AAS\agents\developer\A.A.S.\storage
 ```
 
 ## 7.2 Proposed storage layout
@@ -388,7 +388,7 @@ Recommended initial stack:
 }
 ```
 
-### `aaa_runs`
+### `AAS_runs`
 ```ts
 {
   id: string
@@ -402,7 +402,7 @@ Recommended initial stack:
 }
 ```
 
-### `aaa_run_steps`
+### `AAS_run_steps`
 ```ts
 {
   id: string
@@ -418,7 +418,7 @@ Recommended initial stack:
 }
 ```
 
-### `aaa_approvals`
+### `AAS_approvals`
 ```ts
 {
   id: string
@@ -431,7 +431,7 @@ Recommended initial stack:
 }
 ```
 
-### `aaa_boards`
+### `AAS_boards`
 ```ts
 {
   id: string
@@ -444,7 +444,7 @@ Recommended initial stack:
 }
 ```
 
-### `aaa_events`
+### `AAS_events`
 ```ts
 {
   id: string
@@ -464,7 +464,7 @@ The pipeline should be declared as data, executed by code.
 ## 9.1 Pipeline definition location
 
 ```text
-D:\openclaw\agents\developer\A.A.A.\openclaw\taskflow\pipelines\board-generation.pipeline.json
+D:\AAS\agents\developer\A.A.S.\AAS\taskflow\pipelines\board-generation.pipeline.json
 ```
 
 ## 9.2 Example step sequence
@@ -495,16 +495,16 @@ Each step should declare:
 
 ## 10.1 Intake
 
-1. User creates or opens project in the A.A.A. frontend.
+1. User creates or opens project in the A.A.S. frontend.
 2. User uploads references and enters the design brief.
 3. Frontend sends request to backend.
 4. Backend validates and stores canonical input.
-5. Backend creates an `aaa_run` record.
-6. Backend asks OpenClaw to start a flow.
+5. Backend creates an `AAS_run` record.
+6. Backend asks AAS to start a flow.
 
 ## 10.2 Flow creation
 
-1. A.A.A. controller plugin creates a TaskFlow managed flow.
+1. A.A.S. controller plugin creates a TaskFlow managed flow.
 2. TaskFlow state stores run directory, input paths, current step, artifact map, retry state, and history.
 3. Controller dispatches the first worker task.
 
@@ -548,7 +548,7 @@ If a step requires approval:
 
 ```json
 {
-  "pipelineId": "aaa-board-generation",
+  "pipelineId": "AAS-board-generation",
   "projectId": "proj_001",
   "runId": "run_001",
   "runDir": "storage/projects/proj_001/runs/run_001",
@@ -685,7 +685,7 @@ The backend should normalize runtime events into stable product events.
 
 ```json
 {
-  "type": "aaa.run.started",
+  "type": "AAS.run.started",
   "runId": "run_001",
   "projectId": "proj_001",
   "currentStep": "brief_normalization"
@@ -694,7 +694,7 @@ The backend should normalize runtime events into stable product events.
 
 ```json
 {
-  "type": "aaa.step.updated",
+  "type": "AAS.step.updated",
   "runId": "run_001",
   "stepId": "image_generation",
   "status": "running",
@@ -704,7 +704,7 @@ The backend should normalize runtime events into stable product events.
 
 ```json
 {
-  "type": "aaa.asset.created",
+  "type": "AAS.asset.created",
   "runId": "run_001",
   "assetId": "asset_003",
   "kind": "generated",
@@ -714,7 +714,7 @@ The backend should normalize runtime events into stable product events.
 
 ```json
 {
-  "type": "aaa.approval.required",
+  "type": "AAS.approval.required",
   "runId": "run_001",
   "stepId": "image_generation",
   "message": "Select preferred hero image before layout planning."
@@ -723,7 +723,7 @@ The backend should normalize runtime events into stable product events.
 
 ```json
 {
-  "type": "aaa.run.completed",
+  "type": "AAS.run.completed",
   "runId": "run_001",
   "boardId": "board_001"
 }
@@ -731,12 +731,12 @@ The backend should normalize runtime events into stable product events.
 
 ## 14.2 Event flow
 
-- OpenClaw emits execution-side lifecycle results.
+- AAS emits execution-side lifecycle results.
 - Backend converts them into stable app events.
-- Backend stores them in `aaa_events`.
+- Backend stores them in `AAS_events`.
 - Backend broadcasts them to the UI.
 
-The browser should not depend directly on raw OpenClaw event semantics.
+The browser should not depend directly on raw AAS event semantics.
 
 ---
 
@@ -800,17 +800,17 @@ This architecture should prefer **step-local recovery** over whole-run resets.
 ## 17. Security and Exposure Posture
 
 ## 17.1 Local-first v1
-Initial operation is local-first on the machine that runs OpenClaw and A.A.A.
+Initial operation is local-first on the machine that runs AAS and A.A.S.
 
 ## 17.2 Future internet exposure
 When exposed later through Cloudflare Tunnel, the externally reachable surface should be:
-- A.A.A. frontend
-- A.A.A. backend API
+- A.A.S. frontend
+- A.A.S. backend API
 
-OpenClaw itself should remain behind the backend boundary.
+AAS itself should remain behind the backend boundary.
 
 ## 17.3 Security stance
-- do not expose raw OpenClaw control surfaces publicly
+- do not expose raw AAS control surfaces publicly
 - serve media through backend URLs
 - add authentication before public exposure
 - keep storage roots and internal runtime paths private
@@ -820,7 +820,7 @@ OpenClaw itself should remain behind the backend boundary.
 ## 18. Recommended Build Phases
 
 ## Phase 1, app foundation
-- create A.A.A. monorepo/app root under `D:\openclaw\agents\developer\A.A.A.`
+- create A.A.S. monorepo/app root under `D:\AAS\agents\developer\A.A.S.`
 - create frontend app
 - create backend app
 - create shared types package
@@ -833,8 +833,8 @@ OpenClaw itself should remain behind the backend boundary.
 - implement project and run endpoints
 - implement event storage
 
-## Phase 3, OpenClaw integration
-- create `aaa-controller` plugin
+## Phase 3, AAS integration
+- create `AAS-controller` plugin
 - add TaskFlow-managed flow creation
 - implement first three steps: brief normalization, board strategy, image generation
 - persist step outputs to storage
@@ -878,18 +878,18 @@ Do not pass unstructured prose between pipeline stages when deterministic assemb
 ### Use a deterministic renderer
 Do not ask an agent to one-shot the final board as the product primitive.
 
-### Keep OpenClaw behind the backend
+### Keep AAS behind the backend
 Do not expose raw agent orchestration directly to the web UI or internet.
 
 ---
 
 ## 20. Final Summary
 
-A.A.A. should be built as a three-layer system:
+A.A.S. should be built as a three-layer system:
 
-1. **A.A.A. Frontend (Autonomous Architectural Agent)** for operator control and review
-2. **A.A.A. Backend API** as the product control plane and state authority
-3. **OpenClaw A.A.A. Controller + TaskFlow + workers** as the execution engine
+1. **A.A.S. Frontend (Autonomous Architectural System)** for operator control and review
+2. **A.A.S. Backend API** as the product control plane and state authority
+3. **AAS A.A.S. Controller + TaskFlow + workers** as the execution engine
 
 The backend owns user-facing truth. TaskFlow owns execution continuity. Agents produce structured intermediate work. The renderer produces stable final deliverables.
 

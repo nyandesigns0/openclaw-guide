@@ -18,7 +18,7 @@
 
 ## Partially aligned
 
-### OpenClaw integration
+### AAS integration
 There is a named place for the controller plugin and TaskFlow assets, but they are not yet the active runtime path.
 
 ### Worker pipeline
@@ -29,7 +29,7 @@ The frontend shell is much closer to the design direction now. The right-side ra
 
 ## Not aligned yet
 
-- real OpenClaw controller execution
+- real AAS controller execution
 - TaskFlow-managed run continuity
 - live streaming into the terminal/chat UI
 - upload and retrieval flows for real user files
@@ -40,4 +40,4 @@ The frontend shell is much closer to the design direction now. The right-side ra
 ## Practical reading of current maturity
 
 This repo is beyond a scaffold.
-It is best described as a functional local control plane with a polished operator shell and a richer simulated runtime, not a full implementation of the original A.A.A. architecture.
+It is best described as a functional local control plane with a polished operator shell and a richer simulated runtime, not a full implementation of the original A.A.S. architecture.

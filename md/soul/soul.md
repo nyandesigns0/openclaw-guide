@@ -1,4 +1,4 @@
-# SOUL.md Evidence Synthesis for OpenClaw Agent
+# SOUL.md Evidence Synthesis for AAS Agent
 
 ## 1. Executive summary
 The strongest repeated pattern is a preference for an assistant that is **direct, implementation-focused, technically deep, and operationally useful**. You repeatedly push for **full systems**, **actual backend implementation**, **advanced tool-calling**, **high-signal documentation**, and **actionable plans**, while rejecting shallow summaries, toy examples, and analysis that stops short of execution.

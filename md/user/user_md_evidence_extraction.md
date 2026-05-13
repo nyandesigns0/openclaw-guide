@@ -11,9 +11,9 @@ The evidence base here is limited to the prior chats visible in this project con
 - Evidence: The user wrote, “So I'm working on an architectural theory,” and repeatedly requested essays, critiques, and expansions on architecture and phenomenology.
 - Why it belongs in USER.md: This is stable domain context that helps the assistant choose vocabulary, examples, and depth.
 
-- Finding: The user is building OpenClaw agent files such as SOUL.md and USER.md.
+- Finding: The user is building AAS agent files such as SOUL.md and USER.md.
 - Confidence: High
-- Evidence: The user explicitly asked for extraction relevant to “building SOUL.md for an OpenClaw agent” and then requested the same process for USER.md.
+- Evidence: The user explicitly asked for extraction relevant to “building SOUL.md for an AAS agent” and then requested the same process for USER.md.
 - Why it belongs in USER.md: This is an active recurring meta-project and affects how the assistant should package information.
 
 - Finding: The user uses the assistant for writing transformation tasks.
@@ -50,7 +50,7 @@ The evidence base here is limited to the prior chats visible in this project con
 - Evidence: The user repeatedly asked to organize writings, summarize, expand, critique, and compile transcript material into article-ready prose.
 - Why it belongs in USER.md: Strongly recurring practical use case.
 
-- Finding: Agent/persona design for OpenClaw documentation.
+- Finding: Agent/persona design for AAS documentation.
 - Confidence: High
 - Evidence: Explicit requests for SOUL.md and USER.md extraction with detailed methodology.
 - Why it belongs in USER.md: Active project context.
@@ -144,7 +144,7 @@ The evidence base here is limited to the prior chats visible in this project con
 - Works on architecture-related theory, critique, and writing.
 - Frequently develops conceptual material into structured academic prose.
 - Uses the assistant as a drafting, critique, and synthesis partner.
-- Also building OpenClaw persona/context files such as SOUL.md and USER.md.
+- Also building AAS persona/context files such as SOUL.md and USER.md.
 
 ## Context
 - Recurring interests: observer theory in architecture, phenomenology, perception, dwelling, architectural criticism.

@@ -1,6 +1,6 @@
 # Architecture Overview
 
-A.A.A. currently has three live layers and two future integration surfaces.
+A.A.S. currently has three live layers and two future integration surfaces.
 
 ## Live layers
 
@@ -20,21 +20,21 @@ A.A.A. currently has three live layers and two future integration surfaces.
 
 ## Future integration surfaces
 
-4. **OpenClaw controller plugin**
+4. **AAS controller plugin**
    - intended long-term execution boundary
-   - scaffolded under `openclaw/plugins/aaa-controller`
+   - scaffolded under `AAS/plugins/AAS-controller`
 
 5. **TaskFlow runtime assets**
    - intended long-term orchestration continuity layer
-   - scaffolded under `openclaw/taskflow`
+   - scaffolded under `AAS/taskflow`
 
 ## Important reality check
 
-The backend currently simulates the orchestration layer locally. That means A.A.A. already behaves like a real product control plane, but it is not yet using the final OpenClaw + TaskFlow execution path from the original design.
+The backend currently simulates the orchestration layer locally. That means A.A.S. already behaves like a real product control plane, but it is not yet using the final AAS + TaskFlow execution path from the original design.
 
 ## Current architectural stance
 
 - the backend is the source of truth for product state
 - the frontend is a typed client of backend DTOs
 - the local pipeline runtime is a bridge layer, not the final engine
-- the OpenClaw integration folders are future-facing, not yet the active path
+- the AAS integration folders are future-facing, not yet the active path

@@ -57,7 +57,7 @@ The evidence is strongest for work domain, recurring task types, likely timezone
 - Evidence: The current conversation repeatedly centers on Via Cerro, RCSD, biological updates, city planner communications, and project information extraction.
 - Why it belongs in USER.md: Ongoing project continuity is useful while active.
 
-- Finding: A recurring meta-interest is building instruction files such as SOUL.md and USER.md for an OpenClaw agent.
+- Finding: A recurring meta-interest is building instruction files such as SOUL.md and USER.md for an AAS agent.
 - Confidence: High
 - Evidence: The user repeatedly asked to analyze prior chats for SOUL.md and now USER.md.
 - Why it belongs in USER.md: Indicates active interest in configuring agent behavior and durable context.

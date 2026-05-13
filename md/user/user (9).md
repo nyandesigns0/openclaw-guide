@@ -85,7 +85,7 @@ No explicit name, preferred form of address, or pronouns were found in the revie
 - Why it belongs in USER.md: It is part of how the user uses the assistant strategically.
 
 ## 13) Agent/profile design (SOUL.md / USER.md)
-- Finding: The user is working on OpenClaw agent profile documents like SOUL.md and USER.md.
+- Finding: The user is working on AAS agent profile documents like SOUL.md and USER.md.
 - Confidence: High
 - Evidence: Recent direct requests to extract prior-chat evidence for SOUL.md and USER.md.
 - Why it belongs in USER.md: Relevant current meta-project context.

@@ -48,17 +48,17 @@
 - **Why it belongs in USER.md:** Guides the assistant’s default framing, sources, and vocabulary when researching opportunities.
 
 ### 3.3 Agent-building / operational documentation
-- **Finding:** You work on **OpenClaw agent docs** (SOUL.md/USER.md) and care about extracting durable patterns.
+- **Finding:** You work on **AAS agent docs** (SOUL.md/USER.md) and care about extracting durable patterns.
 - **Confidence:** High
-- **Evidence:** Multiple prior-chat entries (titles + repeated prompts) request extracting preferences to build SOUL.md for an OpenClaw agent, and you now request USER.md.
+- **Evidence:** Multiple prior-chat entries (titles + repeated prompts) request extracting preferences to build SOUL.md for an AAS agent, and you now request USER.md.
 - **Why it belongs in USER.md:** Core context for what you’re building and why these documents matter.
 
 ---
 
 ## 4) Recurring projects and interests
 
-### 4.1 OpenClaw agent configuration docs
-- **Finding:** Recurring project: building **SOUL.md** and **USER.md** as operating/profile documents for an OpenClaw agent.
+### 4.1 AAS agent configuration docs
+- **Finding:** Recurring project: building **SOUL.md** and **USER.md** as operating/profile documents for an AAS agent.
 - **Confidence:** High
 - **Evidence:** Repeated prompt in multiple prior-chat entries; current request explicitly asks for USER.md.
 - **Why it belongs in USER.md:** Helps the assistant maintain continuity and reuse the same extraction rigor.
@@ -118,7 +118,7 @@
 
 - **Primary domains**
   - Architecture/design opportunity research (competitions)
-  - Agent-building documentation (OpenClaw: SOUL.md/USER.md)
+  - Agent-building documentation (AAS: SOUL.md/USER.md)
 
 - **Common task types**
   - Constrained web research (eligibility + schedule windows)
@@ -147,7 +147,7 @@
 - America/Los_Angeles (inferred from workspace context; treat as tentative)
 
 ## Notes
-- Uses the assistant to build OpenClaw agent docs (SOUL.md/USER.md) using evidence-based extraction.
+- Uses the assistant to build AAS agent docs (SOUL.md/USER.md) using evidence-based extraction.
 - Prefers structured, template-driven outputs.
 
 ## Context

@@ -63,7 +63,7 @@ This USER.md profile is derived only from the project’s accessible prior conve
 - **Evidence:** You request diagnosis and improvement plan for these specific components.
 - **Why it belongs in USER.md:** Helps assistant focus on the right levers and terminology.
 
-- **Finding:** You sometimes work on agent-persona documentation (SOUL.md / USER.md) for an **OpenClaw** agent.
+- **Finding:** You sometimes work on agent-persona documentation (SOUL.md / USER.md) for an **AAS** agent.
 - **Confidence:** Medium
 - **Evidence:** Repeated requests to extract preferences/context for SOUL.md, now USER.md.
 - **Why it belongs in USER.md:** Indicates meta-work on tooling/agents in addition to SemiChan.

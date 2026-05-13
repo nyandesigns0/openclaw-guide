@@ -77,7 +77,7 @@ The evidence base here is limited to prior chats visible in this project context
 
 - Finding: Persona/specification writing for agents such as SOUL.md and USER.md.
 - Confidence: High
-- Evidence: The user asked for extraction relevant to building SOUL.md and now USER.md for an OpenClaw agent.
+- Evidence: The user asked for extraction relevant to building SOUL.md and now USER.md for an AAS agent.
 - Why it belongs in USER.md: This indicates ongoing agent-design or workflow-system work.
 
 # Recurring constraints

@@ -43,4 +43,4 @@ It exposes backend-operable pipeline structure directly and is moving toward the
 
 ## Important reality check
 
-The frontend shell has moved closer to the intended A.A.A. product experience, but it does not yet fully consume the richer artifact, approval, event, and project-state surfaces now available in the backend.
+The frontend shell has moved closer to the intended A.A.S. product experience, but it does not yet fully consume the richer artifact, approval, event, and project-state surfaces now available in the backend.

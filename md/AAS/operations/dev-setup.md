@@ -4,7 +4,7 @@
 
 1. Copy `.env.example` to `.env`
 2. Run `npm install`
-3. Run `npm run db:generate --workspace @aaa/backend`
+3. Run `npm run db:generate --workspace @AAS/backend`
 4. Run `npx prisma migrate dev --name init --schema app/backend/prisma/schema.prisma`
 5. Run `npm run dev`
 
