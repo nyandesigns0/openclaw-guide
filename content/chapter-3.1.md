@@ -1,41 +1,52 @@
-# Chapter 3.1 — Introduction
+# Chapter 3.1 - Introduction
 
 ## 3.1.0 Overview
 
-A.A.A. (Autonomous Architectural Agent) is a local-first architectural generation system built on top of OpenClaw that turns a design brief, reference assets, and revision feedback into structured intermediate artifacts and final reviewable presentation boards.
+A.A.S. is an Affordance-Oriented Agent Environment for architectural design. It is built as a Field Runtime above Hermes Agent: A.A.S. owns design intelligence and project truth, while Hermes provides durable multi-agent execution through profiles, Kanban tasks, workers, memory, skills, dispatcher, and logs.
 
-### 3.1.1 What A.A.A. Is
+### 3.1.1 What A.A.S. Is
 
-**Autonomous Architectural Agent:** A.A.A. is a multi-agent pipeline application purpose-built for architectural design workflows, from initial concept through final presentation board delivery. \
-**Built on OpenClaw:** The system uses OpenClaw as its execution engine, leveraging the multi-agent runtime for orchestrating specialized worker agents such as researchers, concept designers, design critics, and board composers. \
-**Local-First Product:** A.A.A. operates as a local-first monorepo application, meaning all data — projects, pipelines, sessions, artifacts, and state — lives on the operator's own machine with no mandatory cloud dependency. \
-**Inspectable and Resumable:** Every step of the pipeline produces typed, reviewable outputs. The operator can pause at approval checkpoints, inspect intermediate artifacts, reject or revise, and resume without restarting the entire workflow. \
-**Human-Steerable:** The system is designed around the principle that the human operator maintains control at every critical decision point, from concept direction to final board composition.
+**Architectural Agent Environment:** A.A.S. turns goals, values, references, critique, model state, feature state, and artifacts into a navigable design field. \
+**Built on Hermes:** Hermes executes work through profile-based specialist agents and Kanban task groups. A.A.S. compiles architectural moves into Hermes task packets and watches execution state. \
+**Field Runtime:** The runtime reads WorldState, generates affordances, scores expected effects, distills context, lets agents select moves, compiles moves into Hermes work, and updates the world. \
+**Design Intelligence Layer:** A.A.S. combines design ontology, objective functions, tension detection, move pattern library, branch search, evaluator scoring, process grammar, design debt, and commit rules. \
+**Human-Steerable:** The operator reviews moves, feature pressures, branches, tensions, artifacts, commits, preferences, approvals, and Hermes task state at the level of architectural intent. \
+**Local-First Product:** Project data, artifacts, WorldState snapshots, event history, profile bindings, and task bindings can run locally first, with clear upgrade paths for hosted or multi-user deployments.
 
 ### 3.1.2 Core Workflow
 
-**Initial Prompt:** The process begins when the user provides a design brief — a textual description of the architectural project, optionally accompanied by reference images, site context, or programmatic constraints. \
-**Research and Compilation:** A dedicated Research Agent analyzes the prompt, determines the scope of investigation required, makes intelligent contextual assumptions (e.g., assuming a Southern California location if the brief implies it), asks the user proactive clarifying questions, and compiles a comprehensive research report. \
-**Concept Development:** A Concept Agent takes the research report and establishes a ground truth for the project — a foundational 3D concept, floor plan, or section that ensures spatial consistency across all subsequent drawings and renderings. \
-**Design Development:** Design Development (DD) agents take the established concept and develop it into final presentation components, leveraging advanced image generation models such as GPT Image V2 to produce renderings, diagrams, and architectural drawings. \
-**Segmentation and Consistency:** Generated presentation boards are segmented into individual drawings (renderings, floor plans, elevations, sections, diagrams), and specialized sub-agents analyze each for coherence, checking that spatial relationships, scale, and design language remain consistent with the ground truth. \
-**Deterministic Assembly:** A dedicated renderer consumes a structured board package and places content into exact regions, producing stable, repeatable PNG and PDF exports rather than relying on freeform end-to-end agent output.
+**Goal Intake:** The user enters a design goal, values, references, and constraints. The backend normalizes this into GoalState and initializes WorldState. \
+**Feature Extraction:** The runtime extracts phase, active tensions, artifact gaps, branch health, preference context, feature state, process landmarks, design debt, and trajectory history. \
+**Move Generation:** The AffordanceCompiler selects matching move patterns, instantiates candidate moves, filters illegal moves, predicts feature deltas, scores tradeoffs, and exposes a diverse top set. \
+**Hermes Execution:** The MoveCompiler turns the selected move into a Hermes Kanban task group with assigned profiles, dependencies, task packet, output contract, and artifact write paths. \
+**Branch Development:** Concept branches compete as design hypotheses. Agents develop, critique, compare, merge, kill, or commit them based on evidence, feature scores, and user values. \
+**Tension Resolution:** The system tracks contradictions such as privacy versus openness, budget versus form, preference conflicts, or render ambition versus model truth. Critical unresolved tensions can block finalization. \
+**Ground Truth and Representation:** Model, plan, section, massing, render, diagram, and board artifacts are generated through typed moves, evaluated, and validated against commits and constraints. \
+**Learning Loop:** Predicted move effects are compared with evaluator-measured deltas. Move pattern stats, sensitivity matrices, and contextual rewards improve without treating model weights as having changed.
 
-### 3.1.3 Three Operational Modes
+### 3.1.3 Primary Modes
 
-**Build Mode:** An infinite node-graph canvas where the operator designs, configures, and saves multi-agent execution pipelines — defining which agents run, in what order, with what instructions, and how data flows between them. \
-**Chat Mode:** A group-chat interface where the operator interacts with all assigned pipeline agents in a conversational loop, triggering execution, receiving step-by-step results, and intervening with feedback or approvals. \
-**Explore Mode:** A 3D viewer workspace backed by Rhino Compute, where the operator can visualize and validate the generated geometry that serves as the spatial ground truth for all downstream 2D deliverables.
+**Field Navigator:** The primary visual interface. It shows the design field as spatial clusters of goals, branches, tensions, affordances, commits, artifacts, agents, Hermes task state, feature pressures, and lineage. \
+**Chat Mode:** A conversational view for explanations, clarifying questions, steering, and user feedback. Chat and the Field Navigator are two views of the same WorldState. \
+**Model Mode:** The spatial validation environment for ground-truth geometry, model-derived drawings, section cuts, area checks, and render consistency. \
+**Trace View:** A graph-like history of executed moves, Hermes task dependencies, logs, artifact lineage, feature deltas, approvals, and WorldState snapshots. \
+**Move Library View:** An advanced surface for inspecting stable, sandbox, proposed, and deprecated move patterns, including effects, tests, examples, and success stats.
 
 ### 3.1.4 Design Philosophy
 
-**Backend is the Control Plane:** The backend is the product logic layer and the stable integration boundary. The frontend is a typed client shell, not an orchestrator. \
-**Agents Produce Bounded Outputs:** Worker agents do not directly own product state. They produce bounded, typed, reviewable outputs that the backend validates, stores, and advances through the pipeline. \
-**Structured Contracts Between Steps:** Pipeline stages communicate through structured data contracts, not unstructured prose. This ensures deterministic assembly and repeatable results. \
-**Step-Local Recovery:** When failures occur, the system prefers retrying or resuming at the individual step level rather than resetting entire runs, preserving all prior valid work.
+**Human Defines Goal and Values:** The user sets design intent, constraints, approvals, and taste direction. \
+**Environment Exposes Moves:** The system converts current state into meaningful choices rather than forcing the user or agent to predict a full workflow. \
+**Agent Creates, System Measures:** Agents produce design tactics and artifacts. The system measures feature deltas, evaluator results, tension reduction, debt reduction, and user acceptance. \
+**Compiler Steers, Evaluator Teaches:** The compiler ranks next moves from patterns, features, trajectory, and scores. Evaluators teach the system whether predicted effects were correct. \
+**Truth Requires Commitment:** Branches can speculate and artifacts can be provisional, but only commits become project truth. \
+**Preferences Are Scoped:** User preferences, team standards, project commits, session instructions, and explicit prompts are separate layers with source manifests and conflict handling.
 
-### 3.1.5 Current Implementation Status
+### 3.1.5 Current Implementation Direction
 
-**Working Local Control Plane:** A.A.A. currently operates as a functional local control plane with a polished operator shell and a simulated runtime, capable of running the full Build → Chat → Execute → Approve loop locally. \
-**Simulated Execution:** The current pipeline executor runs within the backend process as a local simulation. Real OpenClaw controller dispatch, live worker agents, and TaskFlow-managed orchestration continuity remain future integration targets. \
-**Schema Ahead of UI:** The backend database schema and API surface are materially ahead of the frontend. The persistence layer supports richer artifact, approval, event, and project-state workflows than the UI currently renders.
+**Replace Graph-First Authoring:** The old pipeline graph becomes trace/replay infrastructure. The center of the product becomes the Field Navigator. \
+**Use Hermes as Execution Fabric:** A.A.S. should not rebuild Kanban. It should compile moves into Hermes tasks and read Hermes task/log/artifact state through a bridge. \
+**Add Field Runtime Schema:** The backend should persist WorldState, affordances, moves, move patterns, features, evaluations, tensions, branches, commits, preferences, artifacts, events, scores, approvals, and Hermes bindings. \
+**Add Move Pattern Library:** Start with stable primitives and a seeded architectural move pattern library. Let agents propose new patterns into sandbox, not directly into stable use. \
+**Add Context Distiller MVP:** Agents receive compact briefs with scoped preferences, feature pressures, relevant commits, artifacts, debts, and output contracts. \
+**Add Hermes Bridge MVP:** Start with CLI/task packet integration, then add Kanban DB watcher, log/artifact watcher, profile pack manager, and later direct plugin/API integration. \
+**Expand Into Scoring and Learning:** Add Feature Registry, evaluator contracts, sensitivity matrix, process grammar, design debt, elegance score, and contextual outcome learning.

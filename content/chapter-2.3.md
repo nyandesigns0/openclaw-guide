@@ -1,382 +1,221 @@
-# Chapter 2.3 — Pipeline Architecture
+# Chapter 2.3 - Field Runtime Architecture
 
 ## 2.3.0 Overview
 
-This chapter defines the reference architecture for building structured multi-agent workflow pipelines on top of OpenClaw, covering the three-layer system model, pipeline definition, step execution, orchestration state, data handoff, human-in-the-loop checkpoints, failure recovery, and event-driven observability.
+This chapter defines the A.A.S. Field Runtime: the design-intelligence layer above Hermes that turns architectural work into a living design field. The runtime replaces graph-first pipeline execution with WorldState, affordances, primitives, move patterns, moves, branches, tensions, commits, feature scores, briefs, Hermes execution, critique, learning, and replayable events.
 
 ### 2.3.1 Design Principles
 
-**Separation of Control and Execution:** The product application owns all user-facing state — projects, sessions, runs, artifacts, approvals, and event history. OpenClaw serves as the execution engine. Agents do not directly own product state; they produce bounded, typed, reviewable outputs that the application validates, stores, and advances through the pipeline. \
-**Pipelines as Data:** Pipeline definitions are declarative data structures — directed graphs of typed steps — interpreted and executed by code rather than hardcoded into agent instructions. This makes pipelines inspectable, versionable, and editable by the operator without modifying agent internals. \
-**Structured Contracts Between Steps:** Pipeline stages communicate through structured data contracts with declared input and output schemas, not unstructured prose. This ensures deterministic handoff, schema-validated advancement, and repeatable assembly of final deliverables. \
-**Step-Local Recovery:** When failures occur, the system prefers retrying or resuming at the individual step level rather than resetting entire runs, preserving all prior valid work and minimizing wasted compute. \
-**Human Steerability:** The operator maintains control at every critical decision point. Approval checkpoints, artifact previews, operator annotations, and explicit resume or reject controls are first-class pipeline primitives, not afterthoughts. \
-**Inspectable and Resumable:** Every step of the pipeline produces typed, reviewable outputs. The operator can pause at approval checkpoints, inspect intermediate artifacts, reject or revise, and resume without restarting the entire workflow.
+**Affordances Over Graphs:** The system exposes meaningful next moves instead of asking the human to pre-author every workflow path. \
+**Environment Mediation:** Agents should not manually browse every tool, file, memory source, and node. The environment compiles the current situation and exposes legal moves. \
+**Typed Moves:** Agents choose architectural moves. A.A.S. maps those moves to Hermes tasks, artifact contracts, Rhino Compute, GPT Image V2, renderers, validators, and state updates. \
+**Stable Primitives, Evolvable Patterns:** Primitive move types are few, stable, permissionable world-delta verbs. Move patterns are domain-specific architectural tactics that can be seeded, learned, sandboxed, promoted, and pruned. \
+**WorldState as Canon:** The current design world is represented as structured state, not as chat history, profile memory, or a pipeline pointer. \
+**Hermes as Execution Fabric:** A.A.S. compiles moves into Hermes Kanban task groups assigned to Hermes profiles. Hermes executes; A.A.S. validates and records truth. \
+**Commitment Physics:** Branches can speculate, but only commits change project truth. \
+**Tension Resolution:** Design conflicts are first-class objects that generate moves and can block finalization when critical. \
+**Inspectable Control:** Scores, preconditions, risks, approvals, artifacts, feature deltas, task bindings, and events should remain visible and overrideable.
 
-### 2.3.2 Three-Layer System Model
+### 2.3.2 High-Level System Model
 
-**Layer 1 — Application Frontend:** The operator-facing UI provides the shell for pipeline authoring, agent-driven conversation, artifact review, and domain-specific visualization. It is a typed client of backend DTOs, consuming only the backend API and never calling worker agents or OpenClaw directly. \
-**Layer 2 — Application Backend (Control Plane):** The backend is the product logic layer and the source of truth for all user-facing state, including projects, pipelines, sessions, runs, artifacts, approvals, events, and domain state. It delegates execution to OpenClaw and receives normalized lifecycle events in return. Recommended stack: a TypeScript API framework (e.g., Fastify) with an ORM (e.g., Prisma) against a local-first database (e.g., SQLite), with an upgrade path to a managed database for multi-user or hosted deployments. \
-**Layer 3 — OpenClaw Runtime:** OpenClaw serves as the execution engine. A product-specific Controller Plugin creates and manages TaskFlow flows, dispatches worker agents, validates step outputs against schemas, and emits lifecycle events back to the backend. TaskFlow owns durable orchestration state — current step, persistent `stateJson`, retry counters, child task linkage, and checkpoint state needed to resume execution. It does not own product business logic.
-
-```mermaid
-%%{init: {'flowchart': {'arrowMarkerSize': 1.5}}}%%
-flowchart TD
-    subgraph Frontend_Layer [Application Frontend]
-        direction LR
-        UI[Operator Console]
-    end
-
-    subgraph Backend_Layer [Application Backend / Control Plane]
-        direction TB
-        API[API Routes]
-        SVC[Pipeline Engine / Services]
-        DB[(Database)]
-        FS[(Local File Storage)]
-
-        API -.- SVC
-        SVC -.- DB
-        SVC -.- FS
-    end
-
-    subgraph Runtime_Layer [OpenClaw Runtime]
-        direction TB
-        CTRL[Controller Plugin]
-        TF[TaskFlow Orchestrator]
-        W1[Worker Agent 1]
-        W2[Worker Agent 2]
-        WN[Worker Agent N]
-
-        CTRL -.- TF
-        CTRL -.- W1
-        CTRL -.- W2
-        CTRL -.- WN
-    end
-
-    UI ==> API
-    API ==> UI
-    SVC ==> CTRL
-    CTRL ==> SVC
-
-    linkStyle 4,6 stroke:#818cf8,stroke-width:4px
-    linkStyle 5,7 stroke:#fbbf24,stroke-width:4px
-```
-
-### 2.3.3 Data Flow Architecture
-
-**Inbound Request:** The operator initiates a pipeline run from the frontend. The request flows through the backend API, which validates input, creates run records, and delegates execution to the OpenClaw Controller Plugin. \
-**Step Dispatch:** The Controller Plugin reads the pipeline definition, resolves the current step, composes the step input from prior artifact paths and flow state, and launches the assigned worker agent or tool call. \
-**Step Return:** The worker agent returns a structured output. The Controller Plugin validates the output against the step's declared output schema. On success, the output is written to run-local storage, TaskFlow `stateJson` is updated, and a normalized event is emitted to the backend. \
-**Backend Persistence:** The backend receives each lifecycle event, updates database records (run steps, artifacts, project state), and pushes live updates to the frontend. \
-**Final Assembly:** Once all pipeline steps complete, the backend registers final outputs, emits completion events, and exposes the finished deliverables to the operator.
+**Layer 1 - A.A.S. Frontend:** Presents the Field Navigator, Chat, Model Mode, artifact inspection, trace view, approvals, feature pressures, and object inspectors. \
+**Layer 2 - Backend Control Plane:** Owns persistence, permissions, project state, WorldState records, artifacts, approvals, preferences, events, sessions, and API contracts. \
+**Layer 3 - A.A.S. Field Runtime:** Owns WorldState compilation, affordance generation, context distillation, feature extraction, intent scoring, process grammar, design debt, move pattern selection, tension tracking, branch ecology, commitment rules, move compilation, and critic/supervisor logic. \
+**Layer 4 - A.A.S.-Hermes Bridge:** Owns profile binding, Kanban task creation, dependency linking, dispatcher monitoring, log watching, artifact ingest, and event translation. \
+**Layer 5 - Hermes Agent:** Provides profiles, Kanban, worker execution, memory, skills, tools, dispatcher, logs, and task state. \
+**Layer 6 - Specialized Tools:** Provides geometry computation, image generation, segmentation, rendering, validation, and export.
 
 ```mermaid
 %%{init: {'flowchart': {'arrowMarkerSize': 1.5}}}%%
 flowchart TD
-    OP[Operator] ==> FE[Frontend]
-    FE ==> BE[Backend API]
-    BE ==> CP[Controller Plugin]
-    CP ==> TF[TaskFlow]
-    TF ==> W[Worker Agent]
-    W ==> V[Schema Validation]
-    V ==> S[Run-Local Storage]
-    S ==> E[Emit Lifecycle Event]
-    E ==> BE
+    U[User] ==> FE[A.A.S. Frontend]
+    FE ==> BE[Backend Control Plane]
+    BE ==> FR[Field Runtime]
+    FR ==> HB[AAS-Hermes Bridge]
+    HB ==> HE[Hermes Profiles / Kanban]
+    HE ==> HB
+    HB ==> FR
+    FR ==> TOOLS[Specialized Tools]
+    TOOLS ==> FR
+    FR ==> BE
     BE ==> FE
-
-    linkStyle 0,1,2,3,4,5,6,7 stroke:#818cf8,stroke-width:4px
-    linkStyle 8,9 stroke:#fbbf24,stroke-width:4px
 ```
 
-### 2.3.4 Pipeline Definition Model
+### 2.3.3 Core Runtime Objects
 
-**Declarative Graph Structure:** A pipeline is a directed acyclic graph (DAG) of typed step nodes connected by edges that define execution order and data flow. The pipeline definition is stored as a persistent data structure (e.g., JSON) in the backend database, not embedded in agent instructions or hardcoded into controller logic. \
-**Step Definition Contract:** Each step in the pipeline declares the following properties:
+**WorldState:** Canonical state of the design world: goal, intent, project status, branches, artifacts, committed decisions, unresolved tensions, available moves, blocked moves, constraints, metrics, events, questions, risks, feature state, design debt, and trajectory. \
+**Affordance:** A meaningful available move with label, intent, primitive type, pattern ID, preconditions, expected gain, risk, cost, inputs, resulting artifacts, required profiles/tools, score breakdown, approval requirements, reversibility, and recommended role. \
+**Move:** The selected execution intent. It references an affordance, records rationale and expected outcome, tracks approval state, maps to Hermes task bindings, and moves through queued, running, completed, failed, or cancelled statuses. \
+**MovePrimitive:** A stable operation type such as update intent, create artifact, refine artifact, validate, raise tension, resolve tension, spawn branch, develop branch, compare branches, merge branches, kill branch, ask user, propose commit, commit decision, revert commit, or request execution. \
+**MovePattern:** A reusable architectural tactic with preconditions, inputs, outputs, expected effects, scoring hints, risk/cost model, execution template, validation tests, examples, success stats, lifecycle status, and version. \
+**IntentGradient:** Multi-family score model for comparing moves across process, design, search, execution, user alignment, learning, governance, elegance, and penalties. \
+**Feature Registry:** Typed registry of measurable design/process/execution variables, including source, range, confidence, artifact hooks, and measurement method. \
+**Tension:** A structured design conflict linked to artifacts, branches, severity, status, possible resolutions, and evidence. \
+**Branch:** A competing design hypothesis with artifacts, evidence, weaknesses, unresolved tensions, score, lifecycle status, and next recommended move. \
+**Commit:** A decision that becomes project truth with rationale, evidence, consequences, affected artifacts, affected branches, reversibility, approval, and timestamp. \
+**Agent Brief:** Distilled operating context for a specific agent role and move. \
+**Trajectory:** History of WorldState snapshots, moves, decisions, abandoned branches, failed moves, unresolved design debts, and process landmarks.
 
-```json5
-{
-  stepId: "research",                     // Unique stable identifier
-  label: "Research Agent",                // Human-readable display name
-  nodeType: "agent | tool | approval",    // Execution type
-  executorId: "research-agent",           // Agent ID or tool ID to dispatch
-  inputSchema: { /* JSON Schema */ },     // Declared input contract
-  outputSchema: { /* JSON Schema */ },    // Declared output contract
-  retryPolicy: {
-    maxAttempts: 3,
-    backoffMs: 2000
-  },
-  approvalRequired: false,               // Whether to pause for human review
-  contextMode: "inherit | summary | isolated",
-  nextSteps: ["concept"]                 // Downstream step IDs
-}
-```
+### 2.3.4 Runtime Loop
 
-**Node Types:** Three distinct node types are available: Agent nodes (which execute a worker agent with a role, task prompt, and system prompt), Tool nodes (which invoke a specific tool or external service call), and Approval nodes (which pause execution for human review before advancing). \
-**Edge Semantics:** Edges encode both execution order and data lineage. An edge from step A to step B means step B receives step A's validated output as part of its input context. Edges can carry metadata such as context mode overrides and data filtering rules. \
-**Parallel Branches:** The DAG supports parallel branches where multiple steps can execute concurrently. A downstream join step can declare multiple upstream dependencies, waiting for all branches to complete before advancing. Concurrency limits are configurable per pipeline or per parallel group. \
-**Pipeline Persistence:** The backend stores pipeline definitions including all node metadata, edge definitions, and layout coordinates. Pipelines are versioned and can be duplicated, renamed, or archived without affecting active runs.
+**Main Loop:** The user sets or updates a goal. The backend initializes or updates WorldState. The AffordanceCompiler generates moves from the Move Pattern Library. The ContextDistiller prepares a brief. The agent selects or proposes a move. The Supervisor validates it. The MoveCompiler compiles it into Hermes tasks. Hermes profiles execute. The bridge ingests logs and artifacts. Artifacts, tensions, branches, commits, feature scores, and events update. The Critic/Evaluator measures results. New moves appear. \
+**Agent Turn:** Prepare brief, present valid moves, select or propose move, validate move, compile Hermes task packet, execute, record result, evaluate, update world, emit next situation. \
+**User Intervention:** The user can approve or reject moves, change goals, elevate tensions, commit branches, freeze decisions, force validation, resolve preference conflicts, or manipulate objects in the Field Navigator.
 
 ```mermaid
 %%{init: {'flowchart': {'arrowMarkerSize': 1.5}}}%%
 flowchart LR
-    subgraph Pipeline_Graph [Pipeline Definition Graph]
-        direction LR
-        S1[Step 1: Intake] ==> S2[Step 2: Research]
-        S2 ==> S3A[Step 3A: Branch A]
-        S2 ==> S3B[Step 3B: Branch B]
-        S3A ==> S4[Step 4: Join / Synthesis]
-        S3B ==> S4
-        S4 ==> S5[Step 5: Approval]
-        S5 ==> S6[Step 6: Finalize]
-    end
-
-    linkStyle 0,1,2,3,4,5,6 stroke:#818cf8,stroke-width:4px
+    WS[WorldState] ==> AC[AffordanceCompiler]
+    AC ==> CD[ContextDistiller]
+    CD ==> AG[Agent]
+    AG ==> MV[Move]
+    MV ==> SV[Supervisor]
+    SV ==> MC[MoveCompiler]
+    MC ==> HM[Hermes Kanban / Profiles]
+    HM ==> UP[Artifacts / Features / Branches / Tensions / Commits / Events]
+    UP ==> CR[Critic / Evaluator]
+    CR ==> WS
 ```
 
-### 2.3.5 Step Execution Lifecycle
+### 2.3.5 Move Execution Lifecycle
 
-**Execution Loop:** The Controller Plugin drives the pipeline forward one step at a time (or in parallel where the DAG permits). For each step, the following lifecycle applies:
+1. **Move Selection:** Agent selects a recommended affordance or proposes a new move with rationale. \
+2. **Legality Check:** AffordanceCompiler validates preconditions, primitive type, and move pattern state. \
+3. **Risk Check:** Supervisor checks approvals, cost, safety, reversibility, drift, preference scope, and conflicts with commits. \
+4. **Context Load:** ContextDistiller and compiler load required inputs, artifact refs, scoped preferences, memory snippets, branch data, evaluator results, and constraints. \
+5. **Task Compilation:** MoveCompiler creates a Hermes task group with task packets, assigned profiles, dependencies, output contracts, artifact roots, and expected feature deltas. \
+6. **Execution:** Hermes profiles execute tasks. Specialized tools run only through typed task packets and move contracts. \
+7. **Registration:** Outputs are stored as artifacts and linked to source artifacts, branches, tensions, commits, features, task bindings, and events. \
+8. **Evaluation:** Artifact evaluators measure feature deltas, critique quality, and compare predicted effects to actual effects. \
+9. **World Update:** WorldState changes, events emit, move pattern stats update, and the compiler regenerates available moves.
 
-1. **Input Composition:** The controller reads prior artifact paths from TaskFlow `stateJson`, composes the exact step input using the pipeline definition's data handoff rules, and resolves context mode (inherit, summary, or isolated). \
-2. **Worker Dispatch:** The controller launches the assigned worker agent or tool call via `sessions_spawn`, passing the composed input payload and any role-specific instructions from the step definition. \
-3. **Structured Output:** The worker returns a structured output conforming to the step's declared output schema. All important outputs must be persisted as files and registered as artifacts — agents do not rely on ephemeral chat state for pipeline continuity. \
-4. **Schema Validation:** The controller validates the returned output against the step's output schema. If validation fails, the step does not advance and a structured failure is recorded. \
-5. **Artifact Persistence:** On successful validation, the controller writes the step output to run-local storage, creates artifact records, and updates TaskFlow `stateJson` with the new artifact paths. \
-6. **Event Emission:** The controller emits a normalized lifecycle event to the backend (e.g., `step.started`, `step.completed`, `step.failed`). The backend converts this into a stable product event, stores it, and broadcasts it to the frontend. \
-7. **Advancement:** The controller resolves the next step(s) from the pipeline graph and repeats the cycle.
+### 2.3.6 Move Pattern Library
 
-```mermaid
-%%{init: {'flowchart': {'arrowMarkerSize': 1.5}}}%%
-flowchart TD
-    IC[1. Input Composition] ==> WD[2. Worker Dispatch]
-    WD ==> SO[3. Structured Output]
-    SO ==> SV[4. Schema Validation]
-    SV ==> AP[5. Artifact Persistence]
-    AP ==> EE[6. Event Emission]
-    EE ==> AD[7. Advancement to Next Step]
-    AD -. "Loop" .-> IC
+**Three Layers:** Move primitives are stable system verbs. Move patterns are reusable architectural tactics. Move instances are concrete actions in the current WorldState. \
+**Pattern Schema:** A pattern records ID, name, description, primitive type, domain, preconditions, inputs, outputs, effects, scoring hints, risk profile, cost model, execution template, validation tests, examples, success stats, lifecycle status, and version. \
+**Lifecycle:** `discover -> propose -> sandbox -> critique -> validate -> promote -> monitor -> prune`. Agents may propose patterns, but they cannot directly promote them to stable. \
+**Sandbox:** Patterns are tested against saved WorldState snapshots and synthetic worlds for schema validity, artifact creation, state improvement, no commit violation, and critic score. \
+**Curator:** The Move Curator deduplicates, merges variants, deprecates weak patterns, updates examples, and keeps the active library small enough to remain useful. \
+**Learning:** Move pattern statistics are conditional on context: phase, active tensions, branch count, artifact coverage, prior failures, user acceptance, reward, and feature deltas.
 
-    linkStyle 0,1,2,3,4,5 stroke:#818cf8,stroke-width:4px
-    linkStyle 6 stroke:#fbbf24,stroke-width:2px
-```
+### 2.3.7 Process Grammar, Trajectory, and Design Debt
 
-### 2.3.6 Context Modes and Data Handoff
+**Process Grammar:** A.A.S. uses a soft phase model rather than a rigid pipeline. Phases include intake, research, concept, branching, ground truth, development, representation, board assembly, QA, and delivery. \
+**Phase Fit:** Each move pattern has a phase-fit curve, preferred phases, discouraged phases, entry conditions, exit conditions, required artifacts, and process debts. \
+**Trajectory Memory:** Ranking depends on the path already taken: snapshots, moves, commits, abandoned branches, failures, unresolved debts, and landmarks. \
+**Design Debt:** The runtime tracks unresolved obligations such as unconfirmed site assumptions, uncritiqued branches, missing ground truth, unchecked render/model consistency, board hierarchy gaps, or too many open branches. \
+**Unlock Value:** Moves are scored not only by immediate gain but by future moves unlocked. A section anchor may outrank a render because it unlocks model, plan, section, render QA, and board coherence.
 
-**Context Inheritance:** Three context modes control how upstream information flows to each step, determining the balance between full conversational context and execution isolation. \
-**`inherit` Mode:** The step receives the full summarized context from all upstream steps, including user messages, prior agent outputs, and accumulated project state. This is the default mode for steps that require broad awareness of the pipeline history. \
-**`summary` Mode:** The step receives only a summarized digest of upstream outputs — typically the final structured artifacts from each prior step rather than the full conversational transcript. This reduces context window consumption while preserving data lineage. \
-**`isolated` Mode:** The step receives only its explicit input payload as defined by the step contract, with no broader conversation snapshot or upstream context. This is used for steps that must operate in a controlled, deterministic environment without being influenced by unrelated upstream chatter. \
-**Handoff Notes:** When one step completes, the controller can generate a structured handoff note that summarizes the step's key outputs, decisions, and any operator feedback. This note becomes part of the downstream step's input context, providing a human-readable bridge between steps. \
-**Persistent Context vs. Ephemeral Context:** Persistent context (project state, accumulated artifacts, operator preferences) survives across steps and runs. Ephemeral context (in-step reasoning, intermediate scratch work) does not propagate unless explicitly promoted to an artifact. \
-**Cross-Step Data References:** Steps can reference upstream artifacts by stable path rather than by embedding full content. The controller resolves these references at dispatch time, ensuring that large artifacts (images, generated files, structured documents) are passed by reference rather than inlined into the context window.
+### 2.3.8 Branch Ecology
 
-### 2.3.7 Human-in-the-Loop Checkpoints
+**Purpose:** Branches let the system develop competing architectural hypotheses instead of locking onto the first plausible idea. \
+**Lifecycle:** `spawn -> develop -> critique -> compare -> kill / merge / commit`. \
+**Scoring:** Branches are scored by goal fit, architectural coherence, representational strength, feasibility, novelty, user taste fit, ground-truth readiness, and total value. \
+**Comparison:** Branch comparison should expose shared tensions, unique strengths, unresolved risks, artifact completeness, ground-truth readiness, and representation strength. \
+**Governance:** Killing, merging, or committing high-value branches requires supervisor validation and may require user approval.
 
-**Approval Nodes:** Any step in the pipeline can be configured as an approval checkpoint. When the pipeline reaches an approval node, execution pauses and the operator is presented with explicit controls to approve, reject, or annotate before the pipeline advances. \
-**Checkpoint State:** When execution pauses at an approval node, the controller marks the TaskFlow flow as waiting. The backend records a pending approval request with the step ID, run ID, and a descriptive message. The frontend displays the approval action to the operator with full artifact preview. \
-**Approval Resolution:** The operator resolves the approval by approving (which resumes execution from the next step), rejecting (which fails the run or routes to a corrective branch), or annotating (which attaches operator feedback that becomes part of the downstream context). \
-**Operator Intervention Points:** Beyond formal approval nodes, the operator can interrupt pipeline execution at any point — injecting feedback, modifying project state, or requesting a retry of the current step. The pipeline must support graceful pause and resume around these interventions. \
-**Artifact Preview:** Before resolving an approval, the operator can inspect all intermediate artifacts produced by prior steps: structured JSON outputs, generated media, reports, and accumulated project state. This inspection is a core product feature, not a debugging afterthought.
+### 2.3.9 Tension Engine
 
-```mermaid
-%%{init: {'flowchart': {'arrowMarkerSize': 1.5}}}%%
-flowchart TD
-    EX[Pipeline Executing] ==> AP[Approval Node Reached]
-    AP ==> MW[Mark Flow Waiting]
-    MW ==> BR[Backend Records Approval]
-    BR ==> FD[Frontend Displays Review]
-    FD ==> OP{Operator Decision}
-    OP ==> |Approve| RS[Resume from Next Step]
-    OP ==> |Reject| FL[Fail Run or Corrective Branch]
-    OP ==> |Annotate| AN[Attach Feedback + Resume]
+**Detection:** Tensions are created when the system detects contradictions, unresolved tradeoffs, artifact conflicts, branch weaknesses, preference conflicts, or validation failures. \
+**Resolution Moves:** The compiler generates moves that can resolve or defer tensions. \
+**Blocking Rule:** Finalization should be blocked while critical unresolved tensions remain. \
+**Artifact Links:** Tensions must link to affected artifacts and branches so downstream work knows what must change after resolution. \
+**Resolved State:** Resolved tensions become evidence attached to commits and constraints.
 
-    linkStyle 0,1,2,3,4 stroke:#818cf8,stroke-width:4px
-    linkStyle 5,7 stroke:#818cf8,stroke-width:4px
-    linkStyle 6 stroke:#fbbf24,stroke-width:4px
-```
+### 2.3.10 Commitment Ledger
 
-### 2.3.8 Orchestration State and TaskFlow
+**Commit Rule:** Only commits change project truth. \
+**Commit Contents:** A commit records decision, rationale, evidence, consequences, affected artifacts, affected branches, reversibility, approval source, approval reference, and timestamp. \
+**Revert Rule:** Reverting a commit creates a new event and state transition. It does not delete history. \
+**Downstream Enforcement:** ContextDistiller and Supervisor must check new moves against committed decisions. Conflicts become warnings, tensions, or blocked moves.
 
-**Dual State Ownership:** The pipeline architecture maintains two separate state systems by design: backend-owned product state and OpenClaw-owned orchestration state. This separation keeps the product stable even if the runtime is restarted, replaced, or upgraded. \
-**Backend-Owned Product State:** The backend database is the source of truth for projects, runs, assets, approvals, user-facing statuses, and event history. This state survives runtime restarts and is the canonical record for all operator-visible information. \
-**OpenClaw-Owned Orchestration State:** TaskFlow `stateJson` is the source of truth for current step execution, internal artifact paths, retry counters, child task linkage, temporary selection state, and checkpoint state needed to resume execution. \
-**Canonical State Shape:** The TaskFlow state for a pipeline run contains the pipeline identifier, project and run identifiers, the run directory path, current execution status, current step, input references, an artifact map tracking each step's output paths, retry counters per step, execution history, and final output paths.
+### 2.3.11 Scoring, Features, and Evaluators
 
-```json5
-{
-  pipelineId: "pipeline-001",
-  projectId: "proj_001",
-  runId: "run_001",
-  runDir: "storage/projects/proj_001/runs/run_001",
-  status: "running",
-  currentStep: "step_03",
-  inputs: {
-    briefPath: "storage/projects/proj_001/runs/run_001/input/brief.json",
-    referenceAssetIds: ["asset_01", "asset_02"]
-  },
-  artifacts: {
-    step_01_output: "storage/projects/proj_001/runs/run_001/step-01/output.json",
-    step_02_output: "storage/projects/proj_001/runs/run_001/step-02/output.json",
-    step_03_output: null
-  },
-  retries: {
-    step_03: 0
-  },
-  history: [
-    { step: "step_01", status: "completed" },
-    { step: "step_02", status: "completed" }
-  ],
-  finalOutputs: {
-    primaryPath: null,
-    secondaryPath: null
-  }
-}
-```
+**Score Families:** The serious scoring model is not one flat score. It combines process, design, search, execution, user alignment, learning, governance, elegance, and explicit penalties. \
+**Feature Registry:** Every scoring variable must be registered with family, description, type, range, measurement method, source, and confidence. No registry means score soup. \
+**Feature Methods:** Features can be deterministic, graph-derived, geometry-derived, embedding-derived, or evaluator-derived. \
+**Evaluator Contracts:** Concept, plan, section, model, render, board, and QA evaluators output feature scores, evidence, confidence, and critique. \
+**Sensitivity Matrix:** The runtime maintains expected effects from move patterns to features, compares predictions to measured deltas, and updates the effect model over time. \
+**Elegance:** Elegance rewards leverage, compression, coherence gain, multi-tension resolution, artifact reuse, simplicity, downstream unlock density, and low fragmentation. \
+**Closed-Loop Fine Tuning:** The system can target a feature vector, measure current feature state, compute an error vector, choose moves predicted to reduce the error, execute, measure, update, and repeat.
 
-### 2.3.9 Worker Agent Discipline
+### 2.3.12 Context Distillation
 
-**Bounded Outputs:** Worker agents produce bounded, typed, schema-validated outputs. They do not directly mutate canonical project database rows, do not depend on hidden chat state for continuity, and do not make assumptions about downstream processing. All important outputs must be persisted as files and registered as artifacts. \
-**Replaceable and Rerunnable:** Worker agents should be stateless with respect to the pipeline. Given the same input payload, a worker agent should produce a functionally equivalent output. This enables safe retries, step-level reruns, and agent substitution without side effects. \
-**Schema Compliance:** Every worker output must conform to its step's declared output schema. The Controller Plugin validates outputs before advancing the pipeline. Non-compliant outputs are rejected, the step is marked as failed, and the run can retry with corrective context. \
-**No Direct Product State Mutation:** Worker agents do not write directly to the product database, do not create their own run records, and do not emit user-facing events. All state mutation flows through the Controller Plugin back to the backend. \
-**Agent Specialization:** Each worker agent is a domain specialist with a focused task boundary. A research agent compiles context, a synthesis agent produces structured plans, a generation agent creates media or documents, a validation agent checks quality and consistency. The pipeline graph — not the agent — determines execution order and data flow. \
-**Subagent Spawning:** Worker agents may spawn subagents for narrowly scoped subtasks when nested spawning is enabled. Subagents return results to their parent worker agent, which consolidates and returns the final step output. Subagents do not communicate laterally or directly with the Controller Plugin.
+**Brief Composition:** Agent Briefs include current goal, current intent, active branch, current tension, relevant commits, relevant artifacts, valid moves, blocked moves, output contract, warnings, feature pressures, and design debt. \
+**Memory Use:** Memory retrieval is hidden infrastructure unless the move explicitly requires deeper search. \
+**Reference Passing:** Large documents, images, models, and board packages are passed by reference. \
+**Output Contracts:** Briefs define what the Hermes profile must return so A.A.S. can validate, register, evaluate, and update state. \
+**Preference Scope:** The brief resolves user, team, project, session, and prompt preferences through scope rules and includes a source manifest for every preference that influenced the task.
 
-### 2.3.10 Event System and Observability
+### 2.3.13 Hermes Bridge and Execution Substrate
 
-**Event Normalization:** Raw execution events from the OpenClaw runtime are converted into stable, typed product events before storage and broadcast. The frontend depends only on these normalized event contracts, never on raw OpenClaw event semantics. \
-**Core Event Types:** A minimal set of event types provides full pipeline observability:
+**Bridge Responsibilities:** The `aas-hermes-bridge` creates/syncs Hermes profiles, compiles A.A.S. moves into Kanban tasks, assigns profiles, links dependencies, starts or monitors dispatch, tails logs/comments, registers artifacts, and converts Kanban events into A.A.S. field events. \
+**Task Packets:** Every Hermes task receives an A.A.S. packet containing move ID, world snapshot, profile, role, goal, active tension, relevant commits, allowed outputs, artifact write path, and completion contract. \
+**Bindings:** A.A.S. tracks `HermesProfileBinding`, `KanbanTaskBinding`, and `AASMoveToKanbanPlan` records so every field move can be traced to execution tasks. \
+**Control Model:** A.A.S. controls task topology, dependencies, approvals, artifact registration, and truth ledger. Hermes executes tasks, uses tools, writes comments/logs, and updates task status. \
+**MVP Integration:** Start with CLI bridge, then add Kanban DB watcher, log/artifact watcher, profile pack manager, and later a direct Hermes plugin/API if stable.
 
-| Event Type | Trigger | Payload |
-|---|---|---|
-| `run.started` | Pipeline run begins | Run ID, project ID, initial step |
-| `step.started` | Step dispatch begins | Run ID, step ID, attempt number |
-| `step.updated` | Step progress update | Run ID, step ID, progress fraction |
-| `step.completed` | Step succeeds validation | Run ID, step ID, artifact paths |
-| `step.failed` | Step fails validation or execution | Run ID, step ID, error detail |
-| `asset.created` | New artifact registered | Run ID, asset ID, kind, path |
-| `approval.required` | Approval checkpoint reached | Run ID, step ID, prompt message |
-| `approval.resolved` | Operator resolves approval | Approval ID, decision, notes |
-| `run.completed` | All steps finished | Run ID, final output paths |
-| `run.failed` | Run terminates with failure | Run ID, failed step, error |
+### 2.3.14 Event System and Observability
 
-**Event Flow:** The Controller Plugin emits execution-side lifecycle results. The backend converts them into stable product events, stores them in the events table, and broadcasts them to the frontend via HTTP streaming, WebSocket, or Server-Sent Events. \
-**Audit Trail:** Every event is persisted with a timestamp, enabling full reconstruction of any pipeline run's execution history. Events carry agent attribution metadata, recording which agent produced each output and from which pipeline step.
+**Stable Events:** A.A.S. emits product events such as `aas.world.updated`, `aas.affordances.generated`, `aas.move.proposed`, `aas.move.selected`, `aas.move.started`, `aas.move.completed`, `aas.move.failed`, `aas.tension.created`, `aas.tension.resolved`, `aas.branch.spawned`, `aas.branch.merged`, `aas.branch.committed`, `aas.commit.created`, `aas.artifact.created`, `aas.evaluation.completed`, `aas.supervisor.warning`, and `aas.user.approval.required`. \
+**Hermes Event Translation:** Kanban ready/running/blocked/done/failed/retry, task comments, worker heartbeat, task logs, and artifact paths are translated into stable A.A.S. events. \
+**Replay:** Runtime events plus WorldState snapshots should reconstruct the design field for trace view, debugging, and review. \
+**Trace View:** Graph-like execution history remains available as a debug/replay mode, not as the primary design interface.
 
-```mermaid
-%%{init: {'flowchart': {'arrowMarkerSize': 1.5}}}%%
-flowchart LR
-    RT[OpenClaw Runtime] ==> CP[Controller Plugin]
-    CP ==> NE[Normalize Event]
-    NE ==> BE[Backend Stores Event]
-    BE ==> BC[Broadcast to Frontend]
-    BC ==> UI[Operator Console]
+### 2.3.15 API Surface
 
-    linkStyle 0,1,2,3,4 stroke:#818cf8,stroke-width:4px
-```
+**World State:** `GET /api/projects/:projectId/sessions/:sessionId/world`, `POST /api/projects/:projectId/sessions/:sessionId/world/recompute`, and snapshot routes. \
+**Affordances:** List, recompute, approve, and reject available moves. \
+**Moves:** Create, inspect, execute, cancel, and retry moves. \
+**Move Patterns:** List, propose, sandbox, validate, promote, deprecate, and inspect move patterns and success stats. \
+**Features and Evaluations:** List feature registry entries, evaluator results, score breakdowns, sensitivity matrix entries, and measured deltas. \
+**Tensions:** List, create, patch, resolve, and defer tensions. \
+**Branches:** List, create, develop, critique, kill, merge, and commit branches. \
+**Commits:** List, create, and revert commits. \
+**Agent Briefs:** Generate and inspect briefs for agent turns. \
+**Hermes Bridge:** Inspect profile bindings, Kanban task bindings, task packets, task logs, and bridge status.
 
-### 2.3.11 Controller Plugin Architecture
+### 2.3.16 Persistence Model
 
-**Plugin Responsibility:** The Controller Plugin is a product-specific OpenClaw plugin that bridges the backend control plane and the OpenClaw runtime. It is the execution-side workflow controller — deterministic in orchestration and strict in contracts. \
-**TaskFlow Management:** The plugin creates and manages TaskFlow flows, one per pipeline run. It advances the flow through the pipeline graph, dispatching worker tasks, tracking step state, and handling branching and join logic. \
-**Step Interpretation:** The plugin reads the pipeline definition from the backend, interprets each step's configuration (executor type, agent ID, input/output schemas, retry policy, approval requirements), and composes the exact dispatch payload for each worker. \
-**Validation Gate:** After each worker returns, the plugin validates the output against the step's declared output schema. Only validated outputs are written to storage and advanced through the pipeline. Failed validations trigger the retry policy or escalate to run failure. \
-**Lifecycle Actions:** The plugin supports a complete set of lifecycle actions: start, advance, retry, resume, wait (for approval), fail, finish, and cancel. Each action transitions the TaskFlow state and emits the appropriate lifecycle event.
+**Core Tables:** `projects`, `sessions`, `world_states`, `affordances`, `moves`, `move_patterns`, `move_pattern_stats`, `feature_registry`, `feature_scores`, `evaluations`, `sensitivity_matrix`, `design_debts`, `process_landmarks`, `trajectories`, `tensions`, `branches`, `commits`, `artifacts`, `artifact_links`, `runtime_events`, `agent_briefs`, `move_executions`, `branch_scores`, `intent_scores`, `preferences`, `approvals`, `hermes_profile_bindings`, and `kanban_task_bindings`. \
+**Snapshots:** Store periodic WorldState JSON snapshots for replay and debugging. \
+**Normalized Records:** Normalize core objects while keeping payload JSON for evolving move, branch, tension, scoring, feature, evaluation, and bridge details. \
+**Artifact Lineage:** Artifacts link to source artifacts, branches, tensions, commits, moves, Hermes tasks, feature evaluations, and validations.
 
-```text
-openclaw/
-  plugins/
-    product-controller/
-      index.ts
-      pipeline-interpreter.ts
-      step-dispatcher.ts
-      schema-validator.ts
-      event-emitter.ts
-      taskflow-adapter.ts
-```
+### 2.3.17 External Tool Integration
 
-### 2.3.12 Storage Model
+**Hermes:** MoveCompiler and the bridge use Hermes for profile execution, Kanban task coordination, profile memory/skills, logs, worker processes, and tool access. \
+**Rhino Compute:** Geometry computation is invoked through model-related moves, not exposed as a raw everyday agent choice. \
+**GPT Image V2:** Image generation is invoked through moves such as atmosphere studies, render refinement, board layout options, and consistency QA. \
+**Validators:** Segmentation, model checks, drawing cuts, render consistency checks, evaluator reports, and board QA are validation moves linked to artifacts and commits.
 
-**Storage Root:** All durable application data lives under a dedicated storage directory with organized subdirectories for databases, uploads, projects, generated assets, renders, thumbnails, cache, and logs. \
-**Immutable Uploads:** Uploaded reference files are stored as immutable originals, never modified after initial storage. \
-**Revisioned Artifacts:** Generated assets are stored as distinct revisioned artifacts, each with a database record and a run-local file path. This enables lineage tracking across pipeline steps and run comparisons. \
-**Run-Local Organization:** Each pipeline run creates its own directory tree under the project storage path, with subdirectories for input data and each step's outputs. This isolation ensures that concurrent runs do not interfere and that any single run can be inspected or replayed independently.
+### 2.3.18 Failure and Recovery Model
 
-```text
-storage/
-  db/
-  uploads/
-    <projectId>/
-  projects/
-    <projectId>/
-      refs/
-      runs/
-        <runId>/
-          input/
-          step-01-<stepId>/
-          step-02-<stepId>/
-          step-03-<stepId>/
-          step-N-<stepId>/
-      exports/
-  generated/
-  renders/
-  thumbs/
-  cache/
-  logs/
-```
+**Move-Local Recovery:** Failed moves can be retried, cancelled, corrected, or replaced without resetting the entire project. \
+**State Preservation:** Failed outputs remain inspectable as artifacts or events where useful. \
+**Supervisor Escalation:** High-risk failures, unresolved critical tensions, contradiction with commits, risky preference conflicts, or expensive reruns require supervisor review and sometimes user approval. \
+**Blocked Moves:** Moves that fail preconditions should remain visible as blocked moves with clear reasons. \
+**Task Recovery:** Hermes task failure, heartbeat loss, block, retry, and cancellation are translated into move status and supervisor warnings. \
+**Learning From Failure:** Failed moves update contextual outcome stats and may produce Curator work to revise or deprecate weak patterns.
 
-**Media Serving:** The frontend consumes backend-served asset URLs. Raw filesystem paths are never exposed to the frontend. \
-**Artifact Lineage:** Each artifact record can reference a source artifact, enabling lineage chains that track how generated outputs derive from prior outputs across pipeline steps.
+### 2.3.19 Field Authoring Surface
 
-### 2.3.13 Failure and Recovery Model
+**Field Navigator:** The primary authoring surface is a spatial field where users manipulate goals, branches, tensions, moves, commits, artifacts, agents, features, and lineage. \
+**Affordance Wheel:** Selecting an object opens nearby move options relevant to that object. \
+**Commit Spine:** Committed decisions appear as a stable project-truth spine. \
+**Branch Clusters:** Competing hypotheses appear as clusters that can be developed, compared, merged, killed, or committed. \
+**Feature Pressure View:** Current design pressures such as privacy, view, coherence, risk, cost, and elegance can be visualized without exposing the full scoring matrix. \
+**Trace View:** A graph view remains available for execution history, Hermes task bindings, and debugging. \
+**Move Library Editor:** Advanced users can inspect stable, sandbox, proposed, and deprecated move patterns with preconditions, effects, examples, success stats, tests, and traces.
 
-**Step-Local Recovery:** The architecture prefers step-local recovery over whole-run resets. If a step fails — due to schema validation failure, generation quality issues, or execution errors — only that step is retried with corrective context while all prior valid outputs remain intact. \
-**Validation Failures:** If a worker output fails schema validation, the step does not advance. The failure is recorded with a structured error description, and the run can retry the same step. The retry payload may include the prior failure detail as corrective context for the worker agent. \
-**Quality Failures:** If a generated artifact does not meet quality standards (as determined by a downstream validation step or operator review), the artifact is preserved for reference and comparison. The operator can request a regeneration of that specific step without rerunning upstream steps. \
-**Retry Policy:** Each step declares its own retry policy, including maximum attempts and backoff intervals. The Controller Plugin enforces these limits and escalates to run failure when retries are exhausted. \
-**Partial Run Resume:** If a run is interrupted (runtime restart, network failure, manual cancellation), the TaskFlow `stateJson` preserves enough information to resume from the last completed step. The backend detects the interrupted state and offers the operator explicit resume or restart options. \
-**Corrective Branches:** On approval rejection, the pipeline can route to a corrective branch — a predefined sequence of steps designed to address the rejection reason — rather than failing the entire run.
+### 2.3.20 Anti-Patterns
 
-```mermaid
-%%{init: {'flowchart': {'arrowMarkerSize': 1.5}}}%%
-flowchart TD
-    SF[Step Fails] ==> RC{Recovery Check}
-    RC ==> |Retries Remaining| RT[Retry with Corrective Context]
-    RC ==> |Retries Exhausted| RF[Run Failure]
-    RC ==> |Quality Issue| QR[Operator Requests Regeneration]
-    RT -. "Loop" .-> SF
-    QR ==> RS[Rerun Single Step]
-
-    linkStyle 0,1,4 stroke:#818cf8,stroke-width:4px
-    linkStyle 2 stroke:#fbbf24,stroke-width:4px
-    linkStyle 3,5 stroke:#818cf8,stroke-width:2px
-```
-
-### 2.3.14 Frontend-to-Backend Integration
-
-**HTTP JSON API:** The frontend communicates with the backend exclusively through typed JSON API calls over HTTP. No direct OpenClaw calls, no raw WebSocket to the runtime, no filesystem access from the browser. \
-**Bootstrap Hydration:** On initial load, the frontend calls a bootstrap endpoint to receive the primary project context, saved pipelines, recent sessions, current project state, and recent artifacts in a single payload, minimizing round trips. \
-**Pipeline Persistence:** Pipeline graph edits (adding nodes, removing edges, modifying step configurations) are saved to the backend atomically, replacing the full pipeline definition in a single transactional write. \
-**Execution Trigger:** The operator triggers pipeline execution from the frontend. The backend creates the run record, delegates to the Controller Plugin, and begins streaming lifecycle events back to the frontend. \
-**Live Updates:** The backend pushes real-time step progress, artifact creation, approval requests, and run completion events to the frontend via a streaming transport (SSE, WebSocket, or HTTP long-poll). The frontend renders these updates as a live execution narrative.
-
-### 2.3.15 Pipeline Authoring Surface
-
-**Visual Graph Editor:** The operator authors pipelines through a visual node-graph editor — an infinite canvas where nodes represent agents, tools, or approval checkpoints, and edges represent execution flow and data handoff. \
-**Node Property Editing:** Selecting a node opens a property panel where the operator can modify the node label, stable key, node type, executor assignment (agent ID or tool ID), task prompt, system prompt, persistent context, context mode, and retry policy. \
-**Edge Configuration:** Edges between nodes define not just execution order but also data flow rules: what upstream artifacts are passed, whether context is inherited or summarized, and whether the edge carries operator annotations. \
-**Parallel Group Authoring:** The operator can visually create parallel branches by connecting one node to multiple downstream nodes. A join node can be placed to reconverge parallel branches, with the editor enforcing DAG constraints. \
-**Pipeline-to-Execution Bridge:** From the authoring surface, the operator can directly create a new execution session bound to the current pipeline, immediately entering the execution view to begin a run. \
-**Template Pipelines:** Pre-built pipeline templates can be provided for common workflows, giving the operator a starting point that can be customized for their specific domain requirements.
-
-### 2.3.16 Anti-Patterns
-
-**Frontend as Orchestrator:** Do not place pipeline execution logic, step sequencing, or agent dispatch in the frontend. The frontend is a typed client shell over the backend API. All orchestration flows through the backend and the Controller Plugin. \
-**Agent-Owned Product State:** Do not let worker agents write directly to the product database, create their own run records, or emit user-facing events. All state mutation flows through the Controller Plugin back to the backend. This prevents hidden state, race conditions, and untraceable side effects. \
-**Unstructured Handoff:** Do not pass unstructured prose between pipeline steps. Every inter-step handoff should use a declared schema. Unstructured data leads to fragile parsing, non-deterministic downstream behavior, and difficult debugging. \
-**Monolithic Single-Agent Pipeline:** Do not collapse the entire pipeline into a single large agent prompt. The value of the pipeline architecture is decomposition: each step has a focused task boundary, a declared contract, and independent recoverability. \
-**Chat History as State:** Do not rely on accumulated chat history as the source of truth for pipeline state. Chat is a presentation layer. Durable state belongs in the backend database and TaskFlow `stateJson`. \
-**Whole-Run Retries:** Do not restart entire pipeline runs when a single step fails. Step-local recovery preserves prior valid work and is the correct default. Whole-run restarts should be an explicit operator choice, not an automatic fallback. \
-**Tight Runtime Coupling:** Do not couple the frontend directly to OpenClaw runtime internals, raw event semantics, or TaskFlow state shapes. The backend's event normalization layer exists to provide a stable contract that survives runtime upgrades. \
-**Approval as Afterthought:** Do not treat human-in-the-loop checkpoints as optional polish. Approval nodes, artifact preview, and operator intervention points are central to the product value of a pipeline system. They must be designed into the pipeline definition model from the start.
-
+**Static Pipeline as Primary Interface:** Do not make the human predict the full workflow before the design task unfolds. \
+**Raw Tool Selection:** Do not expose low-level tool choice as the normal agent decision surface. \
+**Unscored Moves:** Do not hide why a move is recommended, blocked, risky, expensive, elegance-positive, or approval-gated. \
+**Chat as State:** Do not rely on chat history as the source of truth. \
+**Artifact Without Lineage:** Do not create outputs that cannot be traced back to moves, branches, tensions, commits, source artifacts, evaluations, or Hermes tasks. \
+**Finalization With Critical Tensions:** Do not finalize boards or delivery outputs while unresolved critical tensions remain. \
+**A.A.S. Rebuilding Kanban:** Do not duplicate Hermes Kanban inside A.A.S. Use Hermes as execution substrate and keep A.A.S. focused on design semantics. \
+**Unregistered Score Variables:** Do not add scoring variables that have no Feature Registry entry, source, measurement method, or confidence. \
+**Unvalidated Learned Moves:** Do not let an agent promote a new move pattern directly into stable use without schema validation, sandbox tests, critic review, and supervisor approval.

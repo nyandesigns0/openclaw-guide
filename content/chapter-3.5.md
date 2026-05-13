@@ -1,66 +1,99 @@
-# Chapter 3.5 — Backend
+# Chapter 3.5 - Backend
 
 ## 3.5.0 Overview
 
-The A.A.A. backend is a Fastify-based control plane that serves as the product logic layer, source of truth for all user-facing state, and the stable integration boundary between the operator frontend and the OpenClaw execution runtime.
+The A.A.S. backend is the control plane for the Field Runtime. It persists product state, serves the frontend, emits events, stores artifacts, governs approvals, resolves scoped preferences, compiles moves into Hermes task groups, and bridges typed moves to Hermes and specialized tools.
 
 ### 3.5.1 Technology Stack
 
-**Runtime Framework:** Fastify (TypeScript), chosen for its performance, schema validation, and plugin ecosystem. \
-**ORM and Database:** Prisma ORM backed by SQLite for local-first development, with a planned upgrade path to Postgres for future multi-user or hosted deployments. \
-**Shared Contracts:** All DTOs, API payloads, runtime enums, artifact shapes, and event types are defined in `app/shared/src/contracts.ts`, ensuring type alignment between frontend and backend. \
-**Local Storage:** Artifact bodies, generated files, and media assets are stored under the `storage/` directory tree, managed by the backend storage service.
+**Runtime Framework:** TypeScript backend service suitable for local-first development, with schema validation, background workers, file watching, and streaming support. \
+**ORM and Database:** Prisma ORM with SQLite for local-first development and an upgrade path to Postgres for hosted or multi-user deployments. \
+**Hermes Bridge:** Starts with CLI/task packet integration, then adds Kanban DB watching, log/artifact watching, profile pack sync, and eventually direct plugin/API integration if stable. \
+**Shared Contracts:** DTOs, enums, event types, runtime object shapes, move types, pattern schemas, feature schemas, score payloads, preference records, bridge bindings, and artifact contracts should be defined in shared TypeScript contracts. \
+**Artifact Storage:** Artifact bodies, generated files, media assets, model outputs, render outputs, evaluator reports, validation reports, task packets, and exports live under a managed storage directory. \
+**Streaming:** Server-Sent Events or WebSocket streaming broadcasts stable A.A.S. events and translated Hermes task events to the frontend.
 
 ### 3.5.2 Data Persistence
 
-**Core Entities:** The database persists the following first-class entities: Projects, Project State, Project Assets (artifacts), Pipelines, Pipeline Nodes, Pipeline Edges, Chat Sessions, Chat Messages, Runs, Run Steps, Approvals, Events, and Boards. \
-**Project State:** A dedicated `ProjectState` record tracks canonical session state per project, including the active session ID, active run ID, concept JSON, rules, constraints, artifact references, and a monotonically increasing revision counter. \
-**Artifact Lineage:** Each `ProjectAsset` can reference a source asset, enabling lineage chains that track how generated artifacts derive from prior outputs across pipeline steps. \
-**Agent Attribution:** Artifacts and events carry agent attribution metadata, recording which agent produced each output and from which pipeline node. \
-**Relationship Model:** One Project owns many pipelines, sessions, runs, assets, and events. One Run owns many steps, approvals, assets, and events. One ChatSession accumulates messages, approvals, and artifacts across multiple runs.
+**Core Entities:** Projects, sessions, WorldState snapshots, affordances, moves, move patterns, move pattern stats, feature registry entries, feature scores, evaluations, sensitivity matrix entries, design debts, process landmarks, trajectories, tensions, branches, commits, preferences, artifacts, artifact links, runtime events, agent briefs, move executions, branch scores, intent scores, approvals, Hermes profile bindings, Kanban task bindings, and task packets. \
+**WorldState Snapshots:** Store periodic JSON snapshots for replay, debugging, scoring, move sandboxing, and recovery. \
+**Normalized Objects:** Branches, tensions, commits, artifacts, moves, approvals, preferences, features, evaluations, events, and Hermes bindings should be normalized while keeping flexible payload JSON for evolving runtime details. \
+**Artifact Lineage:** Each artifact can link to source artifacts, originating move, Hermes task, affected branch, related tension, commit, evaluator result, agent/profile, validation status, and storage path. \
+**Commit Ledger:** Commits are persisted as first-class project-truth records and are never silently overwritten. \
+**Preference Store:** Preferences are scoped by tenant/user/team/project/session/agent profile, filtered before retrieval, resolved deterministically, and logged with source manifests when used.
 
 ### 3.5.3 API Surface
 
-**Bootstrap and Health:** `GET /api/health` for service health checks and `GET /api/bootstrap` for initial UI hydration with the primary project, pipelines, sessions, project state, and recent artifacts. \
-**Projects:** Full CRUD for projects, plus dedicated routes for project state (`GET /api/projects/:projectId/state`), project artifacts (filterable by run, session, or pipeline), and project events. \
-**Pipelines:** CRUD for pipeline definitions. `PUT /api/pipelines/:pipelineId` atomically replaces the pipeline metadata, nodes, and edges. \
-**Chat Sessions:** Create sessions bound to pipelines, load rich session detail (pipeline, messages, artifacts, events, approvals, active run, project state), and send messages that trigger pipeline execution. \
-**Runs:** Create runs, load rich run detail including steps, approvals, artifacts, and events. \
-**Approvals:** `POST /api/approvals/:approvalId/resolve` resolves a pending approval, resuming or failing the run based on the operator's decision.
+**Bootstrap and Health:** `GET /api/health` and `GET /api/bootstrap` for initial project/session/world hydration, bridge status, and mode data. \
+**World State:** `GET /api/projects/:projectId/sessions/:sessionId/world`, `POST /api/projects/:projectId/sessions/:sessionId/world/recompute`, and world snapshot routes. \
+**Affordances:** List, recompute, approve, and reject available moves. \
+**Moves:** Create, inspect, execute, cancel, and retry moves; inspect score breakdown, expected feature effects, and task bindings. \
+**Move Patterns:** List, propose, sandbox, validate, promote, deprecate, merge, and inspect move patterns and success stats. \
+**Features and Evaluations:** List feature registry entries, evaluator outputs, score breakdowns, sensitivity matrix entries, target feature vectors, and measured deltas. \
+**Tensions:** List, create, patch, resolve, and defer tensions. \
+**Branches:** List, create, develop, critique, compare, kill, merge, and commit branches. \
+**Commits:** List, create, and revert commits. \
+**Preferences:** List allowed preferences, create session preferences, propose inferred preferences, promote to project/team where approved, resolve conflicts, and forget where allowed. \
+**Agent Briefs:** Generate and inspect Agent Briefs for role-specific turns. \
+**Artifacts and Events:** List artifacts, fetch artifact metadata/content, stream events, inspect lineage, and inspect evaluator reports. \
+**Hermes Bridge:** Inspect profile bindings, Kanban task bindings, task packets, task logs, bridge watcher state, and dispatcher status.
 
-### 3.5.4 Pipeline Execution Engine
+### 3.5.4 Field Runtime Services
 
-**Local Runtime Path:** The current executor in `lib/pipeline-engine.ts` runs the saved pipeline within the backend process. It loads the pipeline graph, topologically orders the nodes, and executes each node sequentially, simulating agent outputs based on the configured prompts and context. \
-**Execution Lifecycle:** For each node: create a run-step record, emit start events, generate role-aware output using the task prompt, system prompt, persistent context, context mode, user message, summarized history, upstream handoff notes, and project state. Persist artifacts, update project state, emit completion events. \
-**Approval Pause and Resume:** When an approval node is reached, the executor creates an `AaaApproval` record, moves the run and session to a waiting state, and returns without executing remaining nodes. When the approval is later resolved, execution resumes from the next node or fails the run on rejection. \
-**Context Modes:** Three context modes control how upstream information flows to each node: `inherit` (full summarized context), `summary` (summarized upstream only), and `isolated` (no broader conversation snapshot).
+**AffordanceCompiler:** Reads WorldState, process grammar, trajectory, design debt, feature state, move library, and scoped preferences to generate available and blocked moves with score breakdowns. \
+**ContextDistiller:** Produces Agent Briefs from WorldState, memory, scoped preferences, artifacts, commits, tensions, evaluations, events, and output contracts. \
+**IntentGradient:** Scores move candidates across process, design, search, execution, user alignment, learning, governance, elegance, and explicit penalties. \
+**ProcessGrammar:** Tracks soft phase, landmarks, entry/exit conditions, preferred moves, discouraged moves, and process maturity. \
+**DesignDebtTracker:** Tracks unresolved obligations and ranks moves that reduce high-payoff debt. \
+**MovePatternLibrary:** Stores primitives, reusable architectural tactics, effect priors, execution templates, validation tests, examples, and stats. \
+**MoveCompiler:** Maps moves to Hermes task packets, task groups, dependencies, profiles, expected artifacts, expected feature effects, and completion contracts. \
+**FeatureRegistry:** Defines registered variables, measurement methods, sources, confidence, range, and artifact hooks. \
+**EvaluatorRegistry:** Runs concept, plan, section, model, render, board, and QA evaluators to produce feature scores, evidence, confidence, and critique. \
+**TensionEngine:** Detects contradictions, links affected objects, tracks resolution status, and generates resolution moves. \
+**BranchEcology:** Spawns, develops, critiques, compares, kills, merges, and commits branches. \
+**CommitmentLedger:** Creates, enforces, and reverts project-truth decisions through evented state transitions. \
+**Critic, Supervisor, and Curator:** Separate design quality critique, process governance, approvals, pattern lifecycle, risk, legality, drift, and finalization gates.
 
-### 3.5.5 Compute and Generation Integration
+### 3.5.5 Hermes, Compute, and Generation Integration
 
-**Rhino Compute Integration:** For the Explore mode, the backend interfaces with a Rhino Compute server to generate 3D geometry. Commands are sent from the frontend through the backend to Rhino Compute, which returns computed geometry for the web viewer. \
-**AI Model Coordination:** The backend coordinates calls to advanced reasoning and image generation models (GPT-4o, GPT Image V2) for design tasks such as image generation, concept rendering, and board composition. \
-**Deterministic Renderer:** A dedicated rendering service consumes structured board packages and produces final PNG and PDF outputs deterministically, ensuring that agents decide composition intent while the renderer executes that intent repeatably.
+**Hermes Integration:** MoveCompiler dispatches work through Hermes Kanban tasks and profile assignments. The bridge captures task state, comments, logs, artifacts, heartbeats, blocks, retries, and completions. \
+**Profile Pack Manager:** A.A.S. can sync base and project-scoped Hermes profiles from A.A.S. agent definitions, role files, skills, allowed tools, and profile settings. \
+**Rhino Compute:** Geometry work is invoked through model moves for massing, plan cuts, section cuts, area checks, view/privacy analysis, rebuilds, and spatial validation. \
+**GPT Image V2:** Image generation is invoked through representation moves, using branch state, commits, feature targets, visual constraints, and ground-truth references. \
+**Deterministic Renderer:** Board assembly uses structured board packages and deterministic rendering for repeatable PNG/PDF outputs. \
+**Validation and Evaluation Services:** Segmentation, geometry checks, artifact completeness checks, render consistency checks, design feature evaluators, and board QA produce validation artifacts and events.
 
 ### 3.5.6 Event System
 
-**Event Normalization:** Raw execution events from the OpenClaw runtime are converted into stable, typed product events before storage and broadcast. \
-**Event Types:** Core event types include `aaa.run.started`, `aaa.step.updated`, `aaa.asset.created`, `aaa.approval.required`, and `aaa.run.completed`, each carrying structured payload data. \
-**Event Flow:** OpenClaw emits execution-side lifecycle results. The backend normalizes them, stores them in the `AaaEvent` table, and broadcasts to the UI. The frontend depends only on these stable event contracts, never on raw OpenClaw event semantics.
+**Event Normalization:** Runtime, evaluator, and Hermes events are converted into stable A.A.S. product events before storage and broadcast. \
+**Core Events:** `aas.world.updated`, `aas.affordances.generated`, `aas.move.proposed`, `aas.move.selected`, `aas.move.started`, `aas.move.completed`, `aas.move.failed`, `aas.pattern.proposed`, `aas.pattern.promoted`, `aas.evaluation.completed`, `aas.feature.delta.measured`, `aas.tension.created`, `aas.tension.resolved`, `aas.branch.spawned`, `aas.branch.developed`, `aas.branch.critiqued`, `aas.branch.killed`, `aas.branch.merged`, `aas.branch.committed`, `aas.commit.created`, `aas.commit.reverted`, `aas.artifact.created`, `aas.preference.conflict`, `aas.supervisor.warning`, and `aas.user.approval.required`. \
+**Hermes Events:** Kanban ready, running, heartbeat, blocked, comment, complete, failed, retry, cancelled, and log updates are translated into A.A.S. move/task events. \
+**Audit Trail:** Events include project ID, session ID, move ID, pattern ID, task ID, profile ID, agent attribution, timestamps, payloads, and links to affected artifacts or state objects. \
+**Frontend Sync:** Events update the Field Navigator, Chat, Model Mode, Trace View, Move Library View, inspectors, and approval surfaces.
 
 ### 3.5.7 Storage Model
 
-**Storage Root:** All durable application data lives under `storage/` with subdirectories for `db/`, `uploads/`, `projects/`, `generated/`, `renders/`, `thumbs/`, `cache/`, and `logs/`. \
-**Immutable Uploads:** Uploaded reference files are stored as immutable originals, never modified after initial storage. \
-**Revisioned Artifacts:** Generated assets are stored as distinct revisioned artifacts, each with a database record and a run-local file path. \
-**Media Serving:** The UI consumes backend-served asset URLs. Raw filesystem paths are never exposed to the frontend.
+**Storage Root:** All durable application files live under `storage/` with subdirectories for database files, uploads, projects, world snapshots, task packets, generated artifacts, models, renders, boards, evaluator reports, thumbnails, cache, and logs. \
+**Immutable Uploads:** Uploaded references are stored as immutable originals. \
+**Revisioned Artifacts:** Generated outputs are stored as distinct revisions linked by lineage. \
+**Run, Move, and Task Organization:** Move outputs can be grouped by project, session, branch, move ID, and Hermes task ID for inspection and replay. \
+**Media Serving:** The UI consumes backend-served URLs and metadata, not raw filesystem paths.
 
 ### 3.5.8 Bootstrap and Seeding
 
-**Automatic Bootstrap:** On first startup, the backend seeds a default project, a multi-stage pipeline (Research Agent → Concept Agent → Design Critic → Operator Approval → Board Composer), initial project state, and demo artifacts. \
-**Idempotent Seeding:** The bootstrap logic runs only when the database is empty, ensuring that existing data is never overwritten on subsequent startups.
+**Initial Project:** Seed a default project with an initialized WorldState rather than a static pipeline graph. \
+**Initial Moves:** Seed deterministic first moves such as normalize brief, ask blocking clarification, generate concept branches, run precedent scan, define success metrics, and identify design tensions. \
+**Initial Move Library:** Seed stable primitives and a first architectural move pattern set for intake, research, concept, branch, ground truth, representation, QA, and commit workflows. \
+**Initial Feature Registry:** Seed core features such as goal alignment, concept strength, spatial coherence, artifact completeness, ground-truth readiness, drawing consistency, tension reduction, branch diversity, user alignment, cost, risk, and elegance. \
+**Demo Field:** Seed example branches, tensions, commits, artifacts, feature scores, and evaluations only when useful for local demo mode. \
+**Idempotence:** Bootstrap must never overwrite existing projects, artifacts, commits, preferences, pattern stats, or world history.
 
 ### 3.5.9 Failure and Recovery
 
-**Step-Local Recovery:** The architecture prefers step-local recovery over whole-run resets. If a step fails (schema validation, generation quality, or assembly error), only that step is retried with corrective context while all prior valid outputs remain intact. \
-**Validation Failures:** If a worker output fails schema validation, the step does not advance. The failure is recorded, and the run can retry the same step. \
-**Generation Quality Failures:** If image quality is poor, generated assets are preserved for reference, and the operator can request a new batch without rerunning upstream steps.
+**Move-Local Recovery:** Retry, cancel, correct, or replace failed moves without resetting the whole project. \
+**Blocked Moves:** Preserve blocked moves with reasons so the operator can see what preconditions are missing. \
+**Hermes Recovery:** Task block, failure, heartbeat loss, retry, cancellation, or missing artifacts are translated into move status, supervisor warnings, and recovery affordances. \
+**Supervisor Warnings:** Drift, unresolved critical tensions, commit conflicts, preference conflicts, risky tool execution, and finalization problems emit warnings and may block execution. \
+**Reversibility:** Major moves declare whether they are reversible. Reverts create events and new state transitions rather than deleting history. \
+**Artifact Preservation:** Failed or low-quality outputs can remain as evidence, comparison material, evaluator input, or QA references. \
+**Learning From Failure:** Failed move patterns update contextual stats and may trigger curator review, stricter validation tests, or deprecation.

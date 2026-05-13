@@ -45,19 +45,19 @@
       },
       {
         "id": "chapter-2.2",
-        "title": "2.2 Native Memory Architecture",
+        "title": "2.2 Memory Architecture",
         "filename": "chapter-2.2.md"
       },
       {
         "id": "chapter-2.3",
-        "title": "2.3 Pipeline Architecture",
+        "title": "2.3 Field Runtime Architecture",
         "filename": "chapter-2.3.md"
       }
     ]
   },
   {
     "id": "aaa",
-    "title": "Chapter 3: AAA",
+    "title": "Chapter 3: A.A.S.",
     "icon": "Box",
     "subtabs": [
       {
@@ -77,7 +77,7 @@
       },
       {
         "id": "chapter-3.4",
-        "title": "3.4 Frontend",
+        "title": "3.4 Frontend / Field Navigator",
         "filename": "chapter-3.4.md"
       },
       {
@@ -87,7 +87,7 @@
       },
       {
         "id": "chapter-3.6",
-        "title": "3.6 Task Breakdown",
+        "title": "3.6 Field Runtime Task Breakdown",
         "filename": "chapter-3.6.md"
       }
     ]

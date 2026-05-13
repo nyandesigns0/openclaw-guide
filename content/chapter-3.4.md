@@ -1,48 +1,63 @@
-# Chapter 3.4 — Frontend
+# Chapter 3.4 - Frontend
 
 ## 3.4.0 Overview
 
-The A.A.A. frontend is a Next.js operator console organized into a left-sidebar shell with workspace panels, featuring UI elements across four categories: General, Chat, Build, and Explore.
+The A.A.S. frontend is a spatial operator console centered on the Field Navigator. The application keeps a left project/session shell, a center field workspace, a right inspector, and a bottom timeline/commit/task preview, with Chat, Model Mode, Trace View, and Move Library View available as mode views over the same WorldState.
 
 ### 3.4.1 General UI Elements
 
-**Application Shell:** The layout follows a left-sidebar plus main-workspace pattern, styled as a dark-themed control plane console rather than a marketing-style top-nav app. \
-**Left Sidebar — Logo and Mode Switcher:** The top displays the A.A.A. logo and a mode switch toggling between Build, Chat, and Explore. \
-**Left Sidebar — Session Folders:** Below the switcher, folders organized by sessions. Each session represents a pipeline run, grouping conversations, artifacts, and execution history. \
-**Left Sidebar — Pipeline List:** Shows saved pipelines (Build mode) or recent chat sessions (Chat mode), fetched via the bootstrap endpoint. \
-**Active Workspace Context:** Displays the currently selected pipeline or session name, status, and project. \
-**Responsive Layout:** Panel widths and sidebar visibility adapt for standard and ultrawide displays.
+**Application Shell:** Left sidebar, top project/run bar, center workspace, right inspector, and bottom status/timeline/task bar. \
+**Left Sidebar:** Projects, sessions, modes, saved views, recent field states, and move-library access. \
+**Top Bar:** Active project, active session, run state, field mode, Hermes bridge status, recompute, save, execute, and approval indicators. \
+**Center Workspace:** Field Navigator by default, with Chat, Model, Trace, and Move Library views available without changing the underlying WorldState. \
+**Right Inspector:** Object details, scores, feature deltas, rationale, linked artifacts, Hermes task logs, approvals, raw JSON, file preview, and terminal/tool output when relevant. \
+**Bottom Bar:** System status, mini timeline, active move progress, event stream summary, Hermes task group status, and commit spine preview.
 
-### 3.4.2 Chat Mode UI Elements
+### 3.4.2 Field Navigator UI Elements
 
-**Main Chat Area:** A group-chat interface displaying messages from the user and each pipeline agent in chronological order, with agent name and role attribution. \
-**Message Input Bar:** A text input at the bottom for composing messages. Submitting triggers the linked pipeline to execute via the backend API. \
-**Agent Attribution Labels:** Each agent message shows the agent name, role, and originating pipeline node. \
-**Approval Controls:** When an approval node is reached, inline approve and reject buttons appear with a text field for operator notes. \
-**Right Sidebar — Vertical Tab Rail:** Vertically stacked tabs (labels rotated 90 degrees, Adobe/AutoCAD style) switching between four contextual panels. \
-**Right Sidebar — General Tab:** Session metadata, editable title, list of participating agents with roles, and toggle controls to mute agents from the chat view without affecting execution. \
-**Right Sidebar — Project File Browser Tab:** A Revit-style project browser showing all project files in a navigable tree. Two views available: a simplified icon grid (Android-style) and an explicit folder-structure tree. \
-**Right Sidebar — File Viewer/Editor Tab:** Opens selected files (`.md`, `.json`, images) inline within the sidebar without leaving the chat view. \
-**Right Sidebar — Terminal Tab:** A filtered execution log of backend activity for the current pipeline run, showing only agent-related tasks in a user-readable format. \
-**Run Status Indicators:** Visual indicators showing current run status (queued, running, waiting, completed, failed, cancelled) and the currently executing step.
+**Design Field Canvas:** A 2.5D or 3D interactive map showing the live design field. \
+**Intent Core:** Central focus object showing current intent through the objects pulled toward it. \
+**Field Axes:** Optional spatial axes for certainty, commitment, artifact completeness, risk, design maturity, feature pressure, or elegance. \
+**Commit Spine:** A stable spine of committed decisions, rationale, evidence, affected artifacts, reversibility, and downstream constraints. \
+**Affordance Wheel:** Contextual radial move menu around selected field objects. \
+**Move Nodes:** Available and blocked affordances represented as field particles or nodes with score, cost, risk, approval, reversibility, feature effects, and elegance cues. \
+**Branch Clusters:** Design hypotheses represented as cluster hulls containing artifacts, tensions, evidence, weaknesses, feature scores, and next recommended move. \
+**Branch Comparison Mode:** A comparison zone for two or three branches showing shared tensions, unique strengths, risks, artifact completeness, ground-truth readiness, feature deltas, and merge previews. \
+**Tension Nodes:** Stress objects connected to affected branches and artifacts, with severity shown by color, size, and motion. \
+**Feature Pressure Nodes:** Registered features can appear as pressure nodes or overlays so the user sees what the system is trying to improve without reading a full score matrix. \
+**Hermes Agent Presence:** Hermes profiles appear as lightweight probes or cursors with states for idle, ready, running, heartbeat, blocked, retrying, critiquing, validating, and completed.
 
-### 3.4.3 Build Mode UI Elements
+### 3.4.3 Chat Mode UI Elements
 
-**Infinite Canvas:** An infinite-scroll canvas serving as the pipeline graph editor with full pan and zoom support. \
-**Node Cards:** Each pipeline node rendered as a visual card positioned by saved x/y coordinates, displaying the node label, type icon (agent, tool, or approval), and agent role. \
-**Edge Connections:** Directed edges rendered as SVG curves representing execution flow and data handoff between stages. \
-**Node Selection and Editing Panel:** Clicking a node opens a side panel with editable fields: label, stable key, node type, agent role, task prompt, system prompt, persistent context, context mode, and canvas position. \
-**Add Node Control:** Adds new agent, tool, or approval nodes to the canvas at a default position. \
-**Edge Creation Control:** Defines new directed edges between existing nodes, establishing execution order. \
-**Pipeline Metadata Bar:** Displays and allows inline editing of the pipeline name, description, and status. \
-**Save Pipeline Button:** Persists the full graph state (nodes, edges, metadata) atomically to the backend via `PUT /api/pipelines/:pipelineId`. \
-**Open Chat Session Button:** Creates a new chat session bound to the current pipeline and switches to Chat mode.
+**Conversation Thread:** Chronological user and agent messages with role attribution and links to moves, branches, tensions, commits, artifacts, evaluations, and Hermes tasks. \
+**Move Cards:** Compact presentations of available moves, score explanations, risks, approval requirements, expected feature effects, and execute controls. \
+**Approval Controls:** Inline approve, reject, annotate, or defer actions for user-gated moves, commits, preference conflicts, and risky execution. \
+**Preference Source Badges:** Messages can show source badges such as current prompt, session preference, user preference, team standard, or project commit. \
+**Artifact References:** Chat messages reference persisted artifacts rather than embedding state in prose. \
+**World Sync:** Any chat action updates the Field Navigator; any field action can surface chat-visible reasoning and status.
 
-### 3.4.4 Explore Mode UI Elements
+### 3.4.4 Model Mode UI Elements
 
-**3D Viewer:** A WebGL-based 3D viewer with orbit, pan, and zoom controls for inspecting computed architectural geometry. \
-**Geometry Render Surface:** Displays meshes, surfaces, and curves received from the Rhino Compute backend with shading and wireframe modes. \
-**Right Sidebar — Layer Panel:** Lists all geometry layers with visibility toggles, enabling isolation of specific building elements (structure, envelope, interior, site). \
-**Right Sidebar — Tools Panel:** Client-side measurement and annotation tools for distances, areas, and markup. \
-**Compute Command Controls:** Controls for sending high-level editing commands to Rhino Compute — regenerating models with modified parameters, cutting section planes, or extracting plan views. \
-**Session Sidebar (Left):** Retains the same session list and mode switcher as other modes for cross-mode navigation.
+**3D Viewer:** WebGL model workspace with orbit, pan, zoom, shading, wireframe, section, plan-cut, and analysis controls. \
+**Ground-Truth Status:** Displays whether model state is none, pending, available, outdated, invalid, hypothesis, created, or validated. \
+**Model Affordances:** Controls to generate massing, cut plans, cut sections, compare area, rebuild after commit, evaluate privacy/view, and validate render perspective. \
+**Feature Readouts:** Shows geometry-derived features such as area, adjacency, view orientation, solar exposure, circulation length, openness, and privacy zones. \
+**Layer and Measurement Tools:** Layer toggles, isolation, dimensions, areas, section planes, and annotations. \
+**Artifact Links:** Model outputs link back to moves, branches, tensions, commits, Hermes tasks, evaluator outputs, and validation events.
+
+### 3.4.5 Trace View UI Elements
+
+**Move History Graph:** Shows executed moves, dependencies, retries, failures, approvals, and resulting artifacts. \
+**Hermes Task Graph:** Shows Kanban task groups, assigned profiles, dependencies, task state, comments, logs, and artifact paths. \
+**Event Timeline:** Displays stable product events and WorldState snapshots for replay. \
+**Feature Delta Timeline:** Shows predicted versus measured deltas for key features across moves. \
+**Debug Inspector:** Shows raw payloads, blocked reasons, supervisor warnings, validation failures, evaluator results, and execution logs. \
+**Replay Controls:** Scrub through commit history and field state evolution.
+
+### 3.4.6 Move Library View UI Elements
+
+**Library Columns:** Stable, sandbox, proposed, and deprecated move patterns. \
+**Pattern Inspector:** Shows primitive type, domain, preconditions, inputs, outputs, expected effects, scoring hints, execution templates, validation tests, examples, success stats, and failure modes. \
+**Sandbox Results:** Shows pattern runs against saved WorldState snapshots. \
+**Curator Actions:** Promote, deprecate, merge duplicate, request test, or archive pattern. \
+**Sensitivity Matrix View:** Shows expected effects from move patterns to registered features and measured deltas from evaluator feedback.

@@ -1,37 +1,51 @@
-# Chapter 3.2 — Feature List
+# Chapter 3.2 - Feature List
 
 ## 3.2.0 Overview
 
-The A.A.A. application is organized into three primary modes — Chat, Build, and Explore — each serving a distinct role in the architectural pipeline lifecycle, from pipeline authoring through agent-driven execution to spatial validation.
+The A.A.S. application is organized around the Field Runtime and its primary UI, the Field Navigator. Chat, Model Mode, Trace View, and Move Library View support the same world-state-driven design field rather than separate workflow silos. Hermes is the execution substrate behind the visible field.
 
-### 3.2.1 Chat Mode
+### 3.2.1 Field Navigator
 
-**Group Chat Interface:** The user enters a group chat with all agents assigned to the active pipeline, seeing each agent's messages appear in a unified conversational thread as the pipeline executes step by step. \
-**Pipeline-Linked Execution:** The chat is directly linked to the saved pipeline. Every time the user adds or removes an agent node in Build mode, the corresponding agent appears or disappears from the chat participant list. \
-**Step-by-Step Visibility:** As the pipeline runs, each agent posts its output as a chat message, giving the operator a live narrative of the generation process from research through final composition. \
-**User Interruption:** The operator can interrupt the pipeline at any point, and agents can proactively ask clarifying questions or present options for the user to select before continuing. \
-**Approval Checkpoints:** When the pipeline reaches an approval node, execution pauses and presents the operator with explicit approve or reject controls, along with the ability to add notes and feedback. \
-**Artifact Creation:** The chat dynamically generates and persists artifacts — design documents, images, structured reports, board packages — as part of the conversational flow, all registered in the project database. \
-**Right Sidebar Utility Rail:** A vertically stacked tab rail on the right side provides contextual panels for the General tab, Project File Browser, File Viewer and Editor, and Terminal log. \
-**Agent Muting:** The operator can visually mute individual agents so their messages are hidden from the chat view, reducing clutter without affecting agent behavior or pipeline execution. \
-**Session Persistence:** Every chat session, message, artifact, event, and approval is fully persisted in the backend database, enabling session history review and run comparison.
+**Design Field Canvas:** A 2.5D or 3D spatial canvas where goals, branches, tensions, affordances, commits, artifacts, features, Hermes agents, and task state appear as field objects. \
+**Intent Core:** The current system intent sits at the center, pulling in active branches, tensions, required artifacts, top moves, blocked moves, open debts, and feature pressures. \
+**Affordance Wheel:** Selecting an object reveals contextual moves such as develop, critique, validate, commit, merge, defer, ask user, generate artifact, or compile execution. \
+**Commit Spine:** Project-truth decisions appear as a stable spine with evidence, rationale, affected artifacts, reversibility, approval state, and downstream constraints. \
+**Branch Clusters:** Competing hypotheses are shown as clusters that can be developed, compared, merged, killed, or committed. \
+**Tension Nodes:** Design conflicts appear as stress nodes connected to affected branches, artifacts, feature pressures, and blocked moves. Severity is visible through color, size, and motion. \
+**Feature Pressure View:** Local design variables such as privacy, view, coherence, cost, risk, artifact completeness, ground-truth readiness, and elegance can be shown as pressure fields without exposing the whole score matrix. \
+**Hermes Task Presence:** Hermes profiles appear as lightweight agent probes. Kanban task states map to field states: ready, running, heartbeat, blocked, completed, failed, retry, and archived. \
+**Artifact Constellations:** Research, concept, ground-truth, model, drawing, render, diagram, board, evaluator, and QA artifacts cluster by type and lineage. \
+**Inspector Panel:** Selecting a field object opens exact data: rationale, score breakdown, feature deltas, linked artifacts, task bindings, logs, approval state, and raw JSON when needed.
 
-### 3.2.2 Build Mode
+### 3.2.2 Chat Mode
 
-**Infinite Node Graph Canvas:** A minimal, clean, and intuitive infinite canvas inspired by node-graph editors such as Grasshopper (Rhino), Blueprint (Unreal Engine), and Blender Nodes, designed for visual pipeline authoring. \
-**Agent-as-Node Paradigm:** Each node on the graph represents a single agent or checkpoint in the pipeline. The operator can configure what each node does, including its task prompt, system prompt, persistent context, and context mode. \
-**Handoff Configuration:** Edges between nodes define the execution flow and data handoff path. The operator controls what data persists between steps, what context is inherited versus summarized versus isolated, and how upstream outputs feed into downstream inputs. \
-**Parallel and Concurrent Execution:** The graph supports defining parallel branches, spawning specific sub-agents, and setting limits on how many agents run concurrently within a parallel group. \
-**Node Types:** Three distinct node types are available: Agent nodes (which execute a worker agent with a role and prompts), Tool nodes (which invoke a specific tool or service call), and Approval nodes (which pause execution for human review). \
-**Node Property Editing:** Selecting a node opens a panel-driven editor where the operator can modify the node label, stable key, node type, agent role, task prompt, system prompt, persistent context, context mode, and canvas position. \
-**Pipeline CRUD:** The operator can add nodes, delete nodes, create edges, remove edges, rename pipelines, and save the entire graph back to the backend as a persisted pipeline definition. \
-**Pipeline-to-Chat Bridge:** From Build mode, the operator can directly create a new chat session bound to the current pipeline, immediately entering Chat mode to begin execution.
+**Conversation Layer:** Chat is used for explanations, questions, corrections, options, and conversational steering. \
+**WorldState-Linked Messages:** Agent messages update the Field Navigator, and Field Navigator actions produce chat-visible reasoning and execution status. \
+**Move Presentation:** Agents can present available moves, explain scoring, request approvals, and justify overrides in chat. \
+**Preference Awareness:** Chat can surface which scoped preferences influenced an answer, such as a project commit, current prompt, user preference, or team standard. \
+**Approval Flow:** High-impact commits, branch kills, expensive generation batches, finalization, reverts, preference conflicts, and overwrites can request user approval through chat and the field UI. \
+**Artifact References:** Chat messages link to artifacts, branches, tensions, commits, evaluator outputs, and move results instead of treating messages as durable state.
 
-### 3.2.3 Explore Mode
+### 3.2.3 Model Mode
 
-**3D Viewer Workspace:** The main workspace features a 3D viewer with standard navigation controls — orbit, pan, and zoom — for inspecting the computed architectural geometry from any angle. \
-**Rhino Compute Backend:** Geometry is generated by sending commands to a Rhino Compute server instance. The server computes the 3D model and returns it to the web UI for rendering, keeping heavy computation on the backend while the frontend acts as a lightweight viewer. \
-**Spatial Ground Truth:** The 3D model serves as the authoritative ground truth for the project. Agents can cut floor plans, elevations, and sections from this model, ensuring that all generated 2D drawings maintain spatial consistency with the actual geometry. \
-**Layer and Tool Sidebar:** A right-side panel provides layer management, basic measurement tools, and controls for sending high-level editing commands back to the Rhino Compute server for re-computation. \
-**Agent Validation Surface:** The Explore tab is primarily designed for agent-driven validation. Agents can compute geometry, perform spatial analysis (clash detection, area calculations, clearance checks), and use the model as a reference for consistency linting across all downstream deliverables. \
-**User Transparency:** The viewer exists so the operator can see exactly what the agents are looking at and working on, making the agent's spatial reasoning transparent and auditable.
+**Ground-Truth Workspace:** Model Mode is the validation environment for spatial truth. \
+**Model Affordances:** Moves can generate massing from a committed branch, cut floor plans, cut sections, validate render perspective, compare area against program, or rebuild after a branch commit. \
+**Rhino Compute Integration:** Rhino Compute is invoked by MoveExecutor when a move requires geometry computation. It is not exposed as a raw everyday agent choice. \
+**Geometry-Derived Features:** Model analysis can measure area, view orientation, solar exposure, adjacency, circulation length, section depth, openness, privacy zones, and other features. \
+**Spatial QA:** Agents use model state to check consistency across plans, sections, renders, diagrams, boards, and commitments. \
+**Versioned Models:** Model artifacts are versioned and linked to the moves, branches, commits, Hermes tasks, feature evaluations, and validation events that created them.
+
+### 3.2.4 Trace View
+
+**Execution History:** Trace View preserves graph utility by showing move history, Hermes Kanban dependencies, artifact lineage, feature deltas, retries, failures, approvals, and logs. \
+**Replay:** WorldState snapshots and runtime events allow users to replay how the design field evolved. \
+**Debugging:** Developers and operators can inspect failed moves, blocked preconditions, supervisor warnings, evaluator failures, bridge failures, validation failures, and branch decisions. \
+**Not the Primary Model:** Trace View explains what happened. It does not replace the Field Navigator as the main design interface.
+
+### 3.2.5 Move Library View
+
+**Pattern Registry:** Shows stable, sandbox, proposed, and deprecated move patterns. \
+**Pattern Detail:** Displays primitive type, domain, preconditions, inputs, outputs, expected effects, scoring hints, cost/risk profile, execution template, validation tests, examples, success stats, and failure modes. \
+**Sandbox Results:** Shows how a pattern performed against saved WorldState snapshots and synthetic worlds. \
+**Curator Controls:** Allows authorized users or curator agents to deduplicate, merge, promote, deprecate, or prune patterns. \
+**Sensitivity Matrix:** Shows expected feature effects for each pattern and compares them against measured feature deltas over time.

@@ -1,102 +1,128 @@
-# Chapter 3.3 — Architecture
+# Chapter 3.3 - Architecture
 
 ## 3.3.0 Overview
 
-A.A.A. is a three-layer system built on top of OpenClaw, combining a Next.js operator frontend, a Fastify backend control plane, and the OpenClaw agent runtime with TaskFlow orchestration to handle complex architectural generation workflows.
+A.A.S. is a layered architecture built above Hermes Agent. The backend control plane owns product state and persistence. The Field Runtime owns design-world behavior and design intelligence. The A.A.S.-Hermes Bridge compiles moves into Hermes task groups and translates execution state back into field events. Hermes owns profile execution, Kanban, worker processes, skills, memory, logs, and task state.
 
 ### 3.3.1 System Layers
 
-**Layer 1 — A.A.A. Frontend:** The Next.js operator console provides the UI shell for pipeline authoring (Build mode), agent-driven conversation (Chat mode), and spatial validation (Explore mode). It is a typed client of backend DTOs, consuming only the backend API and never calling worker agents or OpenClaw directly. \
-**Layer 2 — A.A.A. Backend Control Plane:** The Fastify backend is the product logic layer and the source of truth for all user-facing state, including projects, pipelines, sessions, runs, artifacts, approvals, events, and project state. It is persisted via Prisma ORM against SQLite (with an upgrade path to Postgres). \
-**Layer 3 — OpenClaw Runtime:** OpenClaw serves as the execution engine. The A.A.A. Controller Plugin creates and manages TaskFlow flows, dispatches worker agents, validates step outputs against schemas, and emits lifecycle events back to the backend.
+**Layer 1 - A.A.S. Frontend:** Presents the Field Navigator, Chat, Model Mode, Trace View, Move Library View, object inspector, artifact browser, approvals, feature pressures, and run status. \
+**Layer 2 - Backend Control Plane:** Owns projects, sessions, WorldState snapshots, affordances, moves, move patterns, features, evaluations, tensions, branches, commits, preferences, artifacts, approvals, event history, permissions, and API contracts. \
+**Layer 3 - Field Runtime:** Runs the AffordanceCompiler, ContextDistiller, IntentGradient, ProcessGrammar, DesignDebtTracker, MovePatternLibrary, FeatureRegistry, EvaluatorRegistry, TensionEngine, BranchEcology, CommitmentLedger, MoveCompiler, Critic, Supervisor, and Curator. \
+**Layer 4 - A.A.S.-Hermes Bridge:** Owns profile bindings, Kanban task bindings, task packet generation, task creation, dependency linking, dispatcher monitoring, log watching, artifact ingest, and event translation. \
+**Layer 5 - Hermes Agent:** Provides profiles, Kanban, worker execution, profile memory, skills, tools, dispatcher, heartbeat/retry, logs, and task state. \
+**Layer 6 - External and Specialized Tools:** Provides GPT Image V2, Rhino Compute, segmentation, renderers, validators, evaluators, and export services.
 
 ### 3.3.2 Data Flow Architecture
 
 ```mermaid
 %%{init: {'flowchart': {'arrowMarkerSize': 1.5}}}%%
 flowchart TD
-    subgraph Frontend_Layer [A.A.A. Frontend]
-        direction LR
-        UI[Operator Console]
+    subgraph Frontend [A.A.S. Frontend]
+        UI[Field Navigator / Chat / Model / Trace / Move Library]
     end
 
-    subgraph Backend_Layer [A.A.A. Backend Control Plane]
-        direction TB
-        API[Fastify API Routes]
-        SVC[Pipeline Engine / Services]
-        DB[(Prisma + SQLite)]
-        FS[(Local File Storage)]
-
-        API -.- SVC
-        SVC -.- DB
-        SVC -.- FS
+    subgraph Backend [Backend Control Plane]
+        API[API Routes]
+        DB[(SQL / Prisma)]
+        FS[(Artifact Storage)]
+        ES[Event Stream]
     end
 
-    subgraph Runtime_Layer [OpenClaw Runtime]
-        direction TB
-        CTRL[A.A.A. Controller Plugin]
-        TF[TaskFlow Orchestrator]
-        W1[Research Agent]
-        W2[Concept Agent]
-        W3[DD Agent]
-        W4[QA Agent]
-
-        CTRL -.- TF
-        CTRL -.- W1
-        CTRL -.- W2
-        CTRL -.- W3
-        CTRL -.- W4
+    subgraph Runtime [A.A.S. Field Runtime]
+        WS[WorldState]
+        AC[AffordanceCompiler]
+        CD[ContextDistiller]
+        IG[IntentGradient]
+        PG[ProcessGrammar]
+        ML[MovePatternLibrary]
+        FR[FeatureRegistry]
+        ER[EvaluatorRegistry]
+        TE[TensionEngine]
+        BECO[BranchEcology]
+        CL[CommitmentLedger]
+        MC[MoveCompiler]
+        CS[Critic / Supervisor / Curator]
     end
 
-    subgraph Compute_Layer [Compute Services]
-        direction LR
-        RC[Rhino Compute]
-        IMG[Image Generation API]
+    subgraph Bridge [A.A.S.-Hermes Bridge]
+        PB[ProfileBinding]
+        KB[KanbanTaskBinding]
+        TP[TaskPacket]
+        LW[Log / Artifact Watcher]
+    end
+
+    subgraph Hermes [Hermes Agent]
+        HP[Profiles]
+        KBAN[Kanban]
+        WK[Workers]
+        HM[Memory / Skills]
+        HT[Tools]
+    end
+
+    subgraph Tools [Specialized Tools]
+        IMG[GPT Image V2]
+        RH[Rhino Compute]
+        VAL[Validators / Evaluators / Renderers]
     end
 
     UI ==> API
-    API ==> UI
-    SVC ==> CTRL
-    CTRL ==> SVC
-    W3 -.- IMG
-    CTRL -.- RC
-
-    linkStyle 4,6,7 stroke:#818cf8,stroke-width:4px
-    linkStyle 5,8,9 stroke:#fbbf24,stroke-width:4px
+    API ==> WS
+    WS ==> AC
+    AC ==> CD
+    CD ==> MC
+    MC ==> TP
+    TP ==> KBAN
+    KBAN ==> WK
+    WK ==> LW
+    LW ==> WS
+    WS ==> DB
+    LW ==> FS
+    LW ==> ES
+    ES ==> UI
+    WK ==> Tools
+    Tools ==> WK
 ```
 
 ### 3.3.3 Frontend-to-Backend Connection
 
-**HTTP JSON API:** The frontend communicates with the backend exclusively through typed JSON fetch calls over HTTP. The backend URL is configured via `NEXT_PUBLIC_AAA_API_URL`. \
-**Bootstrap Hydration:** On load, the frontend calls `GET /api/bootstrap` to receive the primary project, saved pipelines, recent chat sessions, current project state, and recent artifacts in a single payload. \
-**Pipeline Persistence:** Build mode edits are saved to the backend via `PUT /api/pipelines/:pipelineId`, which replaces the pipeline metadata, nodes, and edges atomically. \
-**Chat Execution Trigger:** Sending a user message via `POST /api/chat-sessions/:sessionId/messages` triggers the backend to execute the linked pipeline, persisting all resulting messages, artifacts, events, and state updates. \
-**Approval Resolution:** When an approval checkpoint pauses execution, the frontend resolves it via `POST /api/approvals/:approvalId/resolve`, either resuming or failing the run.
+**HTTP JSON API:** The frontend communicates with the backend through typed HTTP APIs. It does not call Hermes, Kanban DBs, worker logs, profile homes, or raw tools directly. \
+**World Hydration:** On load, the frontend retrieves project/session context, latest WorldState, available moves, active branches, tensions, commits, feature pressures, preferences, artifacts, approvals, Hermes task bindings, and recent events. \
+**Move Actions:** Selecting a field move creates or executes a `Move` through backend routes. \
+**Approval Resolution:** User approvals and rejections update move, commit, branch, preference, artifact, or Hermes task state through backend routes. \
+**Live Updates:** The backend streams world, move, artifact, branch, tension, commit, feature, evaluation, bridge, supervisor, and approval events to keep all views synchronized.
 
 ### 3.3.4 Backend-to-Runtime Connection
 
-**OpenClaw Controller Plugin:** The backend delegates pipeline execution to the A.A.A. Controller Plugin located at `openclaw/plugins/aaa-controller`. The plugin creates TaskFlow-managed flows, interprets step definitions, and dispatches worker tasks. \
-**TaskFlow Orchestration:** TaskFlow owns durable orchestration state — current step, persistent `stateJson`, retry counters, child task linkage, and checkpoint state needed to resume execution. It does not own product business logic. \
-**Event Normalization:** The controller emits raw execution-side lifecycle events. The backend converts them into stable, typed product events (e.g., `aaa.run.started`, `aaa.step.updated`, `aaa.asset.created`, `aaa.approval.required`) and broadcasts them to the UI. \
-**Step Contract Enforcement:** Each pipeline step declares an input schema, output schema, retry policy, approval requirement, and next-step rules. The controller validates every worker output against its contract before advancing.
+**Runtime Services:** The backend calls Field Runtime services to recompute WorldState, extract features, generate affordances, create Agent Briefs, compile moves, score branches, resolve tensions, create commits, evaluate artifacts, and update pattern statistics. \
+**Persistence Boundary:** Runtime services can propose state changes, but persistence flows through backend repositories and event emission. \
+**Supervisor Gate:** High-impact or risky state transitions pass through Supervisor rules before execution. \
+**Execution Boundary:** MoveCompiler and the A.A.S.-Hermes Bridge are the only layers that map product-level moves to Hermes profiles, Kanban tasks, task packets, and specialized services.
 
-### 3.3.5 Execution Pipeline
+### 3.3.5 Move Execution Flow
 
-**Brief Normalization:** A worker agent converts the raw project brief and references into a clean, structured planning brief. \
-**Board Strategy:** A worker agent defines the board narrative, required sections, image shot list, and content priorities. \
-**Image Generation:** The controller coordinates with media tools and optional worker agents to generate candidate imagery from structured shot definitions, persisting every variant and selection record. \
-**Layout Planning:** A worker agent produces structured board region placement, hierarchy, margins, and layout rules. \
-**Board Assembly:** A worker agent produces a strict board package consumed by the deterministic renderer. \
-**QA Review:** A worker agent or validation service checks completeness, layout validity, asset presence, and package consistency. \
-**Delivery Finalize:** The backend registers final outputs, emits completion events, and exposes download links for the finished presentation board.
+**Goal Normalization:** Convert user prompt and references into GoalState, values, outputs, constraints, non-goals, priority stack, and scoped preference context. \
+**Feature Extraction:** Read WorldState and derive phase, landmarks, design debt, active tensions, feature values, artifact gaps, branch health, uncertainty, and preference conflicts. \
+**Affordance Generation:** Generate legal next moves from the Move Pattern Library with score breakdown, preconditions, expected feature deltas, cost, risk, profiles, artifacts, approval requirements, reversibility, and elegance. \
+**Agent Briefing:** Distill world state into a compact brief for the selected role. \
+**Hermes Compilation:** Compile the move into a Hermes Kanban task group with task packets, assigned profiles, dependencies, expected artifacts, and completion contracts. \
+**Task Execution:** Hermes profiles execute tasks, write logs/comments, produce artifacts, and update Kanban state. \
+**Artifact Registration:** Store and link outputs with lineage, branch, tension, commit, feature, move, task, and event metadata. \
+**Critique and Evaluation:** Evaluate design quality, consistency, feature deltas, spatial truth, and unresolved risks. \
+**World Update:** Update branches, tensions, commits, artifacts, feature state, blocked moves, risks, questions, design debt, move pattern stats, and available moves.
 
 ### 3.3.6 Data Ownership Model
 
-**Backend-Owned Product State:** The backend database is the source of truth for projects, runs, assets, approvals, board records, user-facing statuses, and event history. This state survives runtime restarts. \
-**OpenClaw-Owned Orchestration State:** TaskFlow `stateJson` is the source of truth for current step execution, internal artifact paths, retry counters, child task linkage, and checkpoint state. This separation keeps the product stable even if the runtime is restarted or replaced.
+**Backend-Owned Product State:** The backend database is the source of truth for projects, sessions, WorldState snapshots, affordances, moves, move patterns, features, evaluations, tensions, branches, commits, preferences, artifacts, approvals, and events. \
+**Field Runtime-Owned Behavior:** Runtime services compute moves, scores, briefs, branch transitions, feature deltas, tension updates, execution plans, and pattern learning updates. \
+**Hermes-Owned Execution State:** Hermes owns profile homes, memory, skills, Kanban task execution, dispatcher state, worker logs, and task-local comments. \
+**Artifact Storage:** Generated files are stored as revisioned artifacts with lineage. Raw filesystem paths are not the frontend contract. \
+**Preference Boundary:** Personal preferences, team standards, project truth, session instructions, and agent skill memory are separate records/scopes. Only project commits become shared design truth.
 
-### 3.3.7 Rhino Compute Integration
+### 3.3.7 Hermes, Rhino Compute, and Image Integration
 
-**Geometry Compute Path:** The Explore mode sends geometry commands to a Rhino Compute server instance. The server generates the 3D model and returns it to the web UI as viewable geometry. \
-**Agent-Driven Analysis:** Agents use Rhino Compute for spatial operations — cutting floor plans, generating elevations and sections, performing clash detection — keeping heavy computation server-side while the frontend remains a lightweight viewer. \
-**Ground Truth Enforcement:** The 3D model computed through Rhino Compute serves as the authoritative spatial reference. All generated 2D drawings must be derivable from and consistent with this model.
+**Hermes Bridge:** A.A.S. first integrates through CLI/task packets, then adds Kanban DB watching, log/artifact watching, profile pack sync, and later direct plugin/API integration if stable. \
+**Rhino Compute:** Used through model and validation moves such as model generation, plan cuts, section cuts, area checks, privacy/view analysis, and render perspective validation. \
+**GPT Image V2:** Used through representation moves such as atmosphere studies, render generation, board layout options, material studies, refinement, and segmentation QA. \
+**Validation Rule:** Generated images can influence visual direction but do not become project truth unless committed and validated against ground truth. \
+**Evaluator Rule:** Every evaluator output should include feature scores, evidence, confidence, and critique so scoring is inspectable.
