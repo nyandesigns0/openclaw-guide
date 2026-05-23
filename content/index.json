@@ -72,23 +72,28 @@
       },
       {
         "id": "chapter-3.3",
-        "title": "3.3 Architecture",
+        "title": "3.3 Design Ontology",
         "filename": "chapter-3.3.md"
       },
       {
         "id": "chapter-3.4",
-        "title": "3.4 Frontend / Field Navigator",
+        "title": "3.4 Architecture",
         "filename": "chapter-3.4.md"
       },
       {
         "id": "chapter-3.5",
-        "title": "3.5 Backend",
+        "title": "3.5 Frontend / Workspaces",
         "filename": "chapter-3.5.md"
       },
       {
         "id": "chapter-3.6",
-        "title": "3.6 Field Runtime Task Breakdown",
+        "title": "3.6 Backend",
         "filename": "chapter-3.6.md"
+      },
+      {
+        "id": "chapter-3.7",
+        "title": "3.7 Field Runtime Task Breakdown",
+        "filename": "chapter-3.7.md"
       }
     ]
   }

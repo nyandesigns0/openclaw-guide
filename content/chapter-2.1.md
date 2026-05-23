@@ -44,7 +44,7 @@ flowchart TD
 
 ### 2.1.3 Routing and Execution Flow
 
-**Inbound User Intent:** The user sets or updates the goal through chat or the Field Navigator. The backend normalizes the goal and initializes or updates WorldState. \
+**Inbound User Intent:** The user sets or updates the goal through Chat or Architect Mode. The backend normalizes the goal through commands, writes graph rows and events, then refreshes derived WorldState. Draw and Model changes can also create typed moves when visual composition or geometry validation affects the project state. \
 **Feature Extraction:** The runtime extracts phase, landmarks, open design debt, active tensions, artifact gaps, branch health, uncertainty, scoped preferences, and current feature scores. \
 **Move Generation:** The AffordanceCompiler matches move patterns against the extracted state, instantiates candidate moves, filters illegal moves, scores expected effects, and selects a diverse top set. \
 **Brief Preparation:** The ContextDistiller converts the current world into an Agent Brief for the selected role. Agents are not expected to manually browse every memory source, preference source, or tool surface. \

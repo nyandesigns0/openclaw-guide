@@ -1,128 +1,88 @@
-# Chapter 3.3 - Architecture
+# Chapter 3.3 - Design Ontology
 
 ## 3.3.0 Overview
 
-A.A.S. is a layered architecture built above Hermes Agent. The backend control plane owns product state and persistence. The Field Runtime owns design-world behavior and design intelligence. The A.A.S.-Hermes Bridge compiles moves into Hermes task groups and translates execution state back into field events. Hermes owns profile execution, Kanban, worker processes, skills, memory, logs, and task state.
+This chapter defines the primary node ontology for A.A.S. Architect Mode. The ontology is intentionally small: Object, Subject, Vector, Boundary, and Seed. These are hard-coded primary node types, not workflow objects, file categories, UI states, or implementation tables. They define what kind of design matter exists in the field.
 
-### 3.3.1 System Layers
+Subcategories are not hard-coded ontology. They are live library terms: project-specific, user-specific, client-specific, or firm-wide vocabulary that can be added, merged, archived, cleaned, and consolidated over time. Hermes-like maintenance workflows may govern subcategories, but normal workflow should not create new primary node types.
 
-**Layer 1 - A.A.S. Frontend:** Presents the Field Navigator, Chat, Model Mode, Trace View, Move Library View, object inspector, artifact browser, approvals, feature pressures, and run status. \
-**Layer 2 - Backend Control Plane:** Owns projects, sessions, WorldState snapshots, affordances, moves, move patterns, features, evaluations, tensions, branches, commits, preferences, artifacts, approvals, event history, permissions, and API contracts. \
-**Layer 3 - Field Runtime:** Runs the AffordanceCompiler, ContextDistiller, IntentGradient, ProcessGrammar, DesignDebtTracker, MovePatternLibrary, FeatureRegistry, EvaluatorRegistry, TensionEngine, BranchEcology, CommitmentLedger, MoveCompiler, Critic, Supervisor, and Curator. \
-**Layer 4 - A.A.S.-Hermes Bridge:** Owns profile bindings, Kanban task bindings, task packet generation, task creation, dependency linking, dispatcher monitoring, log watching, artifact ingest, and event translation. \
-**Layer 5 - Hermes Agent:** Provides profiles, Kanban, worker execution, profile memory, skills, tools, dispatcher, heartbeat/retry, logs, and task state. \
-**Layer 6 - External and Specialized Tools:** Provides GPT Image V2, Rhino Compute, segmentation, renderers, validators, evaluators, and export services.
+### 3.3.1 Primary Node Grammar
 
-### 3.3.2 Data Flow Architecture
+**Object:** Objective truth, outside reality, and what is externally measurable or observable. Object grounds design in facts the project must acknowledge. \
+**Subject:** Subjective truth, inside reality, and what is felt, wanted, remembered, valued, feared, preferred, or perceived. Subject gives design human meaning. \
+**Vector:** Pushing force, directional desire, and what the design should move toward. Vector translates Object and Subject inputs into decision pressure. \
+**Boundary:** Restricting force, finite frame, and what the design must stay within or must not violate. Boundary translates Object and Subject inputs into limits. \
+**Seed:** Generated possibility and what the design could become. Seed is produced design material under the influence of Object, Subject, Vector, and Boundary.
 
-```mermaid
-%%{init: {'flowchart': {'arrowMarkerSize': 1.5}}}%%
-flowchart TD
-    subgraph Frontend [A.A.S. Frontend]
-        UI[Field Navigator / Chat / Model / Trace / Move Library]
-    end
-
-    subgraph Backend [Backend Control Plane]
-        API[API Routes]
-        DB[(SQL / Prisma)]
-        FS[(Artifact Storage)]
-        ES[Event Stream]
-    end
-
-    subgraph Runtime [A.A.S. Field Runtime]
-        WS[WorldState]
-        AC[AffordanceCompiler]
-        CD[ContextDistiller]
-        IG[IntentGradient]
-        PG[ProcessGrammar]
-        ML[MovePatternLibrary]
-        FR[FeatureRegistry]
-        ER[EvaluatorRegistry]
-        TE[TensionEngine]
-        BECO[BranchEcology]
-        CL[CommitmentLedger]
-        MC[MoveCompiler]
-        CS[Critic / Supervisor / Curator]
-    end
-
-    subgraph Bridge [A.A.S.-Hermes Bridge]
-        PB[ProfileBinding]
-        KB[KanbanTaskBinding]
-        TP[TaskPacket]
-        LW[Log / Artifact Watcher]
-    end
-
-    subgraph Hermes [Hermes Agent]
-        HP[Profiles]
-        KBAN[Kanban]
-        WK[Workers]
-        HM[Memory / Skills]
-        HT[Tools]
-    end
-
-    subgraph Tools [Specialized Tools]
-        IMG[GPT Image V2]
-        RH[Rhino Compute]
-        VAL[Validators / Evaluators / Renderers]
-    end
-
-    UI ==> API
-    API ==> WS
-    WS ==> AC
-    AC ==> CD
-    CD ==> MC
-    MC ==> TP
-    TP ==> KBAN
-    KBAN ==> WK
-    WK ==> LW
-    LW ==> WS
-    WS ==> DB
-    LW ==> FS
-    LW ==> ES
-    ES ==> UI
-    WK ==> Tools
-    Tools ==> WK
+```text
+Object + Subject -> Vector + Boundary -> Seed
 ```
 
-### 3.3.3 Frontend-to-Backend Connection
+### 3.3.2 Object
 
-**HTTP JSON API:** The frontend communicates with the backend through typed HTTP APIs. It does not call Hermes, Kanban DBs, worker logs, profile homes, or raw tools directly. \
-**World Hydration:** On load, the frontend retrieves project/session context, latest WorldState, available moves, active branches, tensions, commits, feature pressures, preferences, artifacts, approvals, Hermes task bindings, and recent events. \
-**Move Actions:** Selecting a field move creates or executes a `Move` through backend routes. \
-**Approval Resolution:** User approvals and rejections update move, commit, branch, preference, artifact, or Hermes task state through backend routes. \
-**Live Updates:** The backend streams world, move, artifact, branch, tension, commit, feature, evaluation, bridge, supervisor, and approval events to keep all views synchronized.
+**Meaning:** Objective truth, outside reality, and what is. \
+**Use:** Object nodes contain external, realist, measurable, observable, or accepted facts. They describe world conditions the project must acknowledge. \
+**Common Subcategories:** Site, context, climate, infrastructure, existing condition, legal condition, material reality, measured data, code fact, physical constraint, surrounding system, environmental condition, and temporal condition. \
+**Question Answered:** What is true outside us?
 
-### 3.3.4 Backend-to-Runtime Connection
+### 3.3.3 Subject
 
-**Runtime Services:** The backend calls Field Runtime services to recompute WorldState, extract features, generate affordances, create Agent Briefs, compile moves, score branches, resolve tensions, create commits, evaluate artifacts, and update pattern statistics. \
-**Persistence Boundary:** Runtime services can propose state changes, but persistence flows through backend repositories and event emission. \
-**Supervisor Gate:** High-impact or risky state transitions pass through Supervisor rules before execution. \
-**Execution Boundary:** MoveCompiler and the A.A.S.-Hermes Bridge are the only layers that map product-level moves to Hermes profiles, Kanban tasks, task packets, and specialized services.
+**Meaning:** Subjective truth, inside reality, and what is felt, wanted, remembered, valued, or perceived. \
+**Use:** Subject nodes contain relativist, human, experiential, cultural, emotional, or preference-based facts. They describe internal reality for users, clients, designers, communities, and stakeholders. \
+**Common Subcategories:** User need, client vision, designer taste, memory, fear, comfort, ambition, identity, cultural position, atmosphere preference, social expectation, lived experience, and emotional response. \
+**Question Answered:** What is true inside us?
 
-### 3.3.5 Move Execution Flow
+### 3.3.4 Vector
 
-**Goal Normalization:** Convert user prompt and references into GoalState, values, outputs, constraints, non-goals, priority stack, and scoped preference context. \
-**Feature Extraction:** Read WorldState and derive phase, landmarks, design debt, active tensions, feature values, artifact gaps, branch health, uncertainty, and preference conflicts. \
-**Affordance Generation:** Generate legal next moves from the Move Pattern Library with score breakdown, preconditions, expected feature deltas, cost, risk, profiles, artifacts, approval requirements, reversibility, and elegance. \
-**Agent Briefing:** Distill world state into a compact brief for the selected role. \
-**Hermes Compilation:** Compile the move into a Hermes Kanban task group with task packets, assigned profiles, dependencies, expected artifacts, and completion contracts. \
-**Task Execution:** Hermes profiles execute tasks, write logs/comments, produce artifacts, and update Kanban state. \
-**Artifact Registration:** Store and link outputs with lineage, branch, tension, commit, feature, move, task, and event metadata. \
-**Critique and Evaluation:** Evaluate design quality, consistency, feature deltas, spatial truth, and unresolved risks. \
-**World Update:** Update branches, tensions, commits, artifacts, feature state, blocked moves, risks, questions, design debt, move pattern stats, and available moves.
+**Meaning:** Pushing force, directional desire, and what should move. \
+**Use:** Vector nodes translate Object and Subject inputs into design direction. They are not facts alone; they bias decision-making toward certain outcomes. \
+**Common Subcategories:** Aspiration, performance target, aesthetic direction, atmosphere goal, sustainability aim, comfort goal, identity goal, elegance goal, experience quality, long-term vision, innovation pressure, user priority, and client priority. \
+**Question Answered:** Where should the design move?
 
-### 3.3.6 Data Ownership Model
+### 3.3.5 Boundary
 
-**Backend-Owned Product State:** The backend database is the source of truth for projects, sessions, WorldState snapshots, affordances, moves, move patterns, features, evaluations, tensions, branches, commits, preferences, artifacts, approvals, and events. \
-**Field Runtime-Owned Behavior:** Runtime services compute moves, scores, briefs, branch transitions, feature deltas, tension updates, execution plans, and pattern learning updates. \
-**Hermes-Owned Execution State:** Hermes owns profile homes, memory, skills, Kanban task execution, dispatcher state, worker logs, and task-local comments. \
-**Artifact Storage:** Generated files are stored as revisioned artifacts with lineage. Raw filesystem paths are not the frontend contract. \
-**Preference Boundary:** Personal preferences, team standards, project truth, session instructions, and agent skill memory are separate records/scopes. Only project commits become shared design truth.
+**Meaning:** Restricting force, finite frame, and must or must not. \
+**Use:** Boundary nodes translate Object and Subject inputs into limits. They define the finite project frame: practical, legal, physical, temporal, economic, ethical, experiential, or conceptual. \
+**Common Subcategories:** Code limit, zoning limit, budget limit, schedule limit, site limit, structural limit, access rule, fabrication limit, safety threshold, client non-negotiable, preservation requirement, operational limit, and comfort threshold. \
+**Question Answered:** What must contain the design?
 
-### 3.3.7 Hermes, Rhino Compute, and Image Integration
+### 3.3.6 Seed
 
-**Hermes Bridge:** A.A.S. first integrates through CLI/task packets, then adds Kanban DB watching, log/artifact watching, profile pack sync, and later direct plugin/API integration if stable. \
-**Rhino Compute:** Used through model and validation moves such as model generation, plan cuts, section cuts, area checks, privacy/view analysis, and render perspective validation. \
-**GPT Image V2:** Used through representation moves such as atmosphere studies, render generation, board layout options, material studies, refinement, and segmentation QA. \
-**Validation Rule:** Generated images can influence visual direction but do not become project truth unless committed and validated against ground truth. \
-**Evaluator Rule:** Every evaluator output should include feature scores, evidence, confidence, and critique so scoring is inspectable.
+**Meaning:** Generated possibility and what could be. \
+**Use:** Seed nodes are generated design material. They are not raw input facts. They are produced by the system, designer, or agent as possible architecture under the influence of Object, Subject, Vector, and Boundary. \
+**Common Subcategories:** Concept, scheme, spatial strategy, massing idea, form gesture, atmosphere direction, material strategy, system idea, detail idea, reference interpretation, option branch, iteration, and variation. \
+**Question Answered:** What could the design become?
+
+### 3.3.7 Live Subcategory Governance
+
+**Hard Primitives:** Object, Subject, Vector, Boundary, and Seed are fixed semantic backbone. \
+**Live Subcategories:** Subcategories are mutable project vocabulary. They behave more like governed tags than ontology. \
+**Governance Actions:** Agents may propose subcategories, merge duplicates, archive unused terms, restore useful terms, and consolidate client or firm vocabulary. \
+**Maintenance Rule:** Cron-style maintenance can review unused projects, stale subcategories, duplicate terms, or overgrown vocabularies. It may clean subcategories but must not add primary node types. \
+**Migration Rule:** New primary node types require explicit ontology migration, documentation update, schema migration, UI review, and compatibility handling.
+
+### 3.3.8 Persistence Mapping
+
+**Canonical Row:** Every Architect Mode node is stored as a row in `direction_nodes`. The row carries `project_id`, `primary_type`, `secondary_type_id`, title, summary, confidence, status, position, weight, lock state, creator/updater, and version. \
+**Primary Type Field:** The five hard primitives are stored in `primary_type` as Object, Subject, Vector, Boundary, or Seed. This field is not user-extensible during normal workflow. \
+**Subcategory Field:** Mutable vocabulary is stored through `secondary_type_id` pointing to governed `node_subcategories`. Subcategories can be proposed, merged, archived, restored, and renamed without changing primary ontology. \
+**Relationship Rows:** Links are stored in `direction_links` with source node, target node, relation type, strength, confidence, creator, and version. Links are relations, not nodes. \
+**Evented Changes:** Creating, updating, moving, linking, locking, merging, splitting, or changing status writes graph rows and runtime events through backend commands.
+
+### 3.3.9 What Is Not a Primary Node
+
+**Files:** Drawings, PDFs, models, renders, images, notes, and documents are payloads, evidence, references, or artifacts. File format is not ontology. \
+**State:** State is the full field snapshot: node layout, active branches, locks, relationships, confidence, direction history, and runtime status. \
+**Move:** Move is an operation applied to the field. It is not stable field matter. \
+**Option:** Option is a Seed subcategory, Seed family, or branch condition. \
+**Risk:** Risk is a tag, condition, warning, or subcategory that can attach to Object, Subject, Vector, Boundary, or Seed depending on where danger lives. \
+**Question:** Question is uncertainty, missing knowledge, or low-confidence status attached to another node or relation. \
+**Link:** Link is a relation between nodes: influence, dependency, contradiction, lineage, evidence, transformation, reference, or output flow.
+
+### 3.3.10 Short Grammar
+
+Object grounds reality. \
+Subject gives meaning. \
+Vector pushes direction. \
+Boundary defines finitude. \
+Seed becomes architecture.

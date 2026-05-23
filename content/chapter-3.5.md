@@ -1,99 +1,67 @@
-# Chapter 3.5 - Backend
+# Chapter 3.5 - Frontend
 
 ## 3.5.0 Overview
 
-The A.A.S. backend is the control plane for the Field Runtime. It persists product state, serves the frontend, emits events, stores artifacts, governs approvals, resolves scoped preferences, compiles moves into Hermes task groups, and bridges typed moves to Hermes and specialized tools.
+The A.A.S. frontend is a four-workspace operator console. The only primary workspaces are Chat, Draw, Model, and Architect. Each workspace reads derived WorldState, Agent Direction State, Design Exploration Graph, artifact registry, approvals, feature pressures, graph events, and Hermes execution state through the backend. The frontend is a live view and local working surface, not a source of truth.
 
-### 3.5.1 Technology Stack
+### 3.5.1 General UI Elements
 
-**Runtime Framework:** TypeScript backend service suitable for local-first development, with schema validation, background workers, file watching, and streaming support. \
-**ORM and Database:** Prisma ORM with SQLite for local-first development and an upgrade path to Postgres for hosted or multi-user deployments. \
-**Hermes Bridge:** Starts with CLI/task packet integration, then adds Kanban DB watching, log/artifact watching, profile pack sync, and eventually direct plugin/API integration if stable. \
-**Shared Contracts:** DTOs, enums, event types, runtime object shapes, move types, pattern schemas, feature schemas, score payloads, preference records, bridge bindings, and artifact contracts should be defined in shared TypeScript contracts. \
-**Artifact Storage:** Artifact bodies, generated files, media assets, model outputs, render outputs, evaluator reports, validation reports, task packets, and exports live under a managed storage directory. \
-**Streaming:** Server-Sent Events or WebSocket streaming broadcasts stable A.A.S. events and translated Hermes task events to the frontend.
+**Application Shell:** Left project/session sidebar, top project/run bar, center workspace, right inspector, and bottom status/event/task bar. \
+**Workspace Tabs:** The top-level workspace tabs are Chat, Draw, Model, and Architect in that console order. No other feature should be promoted to a primary mode. \
+**Left Sidebar:** Projects, sessions, workspace tabs, saved direction states, recent artifacts, and pinned project references. \
+**Top Bar:** Active project, active session, run state, selected field mode, Hermes bridge status, recompute, save snapshot, execute, and approval indicators. \
+**Center Workspace:** Renders the selected workspace from backend snapshot plus events. Local edits may be optimistic, but persisted truth changes only after backend command success. \
+**Right Inspector:** Selected object details, metadata, scores, feature deltas, rationale, linked artifacts, direction links, Hermes task logs, approvals, raw JSON, and file preview when relevant. \
+**Bottom Bar:** System status, event stream summary, active move progress, Hermes task group status, direction snapshot rail, and commit preview.
 
-### 3.5.2 Data Persistence
+### 3.5.2 Chat Workspace
 
-**Core Entities:** Projects, sessions, WorldState snapshots, affordances, moves, move patterns, move pattern stats, feature registry entries, feature scores, evaluations, sensitivity matrix entries, design debts, process landmarks, trajectories, tensions, branches, commits, preferences, artifacts, artifact links, runtime events, agent briefs, move executions, branch scores, intent scores, approvals, Hermes profile bindings, Kanban task bindings, and task packets. \
-**WorldState Snapshots:** Store periodic JSON snapshots for replay, debugging, scoring, move sandboxing, and recovery. \
-**Normalized Objects:** Branches, tensions, commits, artifacts, moves, approvals, preferences, features, evaluations, events, and Hermes bindings should be normalized while keeping flexible payload JSON for evolving runtime details. \
-**Artifact Lineage:** Each artifact can link to source artifacts, originating move, Hermes task, affected branch, related tension, commit, evaluator result, agent/profile, validation status, and storage path. \
-**Commit Ledger:** Commits are persisted as first-class project-truth records and are never silently overwritten. \
-**Preference Store:** Preferences are scoped by tenant/user/team/project/session/agent profile, filtered before retrieval, resolved deterministically, and logged with source manifests when used.
+**Conversation Thread:** Chronological user and agent messages with role attribution and links to moves, direction nodes, branches, tensions, commits, artifacts, evaluations, and Hermes tasks. \
+**Message Composer:** Text, references, uploads, selected objects, and move approvals can be sent from one composer. \
+**Move Cards:** Compact presentations of available moves, score explanations, risks, approval requirements, expected feature effects, and execute controls. \
+**Approval Controls:** Inline approve, reject, annotate, or defer actions for user-gated moves, commits, preference conflicts, and risky execution. \
+**Preference Source Badges:** Messages can show source badges such as current prompt, session preference, user preference, team standard, or project commit. \
+**World Sync:** Chat actions update the backend graph through typed commands and then receive resulting events. Chat prose alone is never canonical project truth.
 
-### 3.5.3 API Surface
+### 3.5.3 Draw Workspace
 
-**Bootstrap and Health:** `GET /api/health` and `GET /api/bootstrap` for initial project/session/world hydration, bridge status, and mode data. \
-**World State:** `GET /api/projects/:projectId/sessions/:sessionId/world`, `POST /api/projects/:projectId/sessions/:sessionId/world/recompute`, and world snapshot routes. \
-**Affordances:** List, recompute, approve, and reject available moves. \
-**Moves:** Create, inspect, execute, cancel, and retry moves; inspect score breakdown, expected feature effects, and task bindings. \
-**Move Patterns:** List, propose, sandbox, validate, promote, deprecate, merge, and inspect move patterns and success stats. \
-**Features and Evaluations:** List feature registry entries, evaluator outputs, score breakdowns, sensitivity matrix entries, target feature vectors, and measured deltas. \
-**Tensions:** List, create, patch, resolve, and defer tensions. \
-**Branches:** List, create, develop, critique, compare, kill, merge, and commit branches. \
-**Commits:** List, create, and revert commits. \
-**Preferences:** List allowed preferences, create session preferences, propose inferred preferences, promote to project/team where approved, resolve conflicts, and forget where allowed. \
-**Agent Briefs:** Generate and inspect Agent Briefs for role-specific turns. \
-**Artifacts and Events:** List artifacts, fetch artifact metadata/content, stream events, inspect lineage, and inspect evaluator reports. \
-**Hermes Bridge:** Inspect profile bindings, Kanban task bindings, task packets, task logs, bridge watcher state, and dispatcher status.
+**Board Canvas:** 2D composition workspace for boards, references, sketches, plan layouts, section layouts, diagrams, image bays, prompt notes, and material swatches. \
+**Artifact Placement:** Users place persisted artifacts on boards while preserving source links, branch links, direction-node links, move lineage, commit state, and validation status. \
+**Image Bay:** Generated studies, precedent images, render candidates, masks, crops, and segmentation QA outputs can be compared and annotated. \
+**Layout Tools:** Frames, grids, alignment controls, scale handles, crop controls, layer order, grouping, labels, and export-safe board boundaries support repeatable board assembly. \
+**Prompt Notes:** Visual prompts and constraints can be attached to image bays, artifacts, or direction nodes so representation moves receive structured context. \
+**Board Packages:** Draw Mode exports deterministic board packages only when required artifacts, commits, model checks, and critical tension gates are satisfied.
 
-### 3.5.4 Field Runtime Services
+### 3.5.4 Model Workspace
 
-**AffordanceCompiler:** Reads WorldState, process grammar, trajectory, design debt, feature state, move library, and scoped preferences to generate available and blocked moves with score breakdowns. \
-**ContextDistiller:** Produces Agent Briefs from WorldState, memory, scoped preferences, artifacts, commits, tensions, evaluations, events, and output contracts. \
-**IntentGradient:** Scores move candidates across process, design, search, execution, user alignment, learning, governance, elegance, and explicit penalties. \
-**ProcessGrammar:** Tracks soft phase, landmarks, entry/exit conditions, preferred moves, discouraged moves, and process maturity. \
-**DesignDebtTracker:** Tracks unresolved obligations and ranks moves that reduce high-payoff debt. \
-**MovePatternLibrary:** Stores primitives, reusable architectural tactics, effect priors, execution templates, validation tests, examples, and stats. \
-**MoveCompiler:** Maps moves to Hermes task packets, task groups, dependencies, profiles, expected artifacts, expected feature effects, and completion contracts. \
-**FeatureRegistry:** Defines registered variables, measurement methods, sources, confidence, range, and artifact hooks. \
-**EvaluatorRegistry:** Runs concept, plan, section, model, render, board, and QA evaluators to produce feature scores, evidence, confidence, and critique. \
-**TensionEngine:** Detects contradictions, links affected objects, tracks resolution status, and generates resolution moves. \
-**BranchEcology:** Spawns, develops, critiques, compares, kills, merges, and commits branches. \
-**CommitmentLedger:** Creates, enforces, and reverts project-truth decisions through evented state transitions. \
-**Critic, Supervisor, and Curator:** Separate design quality critique, process governance, approvals, pattern lifecycle, risk, legality, drift, and finalization gates.
+**3D Viewer:** WebGL model workspace with orbit, pan, zoom, shading, wireframe, section, plan-cut, and analysis controls. \
+**Ground-Truth Status:** Displays whether model state is none, pending, available, outdated, invalid, hypothesis, created, or validated. \
+**Model Affordances:** Controls to generate massing, cut plans, cut sections, compare area, rebuild after commit, evaluate privacy/view, and validate render perspective. \
+**Feature Readouts:** Shows geometry-derived features such as area, adjacency, view orientation, solar exposure, circulation length, openness, and privacy zones. \
+**Layer and Measurement Tools:** Layer toggles, isolation, dimensions, areas, section planes, annotations, and saved camera views. \
+**Artifact Links:** Model outputs link back to moves, branches, tensions, commits, direction nodes, Hermes tasks, evaluator outputs, and validation events.
 
-### 3.5.5 Hermes, Compute, and Generation Integration
+### 3.5.5 Architect Workspace
 
-**Hermes Integration:** MoveCompiler dispatches work through Hermes Kanban tasks and profile assignments. The bridge captures task state, comments, logs, artifacts, heartbeats, blocks, retries, and completions. \
-**Profile Pack Manager:** A.A.S. can sync base and project-scoped Hermes profiles from A.A.S. agent definitions, role files, skills, allowed tools, and profile settings. \
-**Rhino Compute:** Geometry work is invoked through model moves for massing, plan cuts, section cuts, area checks, view/privacy analysis, rebuilds, and spatial validation. \
-**GPT Image V2:** Image generation is invoked through representation moves, using branch state, commits, feature targets, visual constraints, and ground-truth references. \
-**Deterministic Renderer:** Board assembly uses structured board packages and deterministic rendering for repeatable PNG/PDF outputs. \
-**Validation and Evaluation Services:** Segmentation, geometry checks, artifact completeness checks, render consistency checks, design feature evaluators, and board QA produce validation artifacts and events.
+**Flat Direction Field:** Architect Mode renders a flat 2D direction graph. Node position is relational, not axis-based; X and Y do not mean stable/speculative or grounded/atmospheric. \
+**Direction Nodes:** Nodes use one fixed primary type, icon, color family, label, live subcategory, tags, influence weight, confidence state, lock state, parent binding, child count, links, and metadata. The primary type is Object, Subject, Vector, Boundary, or Seed. \
+**Ontology Visual Language:** Object, Subject, Vector, Boundary, and Seed receive stable icon and color families so users can read the field quickly. Subcategories may influence badges, chips, labels, or filters, but they must not override primary type identity. \
+**Inspector Ontology Controls:** The inspector exposes primary type as a fixed enum and subcategory as a live library term. Users and agents may propose, merge, archive, or restore subcategories through governance flows, but cannot create new primary types in normal editing. \
+**Node Gestures:** Users can create, edit, move, link, duplicate, delete, lock, disable, tag, fork, collapse, expand, compare, select, marquee select, focus, pan, zoom, and search. \
+**Radial Command Menu:** Node click opens edit, duplicate, link, delete, lock, disable, focus, fork, collapse, and expand controls. \
+**Parent and Sub-Nodes:** Collapsed parents show child count, status, and dominant color family. Expanded parents reveal children around the parent using local layout rules. \
+**Soft Clusters:** Intent, Truth, Constraints, References, Taste, Exploration, Risk, Atmosphere, Systems, Structure, Material, Evidence, Output, and Concept Options appear as soft overlapping overlays or filters, not hard containers or node types. \
+**Link Rendering:** Influence, dependency, evidence, reference, iteration, conflict, and output links are readable through stroke, dash, opacity, color, and endpoint markers. \
+**Field Modes:** Conflict Scan, Taste Isolation, Truth Filter, Output Map, Branch Compare, and Influence Map emphasize different graph relationships without changing underlying data. \
+**Evolution Rail:** Saved states, forks, restores, rejected paths, committed changes, active branches, collapsed parents, expanded branches, field mode, and layout snapshots are visible as direction history. \
+**Agent Direction State:** The current graph compiles into the Agent Direction State and Design Exploration Graph that guide move generation, context distillation, model work, draw work, and Hermes execution packets.
 
-### 3.5.6 Event System
+### 3.5.6 Live Sync and Optimistic State
 
-**Event Normalization:** Runtime, evaluator, and Hermes events are converted into stable A.A.S. product events before storage and broadcast. \
-**Core Events:** `aas.world.updated`, `aas.affordances.generated`, `aas.move.proposed`, `aas.move.selected`, `aas.move.started`, `aas.move.completed`, `aas.move.failed`, `aas.pattern.proposed`, `aas.pattern.promoted`, `aas.evaluation.completed`, `aas.feature.delta.measured`, `aas.tension.created`, `aas.tension.resolved`, `aas.branch.spawned`, `aas.branch.developed`, `aas.branch.critiqued`, `aas.branch.killed`, `aas.branch.merged`, `aas.branch.committed`, `aas.commit.created`, `aas.commit.reverted`, `aas.artifact.created`, `aas.preference.conflict`, `aas.supervisor.warning`, and `aas.user.approval.required`. \
-**Hermes Events:** Kanban ready, running, heartbeat, blocked, comment, complete, failed, retry, cancelled, and log updates are translated into A.A.S. move/task events. \
-**Audit Trail:** Events include project ID, session ID, move ID, pattern ID, task ID, profile ID, agent attribution, timestamps, payloads, and links to affected artifacts or state objects. \
-**Frontend Sync:** Events update the Field Navigator, Chat, Model Mode, Trace View, Move Library View, inspectors, and approval surfaces.
-
-### 3.5.7 Storage Model
-
-**Storage Root:** All durable application files live under `storage/` with subdirectories for database files, uploads, projects, world snapshots, task packets, generated artifacts, models, renders, boards, evaluator reports, thumbnails, cache, and logs. \
-**Immutable Uploads:** Uploaded references are stored as immutable originals. \
-**Revisioned Artifacts:** Generated outputs are stored as distinct revisions linked by lineage. \
-**Run, Move, and Task Organization:** Move outputs can be grouped by project, session, branch, move ID, and Hermes task ID for inspection and replay. \
-**Media Serving:** The UI consumes backend-served URLs and metadata, not raw filesystem paths.
-
-### 3.5.8 Bootstrap and Seeding
-
-**Initial Project:** Seed a default project with an initialized WorldState rather than a static pipeline graph. \
-**Initial Moves:** Seed deterministic first moves such as normalize brief, ask blocking clarification, generate concept branches, run precedent scan, define success metrics, and identify design tensions. \
-**Initial Move Library:** Seed stable primitives and a first architectural move pattern set for intake, research, concept, branch, ground truth, representation, QA, and commit workflows. \
-**Initial Feature Registry:** Seed core features such as goal alignment, concept strength, spatial coherence, artifact completeness, ground-truth readiness, drawing consistency, tension reduction, branch diversity, user alignment, cost, risk, and elegance. \
-**Demo Field:** Seed example branches, tensions, commits, artifacts, feature scores, and evaluations only when useful for local demo mode. \
-**Idempotence:** Bootstrap must never overwrite existing projects, artifacts, commits, preferences, pattern stats, or world history.
-
-### 3.5.9 Failure and Recovery
-
-**Move-Local Recovery:** Retry, cancel, correct, or replace failed moves without resetting the whole project. \
-**Blocked Moves:** Preserve blocked moves with reasons so the operator can see what preconditions are missing. \
-**Hermes Recovery:** Task block, failure, heartbeat loss, retry, cancellation, or missing artifacts are translated into move status, supervisor warnings, and recovery affordances. \
-**Supervisor Warnings:** Drift, unresolved critical tensions, commit conflicts, preference conflicts, risky tool execution, and finalization problems emit warnings and may block execution. \
-**Reversibility:** Major moves declare whether they are reversible. Reverts create events and new state transitions rather than deleting history. \
-**Artifact Preservation:** Failed or low-quality outputs can remain as evidence, comparison material, evaluator input, or QA references. \
-**Learning From Failure:** Failed move patterns update contextual stats and may trigger curator review, stricter validation tests, or deprecation.
+**Snapshot Hydration:** The frontend loads project/session context, derived WorldState, direction graph records, active approvals, and `last_event_id` during bootstrap. \
+**Event Application:** After hydration, the frontend should apply `graph.event` messages to local stores instead of refetching the whole graph after every change. \
+**Reconnect Rule:** On reconnect, the frontend sends `last_event_id`. The backend returns missed events when possible or a full snapshot when the event gap is too old. \
+**Working Graph:** The dashboard maintains a local working graph for optimistic edits. This graph is disposable and must reconcile against backend events. \
+**Optimistic Drag:** Node dragging updates the UI immediately, then sends `move_node` with the current version. Success keeps the local position; failure rolls back or merges with the authoritative event. \
+**Conflict Handling:** Position edits can use last-write-wins. Semantic edits such as title, summary, type, status, lock state, merge, split, or delete require `expectedVersion` and must surface `409` conflicts for user or agent resolution. \
+**No Direct Hermes State:** The dashboard never treats Hermes task memory, local worker cache, or profile state as project truth. Hermes status appears only through backend events and task bindings.

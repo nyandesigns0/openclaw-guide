@@ -2,50 +2,42 @@
 
 ## 3.2.0 Overview
 
-The A.A.S. application is organized around the Field Runtime and its primary UI, the Field Navigator. Chat, Model Mode, Trace View, and Move Library View support the same world-state-driven design field rather than separate workflow silos. Hermes is the execution substrate behind the visible field.
+The A.A.S. application has exactly four primary workspaces: Chat, Draw, Model, and Architect. All four read derived WorldState and write canonical graph state through typed backend commands. Hermes remains the execution substrate behind the visible workspaces and uses the same backend write path.
 
-### 3.2.1 Field Navigator
+### 3.2.1 Architect Mode
 
-**Design Field Canvas:** A 2.5D or 3D spatial canvas where goals, branches, tensions, affordances, commits, artifacts, features, Hermes agents, and task state appear as field objects. \
-**Intent Core:** The current system intent sits at the center, pulling in active branches, tensions, required artifacts, top moves, blocked moves, open debts, and feature pressures. \
-**Affordance Wheel:** Selecting an object reveals contextual moves such as develop, critique, validate, commit, merge, defer, ask user, generate artifact, or compile execution. \
-**Commit Spine:** Project-truth decisions appear as a stable spine with evidence, rationale, affected artifacts, reversibility, approval state, and downstream constraints. \
-**Branch Clusters:** Competing hypotheses are shown as clusters that can be developed, compared, merged, killed, or committed. \
-**Tension Nodes:** Design conflicts appear as stress nodes connected to affected branches, artifacts, feature pressures, and blocked moves. Severity is visible through color, size, and motion. \
-**Feature Pressure View:** Local design variables such as privacy, view, coherence, cost, risk, artifact completeness, ground-truth readiness, and elegance can be shown as pressure fields without exposing the whole score matrix. \
-**Hermes Task Presence:** Hermes profiles appear as lightweight agent probes. Kanban task states map to field states: ready, running, heartbeat, blocked, completed, failed, retry, and archived. \
-**Artifact Constellations:** Research, concept, ground-truth, model, drawing, render, diagram, board, evaluator, and QA artifacts cluster by type and lineage. \
-**Inspector Panel:** Selecting a field object opens exact data: rationale, score breakdown, feature deltas, linked artifacts, task bindings, logs, approval state, and raw JSON when needed.
+**Direction Field:** Architect Mode is the high-level AI direction interface. It shapes Object, Subject, Vector, Boundary, and Seed nodes plus links, snapshots, and operating direction. \
+**Flat 2D Graph:** The main view is a flat XY direction field. X and Y have no fixed axis meaning; proximity, links, tags, color family, label density, lock state, and value vectors explain relationships. \
+**Direction Nodes:** Nodes have five hard primary types: Object, Subject, Vector, Boundary, and Seed. Concepts, intent, facts, constraints, references, taste, exploration, risk, atmosphere, evidence, systems, structure, material, output goals, design options, artifacts, renders, models, and iterations are live subcategories, tags, overlays, payloads, or linked artifacts rather than primary node types. \
+**Node Operations:** Users can create, read, update, delete, move, link, duplicate, lock, tag, fork, collapse, expand, compare, disable, and focus nodes. \
+**Parent and Sub-Nodes:** Parent nodes contain related design meaning without becoming visual boxes. Seed nodes can gather renders, models, plans, sections, sketches, prompts, references, critiques, and output files as artifacts or child records without changing their primary type. \
+**Soft Clusters:** Clusters form through proximity, tags, value similarity, links, and parent-child structure. Domains such as Intent, Truth, Constraints, References, Taste, Exploration, Risk, Atmosphere, Systems, Structure, Material, Evidence, Output, and Concept Options are overlays or filters that can overlap; they are not hard ontology. \
+**Link Semantics:** Links express influence, dependency, evidence, reference, iteration, conflict, lineage, and output flow. Link state can be strong, weak, locked, provisional, inherited, or broken. \
+**Field Modes:** Conflict Scan, Taste Isolation, Truth Filter, Output Map, Branch Compare, and Influence Map change emphasis without changing underlying project data. \
+**Evolution Rail:** Saved direction states record graph layout, active nodes, locks, links, collapsed parents, expanded branches, selected field mode, concept states, and Agent Direction State. \
+**Agent Direction Output:** Architect Mode outputs an Agent Direction State and Design Exploration Graph that guide the AffordanceCompiler, ContextDistiller, EvaluatorRegistry, MoveCompiler, and Hermes task packets.
 
-### 3.2.2 Chat Mode
+### 3.2.2 Draw Mode
 
-**Conversation Layer:** Chat is used for explanations, questions, corrections, options, and conversational steering. \
-**WorldState-Linked Messages:** Agent messages update the Field Navigator, and Field Navigator actions produce chat-visible reasoning and execution status. \
+**Visual Composition Workspace:** Draw Mode is the board and visual composition workspace for references, sketches, prompt notes, material swatches, image bays, diagrams, plan layouts, section layouts, render studies, and board packages. \
+**Board Authoring:** Users arrange artifacts into visual narratives while preserving artifact lineage, branch links, commit links, and validation state. \
+**Image and Prompt Work:** Draw Mode can create or refine image prompts, compare generated studies, annotate image bays, and package visual constraints for representation moves. \
+**Reference Handling:** Uploaded precedents, material references, site images, diagrams, and markups are represented as artifacts with metadata and source links. \
+**Output Packages:** Draw Mode assembles deterministic board packages for PNG/PDF export after required commits, model checks, and tension gates are satisfied.
+
+### 3.2.3 Chat Mode
+
+**Conversation Layer:** Chat is used for explanations, questions, corrections, options, approvals, and conversational steering. \
+**WorldState-Linked Messages:** Agent messages can reference direction nodes, branches, tensions, commits, artifacts, evaluator outputs, and move results instead of making chat prose durable state. \
 **Move Presentation:** Agents can present available moves, explain scoring, request approvals, and justify overrides in chat. \
 **Preference Awareness:** Chat can surface which scoped preferences influenced an answer, such as a project commit, current prompt, user preference, or team standard. \
-**Approval Flow:** High-impact commits, branch kills, expensive generation batches, finalization, reverts, preference conflicts, and overwrites can request user approval through chat and the field UI. \
-**Artifact References:** Chat messages link to artifacts, branches, tensions, commits, evaluator outputs, and move results instead of treating messages as durable state.
+**Approval Flow:** High-impact commits, branch kills, expensive generation batches, finalization, reverts, preference conflicts, and overwrites can request user approval through chat and shared approval controls.
 
-### 3.2.3 Model Mode
+### 3.2.4 Model Mode
 
 **Ground-Truth Workspace:** Model Mode is the validation environment for spatial truth. \
 **Model Affordances:** Moves can generate massing from a committed branch, cut floor plans, cut sections, validate render perspective, compare area against program, or rebuild after a branch commit. \
 **Rhino Compute Integration:** Rhino Compute is invoked by MoveExecutor when a move requires geometry computation. It is not exposed as a raw everyday agent choice. \
 **Geometry-Derived Features:** Model analysis can measure area, view orientation, solar exposure, adjacency, circulation length, section depth, openness, privacy zones, and other features. \
 **Spatial QA:** Agents use model state to check consistency across plans, sections, renders, diagrams, boards, and commitments. \
-**Versioned Models:** Model artifacts are versioned and linked to the moves, branches, commits, Hermes tasks, feature evaluations, and validation events that created them.
-
-### 3.2.4 Trace View
-
-**Execution History:** Trace View preserves graph utility by showing move history, Hermes Kanban dependencies, artifact lineage, feature deltas, retries, failures, approvals, and logs. \
-**Replay:** WorldState snapshots and runtime events allow users to replay how the design field evolved. \
-**Debugging:** Developers and operators can inspect failed moves, blocked preconditions, supervisor warnings, evaluator failures, bridge failures, validation failures, and branch decisions. \
-**Not the Primary Model:** Trace View explains what happened. It does not replace the Field Navigator as the main design interface.
-
-### 3.2.5 Move Library View
-
-**Pattern Registry:** Shows stable, sandbox, proposed, and deprecated move patterns. \
-**Pattern Detail:** Displays primitive type, domain, preconditions, inputs, outputs, expected effects, scoring hints, cost/risk profile, execution template, validation tests, examples, success stats, and failure modes. \
-**Sandbox Results:** Shows how a pattern performed against saved WorldState snapshots and synthetic worlds. \
-**Curator Controls:** Allows authorized users or curator agents to deduplicate, merge, promote, deprecate, or prune patterns. \
-**Sensitivity Matrix:** Shows expected feature effects for each pattern and compares them against measured feature deltas over time.
+**Versioned Models:** Model artifacts are versioned and linked to the moves, branches, commits, Hermes tasks, feature evaluations, direction nodes, and validation events that created them.
