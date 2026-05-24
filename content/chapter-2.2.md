@@ -1,145 +1,111 @@
-# Chapter 2.2 - Memory Architecture
+# Chapter 2.2 - Hermes Memory, Profiles, and Skills
 
 ## 2.2.0 Overview
 
-This chapter defines how memory, preference scope, and system learning support the A.A.S. Field Runtime. Hermes provides profile memory, skills, and procedural learning for agents. OpenViking or equivalent memory storage provides retrieval context. A.A.S. product truth stays in backend-owned Postgres graph rows and runtime events, with WorldState as a derived read model.
+This chapter defines the Hermes-side context system used by A.A.S. Hermes memory, profiles, skills, logs, and task context help agents execute work. They do not define project truth. A.A.S. controls what context is sent to Hermes, what outputs are accepted, and what becomes durable design state.
 
-### 2.2.1 Native Memory Model
+Hermes memory remembers procedures, lessons, and execution habits. A.A.S. records commits, graph truth, artifacts, preferences, WorldState, and event history.
 
-**Hermes Profile Memory:** Hermes profile memory is useful for agent habits, reusable procedures, skill improvement, prior failures, and role-specific recall. It is not active project truth. \
-**OpenViking Memory:** OpenViking stores compressed context cards, prior lessons, old branch summaries, and retrieval hints. It is a memory/context DB, not a source-of-truth DB. \
-**Runtime Recall:** Memory retrieval is useful for background continuity, stable user preferences, prior lessons, and reusable knowledge. It is not the same as the current design world. \
-**Backend Truth Boundary:** Current project truth lives in A.A.S. backend graph records and the event log. WorldState is derived from those records. Memory can inform patches, but it must not replace or directly change structured product state. \
-**Commit Boundary:** Architectural decisions become canonical through commits, not through casual memory writes. Memory may summarize decisions, but the CommitmentLedger is authoritative. \
-**Distillation Rule:** Agents should receive compact, relevant context through Agent Briefs. They should not be expected to call multiple memory tools unless the selected move explicitly requires deeper retrieval.
+### 2.2.1 Profile Model
 
-```mermaid
-%%{init: {'flowchart': {'arrowMarkerSize': 1.5}}}%%
-flowchart TD
-    MEM[Hermes Memory / Skills] ==> CD[ContextDistiller]
-    OV[OpenViking Context Cards] ==> CD
-    PREF[Scoped Preference Store] ==> CD
-    ART[Artifacts] ==> CD
-    EVT[Recent Events] ==> CD
-    WS[WorldState] ==> CD
-    EVAL[Evaluator Results] ==> CD
-    CD ==> AB[Agent Brief]
-    AB ==> AG[Agent Move Selection]
-```
+**Base Profiles:** A.A.S. should define base Hermes profiles such as `aas-research-base`, `aas-concept-base`, `aas-model-base`, `aas-representation-base`, `aas-critic-base`, and `aas-supervisor-base`. \
+**Project Profiles:** When memory isolation matters, the runtime should create project-scoped profiles such as `aas-concept-p123`. \
+**Shared Profiles:** Shared base profiles are acceptable for low-risk execution only when task packets and A.A.S. retrieval filters prevent project-specific bleed. \
+**Profile Instructions:** Each profile should include role purpose, allowed work, forbidden work, output contract rules, artifact conventions, patch format, and escalation conditions. \
+**Profile Ownership:** Hermes owns profile homes and profile-local memory. A.A.S. owns profile binding records and decides which profile is assigned to each move.
 
-### 2.2.2 Memory Layers and Workspace Files
+### 2.2.2 Skill Packs
 
-**Profile Memory:** Hermes profile memory stores how an agent works: procedures, role habits, skill hints, prior failures, and profile-local recall. \
-**OpenViking Context DB:** OpenViking stores derived memory cards with project, node, linked node IDs, summary, confidence, and provenance. These cards are rebuilt or refreshed from backend truth. \
-**A.A.S. Product State:** Projects, sessions, graph nodes, graph links, WorldState snapshots, affordances, moves, move patterns, features, evaluations, tensions, branches, commits, artifacts, approvals, preferences, agent patches, and runtime events belong in the A.A.S. backend. \
-**Artifact Storage:** Generated documents, images, models, diagrams, board packages, validation reports, evaluator reports, and exports are stored as artifacts with lineage and references. \
-**Agent Briefs:** Briefs are generated views, not permanent memory. They are produced from WorldState plus relevant memory, preferences, artifacts, commits, evaluations, and events for a specific agent role and move. \
-**Snapshots and Replay:** WorldState snapshots and runtime events provide replay/debug capability without relying on chat transcript memory.
+Hermes skills should teach execution procedure, not project truth.
+
+Useful A.A.S. skill packs include:
+
+**Task Packet Reader:** Read the A.A.S. packet, identify required output, respect locked records, and preserve source references. \
+**Artifact Writer:** Write outputs to the assigned artifact root with metadata, preview text, lineage, and expected file names. \
+**Patch Emitter:** Return structured operations, rationale, affected records, expected versions, risk level, and approval needs. \
+**Critique Contract:** Produce evidence-backed critique with feature deltas, confidence, unresolved tensions, and recommended next moves. \
+**Model Contract:** Produce geometry or validation outputs with model version, source branch, measured features, failed checks, and assumptions. \
+**Representation Contract:** Produce image, board, render, diagram, or prompt outputs with source artifacts, branch links, and validation notes.
+
+Skills may improve profile execution quality, but they must not bypass A.A.S. command validation or commit rules.
+
+### 2.2.3 Hermes Memory Types
+
+**Profile Memory:** Stores how a profile works: procedures, recurring mistakes, useful tool sequences, style habits, and role-specific lessons. \
+**Task Context:** Stores temporary execution context for the active task: packet, brief, allowed artifacts, local notes, and in-progress outputs. \
+**Skill Memory:** Stores reusable procedures embedded in skills or skill-local support files. \
+**Log Memory:** Stores task comments, logs, and execution traces that can later be summarized. \
+**Shared Procedural Memory:** Stores cross-profile lessons that are safe to reuse across projects, such as validation checklists or artifact naming conventions. \
+**Retrieval Memory:** OpenViking or another retrieval store may hold derived context cards and summaries, but it remains a context cache rather than project truth.
+
+### 2.2.4 Memory Boundary With A.A.S.
+
+The memory flow should be:
 
 ```text
-Hermes profile memory:
-  profile config
-  role files
-  skills/
-  profile-local memory
-  sessions
-  task logs
-
-A.A.S. persisted state:
-  direction_nodes
-  direction_links
-  world_states
-  affordances
-  moves
-  move_patterns
-  feature_registry
-  evaluations
-  tensions
-  branches
-  commits
-  artifacts
-  preferences
-  approvals
-  agent_patches
-  runtime_events
-  agent_briefs
-
-OpenViking memory/context:
-  context cards
-  branch lessons
-  reusable project patterns
-  retrieval summaries
+A.A.S. graph / events / commits
+  -> derived memory card or Agent Brief
+  -> Hermes profile execution
+  -> structured output or patch
+  -> A.A.S. command validation
+  -> graph / event / artifact / commit update
 ```
 
-### 2.2.3 WorldState as Active Context
+It should never be:
 
-**WorldState:** WorldState is the derived active design state compiled from canonical graph rows, commits, artifacts, preferences, and runtime events. It includes goal, current intent, project status, active branch, branches, artifacts, committed decisions, unresolved tensions, available moves, blocked moves, constraints, success metrics, feature state, design debt, recent events, open questions, and risks. \
-**GoalState:** Stores the user goal, normalized goal, project type, desired outputs, user values, non-goals, and priority stack. \
-**IntentState:** Tracks phase, focus, active question, current tension, desired next artifact, active process landmark, and current design debt pressure. \
-**ProjectState:** Tracks brief, research, concept, ground truth, board, model, artifact coverage, and validation status. \
-**FeatureState:** Stores measured or inferred values such as concept strength, spatial coherence, ground-truth readiness, drawing consistency, tension reduction, branch diversity, user alignment, cost, risk, and elegance. \
-**Use in Memory:** Memory retrieval can supply missing history or preferences, but backend graph truth and derived WorldState are the source used to compile the immediate operating situation.
-
-### 2.2.4 Agent Brief Write and Read Path
-
-**Read Path:** The ContextDistiller reads WorldState, selected artifacts, scoped preferences, relevant commits, active tensions, evaluator outputs, recent events, and memory snippets to produce an Agent Brief. \
-**Move Context:** Each brief includes valid moves, blocked moves, feature pressures, design debt, warnings, an output contract, source manifest, and only the context needed for the role. \
-**Write Path:** Agents do not directly update WorldState by prose or memory. They return structured output through MoveCompiler/bridge-controlled contracts, create an agent patch where needed, and submit backend commands that validate, write graph rows, write events, and publish updates. \
-**Memory Side Effects:** If a durable lesson or procedure should be remembered, the system may also write a Hermes profile memory, skill update, or OpenViking memory card, but this is secondary to product state. \
-**Memory-to-Graph Rule:** Memory follows `graph -> memory card -> retrieval -> agent patch -> command -> graph`. It never follows `memory -> direct graph mutation`. \
-**Reviewability:** Every important state transition should be inspectable through events, artifacts, commits, evaluations, score breakdowns, task bindings, or snapshots.
-
-```mermaid
-%%{init: {'flowchart': {'arrowMarkerSize': 1.5}}}%%
-flowchart LR
-    WS[WorldState] ==> BR[Agent Brief]
-    BR ==> AG[Hermes Profile Task]
-    AG ==> OUT[Structured Output]
-    OUT ==> PT[Agent Patch / Command]
-    PT ==> EX[AAS Backend Transaction]
-    EX ==> ART[Artifact Records]
-    EX ==> EV[Evaluator Results]
-    EX ==> EVT[Runtime Events]
-    EX ==> WS
+```text
+Hermes memory
+  -> direct graph mutation
+  -> unreviewed project truth
 ```
 
-### 2.2.5 Preference Scope and User Context
+**Commit Boundary:** Architectural decisions become canonical through A.A.S. commits, not through profile recall. \
+**Preference Boundary:** User, team, project, session, and prompt preferences are resolved by A.A.S. before entering a task packet. \
+**Artifact Boundary:** Hermes may produce files. A.A.S. accepts them only after registration, lineage assignment, validation, and event writing. \
+**State Boundary:** Hermes local graph caches are disposable. A.A.S. backend records remain authoritative.
 
-**Profile Source:** Stable user context is curated from `USER.md`-style files and extraction notes. High-signal facts such as domain, working style, recurring projects, and durable constraints may enter the Preference Store. Raw evidence logs, transient one-off tasks, and tool schemas should not be injected into every agent turn. \
-**User Extraction Notes:** `user_extraction_notes.md` identifies durable user context such as Architecture/AEC plus software-development domain context, concise and surgical response preferences, forwarding-ready output, secure token handling, SEO preservation, and recurring projects. These belong in scoped preference/profile records, not in project truth unless committed. \
-**Preference Records:** Every preference must have tenant, scope type, scope ID, key, value, confidence, source, visibility, portability, creator, allowed consumers, and optional expiry. \
-**Scope Types:** Use user, team, project, session, and agent-profile scopes. User taste is private by default. Project truth is explicit by commit. Agent memory is procedural, not user taste. \
-**Resolution Order:** Explicit prompt overrides session choices; session choices override project commits where allowed; project commits override user preferences; user preferences override team standards only for that user; defaults come last. High-impact conflicts should create an affordance to resolve the conflict. \
-**Context Manifests:** Every Agent Brief should include source references for preferences it used, such as project commit IDs, user preference IDs, team standards, or session-scoped instructions. \
-**No Preference Bleed:** Retrieval must filter by tenant and allowed scopes before semantic search. Do not use one global vector memory without strict metadata filters.
+### 2.2.5 Agent Briefs Sent to Hermes
 
-### 2.2.6 Retrieval, Indexing, and Recall Pipeline
+A.A.S. should send compact Agent Briefs instead of asking Hermes profiles to inspect all memory and project records.
 
-**Relevant Retrieval:** Retrieval is triggered by move requirements, unresolved questions, stale research, missing precedent context, user-profile needs, or evaluator uncertainty. \
-**Compiled Briefs:** Agents should not receive broad memory dumps. The distiller should provide compact excerpts and references with enough provenance for inspection. \
-**Artifact References:** Large artifacts should be passed by reference, not inlined into prompts. The executor resolves paths or asset IDs when dispatching work. \
-**Commit Awareness:** Retrieved context must be filtered against committed decisions. A memory snippet that conflicts with a commit should become a tension or warning, not silently override project truth. \
-**Search Surfaces:** OpenViking context cards, Hermes profile memory, skills, scoped preferences, file reads, artifact metadata, project commits, evaluator output, and move statistics can all feed the distiller, but agents experience the result as a brief.
+An Agent Brief should include:
 
-### 2.2.7 System Learning and Maintenance
+**Goal:** Current user goal, normalized goal, output intent, and non-goals. \
+**Task Intent:** The selected move, target branch, target artifact, active tension, and expected output. \
+**Relevant Truth:** Committed decisions, locked constraints, active direction nodes, source artifacts, and current feature pressures. \
+**Allowed Context:** References, memory snippets, project preferences, and prior outputs needed for this task. \
+**Blocked Context:** Things the profile must not assume, overwrite, expose, or treat as truth. \
+**Output Contract:** Required structured result, artifact metadata, patch format, confidence, warnings, and completion status. \
+**Source Manifest:** The records, preferences, commits, memory cards, and artifacts used to build the brief.
 
-**Commit Ledger First:** Major decisions, rationale, evidence, affected artifacts, reversibility, and approval metadata belong in commits. \
-**Event-Sourced History:** Runtime events record what happened: moves generated, moves selected, Hermes tasks created, execution started, artifacts created, evaluator scores measured, tensions resolved, branches merged, commits created, warnings raised, and approvals requested. \
-**Move Pattern Learning:** Move executions should log before/after WorldState, selected pattern, artifacts created, score delta, user acceptance, evaluator results, and failure modes. These logs update move stats without changing model weights. \
-**Effect Learning:** Predicted feature deltas from move patterns should be compared with measured feature deltas from evaluators, then used to update sensitivity matrices and contextual reward estimates. \
-**Memory Summaries:** Maintenance agents can summarize stable lessons into Hermes profile memory, shared knowledge, or OpenViking context cards, but they must preserve the distinction between memory summaries and canonical product records. \
-**Memory Card Shape:** A useful memory card records project ID, related node IDs, summary, linked nodes, confidence, source event or snapshot, and refresh time. \
-**Staleness Detection:** The system should flag stale memory cards, stale research, outdated models, invalid artifacts, unresolved critical tensions, weak move patterns, stale evaluator results, and branches that no longer align with committed truth. \
-**Replayability:** WorldState snapshots plus events should be enough to reconstruct the design field state for debugging or review.
+### 2.2.6 Preference and User Context Handling
 
-### 2.2.8 Storage Boundaries, Guidance, and Anti-Patterns
+Hermes profiles should not silently learn user taste as project truth.
 
-**Backend-Owned State:** A.A.S. persists graph nodes, graph links, WorldState read models, moves, move patterns, features, evaluations, tensions, branches, commits, artifacts, approvals, preferences, agent patches, task bindings, and events in the backend database and storage layer. \
-**Hermes-Owned Execution Memory:** Hermes owns profile memory, worker execution state, skills, task logs, and session-level execution context. \
-**OpenViking-Owned Context Memory:** OpenViking owns retrieval cards and summaries derived from backend truth. It does not own graph truth. \
-**No Memory-as-Database:** Do not treat markdown memory files, OpenViking cards, or Hermes profile memory as the product database. \
-**No Hidden Commit:** Do not record a major design direction only in chat, memory, or profile recall. It must be a commit. \
-**No Unscoped Preference:** Do not use a preference unless it has an owner, scope, source, visibility, and allowed consumer path. \
-**No Raw Dump Briefs:** Do not compile massive unfiltered memory and artifact content into every agent turn. \
-**No Tool-First Recall:** Do not require the agent to search everything before it can choose a move. The environment should mediate the situation. \
-**No Cross-Project Profile Bleed:** Do not let one shared Hermes specialist profile carry project-specific taste, facts, or commitments into unrelated projects.
+**Stable User Preferences:** A.A.S. may summarize durable user preferences into scoped records. \
+**Session Instructions:** Current prompt or session choices can override stable preferences for that session. \
+**Project Commits:** Project commitments override general taste where the project has explicitly decided something. \
+**Team Standards:** Team or firm standards apply only through explicit scope and precedence rules. \
+**Profile Habits:** Hermes profile memory can remember how to communicate or perform, but it should not redefine user preference without A.A.S. promotion.
+
+Every preference used in a Hermes task should be visible in the Agent Brief source manifest.
+
+### 2.2.7 Maintenance and Learning
+
+Hermes can support learning without becoming the product database.
+
+**After Task Completion:** A.A.S. can summarize successful procedures, failure causes, useful prompts, tool sequences, and validation lessons into profile memory or skills. \
+**Trace Summaries:** Hermes logs can be summarized into A.A.S. events, evaluator notes, pattern statistics, or memory cards. \
+**Skill Updates:** Repeated stable procedures can become skill updates after review. \
+**Profile Cleanup:** Stale, project-specific, conflicting, or unsafe profile memories should be pruned or scoped. \
+**Pattern Proposal:** Hermes may propose new move patterns, but A.A.S. owns sandboxing, validation, curation, and promotion.
+
+### 2.2.8 Hermes Memory Anti-Patterns
+
+**Profile Memory as Truth:** Do not let profile recall override A.A.S. commits, graph rows, or artifacts. \
+**Global Vector Memory Without Filters:** Do not retrieve across users, teams, projects, or private scopes without strict metadata filtering. \
+**Raw Dump Briefs:** Do not send every note, memory card, artifact, and chat message into every task. \
+**Untraceable Preference Use:** Do not let a profile claim a user preference without source and scope. \
+**Silent Skill Mutation:** Do not let task execution rewrite skills or shared procedures without review. \
+**Cross-Project Bleed:** Do not let project-specific facts or taste migrate into unrelated work through shared profiles. \
+**Memory-Only Decisions:** Do not record major design decisions only in Hermes memory, logs, or comments.

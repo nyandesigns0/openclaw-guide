@@ -73,7 +73,7 @@ Object + Subject -> Vector + Boundary -> Seed
 
 **Files:** Drawings, PDFs, models, renders, images, notes, and documents are payloads, evidence, references, or artifacts. File format is not ontology. \
 **State:** State is the full field snapshot: node layout, active branches, locks, relationships, confidence, direction history, and runtime status. \
-**Move:** Move is an operation applied to the field. It is not stable field matter. \
+**Move:** Move is an operation applied to the field. Move primitives, move patterns, and move instances are runtime objects, not stable field matter or primary ontology nodes. \
 **Option:** Option is a Seed subcategory, Seed family, or branch condition. \
 **Risk:** Risk is a tag, condition, warning, or subcategory that can attach to Object, Subject, Vector, Boundary, or Seed depending on where danger lives. \
 **Question:** Question is uncertainty, missing knowledge, or low-confidence status attached to another node or relation. \

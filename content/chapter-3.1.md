@@ -8,7 +8,7 @@ A.A.S. is an Affordance-Oriented Agent Environment for architectural design. It 
 
 **Architectural Agent Environment:** A.A.S. turns goals, values, references, critique, model state, feature state, and artifacts into a navigable design field. \
 **Built on Hermes:** Hermes executes work through profile-based specialist agents and Kanban task groups. A.A.S. compiles architectural moves into Hermes task packets and watches execution state. \
-**Field Runtime:** The runtime reads WorldState, generates affordances, scores expected effects, distills context, lets agents select moves, compiles moves into Hermes work, and updates the world. \
+**Field Runtime:** The runtime reads WorldState, generates affordances, scores expected effects, distills context, lets agents select moves, compiles moves into Hermes work, and updates the world. A.A.S. estimates useful moves under uncertainty rather than calculating fixed game moves from a static world. \
 **Design Intelligence Layer:** A.A.S. combines five-node design ontology, objective functions, tension detection, move pattern library, branch search, evaluator scoring, process grammar, design debt, and commit rules. \
 **Five-Node Ontology:** Architect Mode uses Object, Subject, Vector, Boundary, and Seed as fixed primary node types. Object is objective outside truth. Subject is subjective inside truth. Vector is pushing force. Boundary is restricting force. Seed is generated possibility. \
 **Human-Steerable:** The operator reviews moves, feature pressures, branches, tensions, artifacts, commits, preferences, approvals, and Hermes task state at the level of architectural intent. \
@@ -44,12 +44,12 @@ A.A.S. is an Affordance-Oriented Agent Environment for architectural design. It 
 **Truth Requires Commitment:** Branches can speculate and artifacts can be provisional, but only commits become project truth. \
 **Preferences Are Scoped:** User preferences, team standards, project commits, session instructions, and explicit prompts are separate layers with source manifests and conflict handling.
 
-### 3.1.5 Current Implementation Direction
+### 3.1.5 Architecture Commitments
 
-**Replace Graph-First Pipeline Authoring:** The old pipeline graph is not the product center. Architect Mode becomes the direction workspace, using a flat 2D design graph to shape agent judgment rather than author static execution paths. \
-**Use Hermes as Execution Fabric:** A.A.S. should not rebuild Kanban. It should compile moves into Hermes tasks and read Hermes task/log/artifact state through a bridge. \
-**Add Field Runtime Schema:** The backend should persist WorldState, five-node direction ontology, live subcategories, affordances, moves, move patterns, features, evaluations, tensions, branches, commits, preferences, artifacts, events, scores, approvals, and Hermes bindings. \
-**Add Move Pattern Library:** Start with stable primitives and a seeded architectural move pattern library. Let agents propose new patterns into sandbox, not directly into stable use. \
-**Add Context Distiller MVP:** Agents receive compact briefs with scoped preferences, feature pressures, relevant commits, artifacts, debts, and output contracts. \
-**Add Hermes Bridge MVP:** Start with CLI/task packet integration, then add Kanban DB watcher, log/artifact watcher, profile pack manager, and later direct plugin/API integration. \
-**Expand Into Scoring and Learning:** Add Feature Registry, evaluator contracts, sensitivity matrix, process grammar, design debt, elegance score, and contextual outcome learning.
+**Field Runtime Over Pipeline Product:** A.A.S. is not a graph-first pipeline authoring product. Architect Mode is a direction workspace where a flat 2D design graph shapes agent judgment, design meaning, relationships, confidence, taste, tension, lineage, and output intent. \
+**Hermes as Execution Fabric:** A.A.S. does not rebuild Kanban. It compiles moves into Hermes tasks and reads Hermes task, log, and artifact state through the A.A.S.-Hermes Bridge. \
+**Field Runtime Schema:** The backend persists WorldState, five-node direction ontology, live subcategories, affordances, moves, move patterns, features, evaluations, tensions, branches, commits, preferences, artifacts, events, scores, approvals, and Hermes bindings. \
+**Governed Move Pattern Library:** A.A.S. uses stable primitives and a governed architectural move pattern library. Agents may propose new patterns into sandbox and curator review, but they do not directly promote patterns into stable use. \
+**Context Distillation:** Agents receive compact briefs with scoped preferences, feature pressures, relevant commits, artifacts, debts, warnings, source manifests, and output contracts. \
+**Bridge-Mediated Execution:** The A.A.S.-Hermes Bridge owns task packets, profile bindings, Kanban task bindings, log watching, artifact watching, profile and skill pack support, and event translation. \
+**Scoring and Learning:** A.A.S. uses Feature Registry entries, evaluator contracts, sensitivity matrices, process grammar, design debt, elegance scoring, contextual outcome learning, and curator governance to improve move selection without treating memory or model weights as project truth.

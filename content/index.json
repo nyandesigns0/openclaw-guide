@@ -11,7 +11,7 @@
       },
       {
         "id": "chapter-0.2",
-        "title": "0.2 Installation Guide",
+        "title": "0.2 Local Workstation and Tooling Setup",
         "filename": "chapter-0.2.md"
       }
     ]
@@ -23,34 +23,34 @@
     "subtabs": [
       {
         "id": "chapter-1.1",
-        "title": "1.1 Overview",
+        "title": "1.1 Introduction",
         "filename": "chapter-1.1.md"
       },
       {
         "id": "chapter-1.2",
-        "title": "1.2 Feature List",
+        "title": "1.2 Core System Capabilities",
         "filename": "chapter-1.2.md"
       }
     ]
   },
   {
     "id": "architecture",
-    "title": "Chapter 2: Architecture",
+    "title": "Chapter 2: Hermes",
     "icon": "Layers",
     "subtabs": [
       {
         "id": "chapter-2.1",
-        "title": "2.1 Multi-Agent Architecture",
+        "title": "2.1 Hermes Execution Architecture",
         "filename": "chapter-2.1.md"
       },
       {
         "id": "chapter-2.2",
-        "title": "2.2 Memory Architecture",
+        "title": "2.2 Hermes Memory, Profiles, and Skills",
         "filename": "chapter-2.2.md"
       },
       {
         "id": "chapter-2.3",
-        "title": "2.3 Field Runtime Architecture",
+        "title": "2.3 Hermes Bridge and Runtime Surfaces",
         "filename": "chapter-2.3.md"
       }
     ]
@@ -67,7 +67,7 @@
       },
       {
         "id": "chapter-3.2",
-        "title": "3.2 Feature List",
+        "title": "3.2 Workspace Model",
         "filename": "chapter-3.2.md"
       },
       {
@@ -77,23 +77,35 @@
       },
       {
         "id": "chapter-3.4",
-        "title": "3.4 Architecture",
+        "title": "3.4 A.A.S. System Architecture",
         "filename": "chapter-3.4.md"
       },
       {
         "id": "chapter-3.5",
-        "title": "3.5 Frontend / Workspaces",
+        "title": "3.5 Frontend",
         "filename": "chapter-3.5.md"
       },
       {
         "id": "chapter-3.6",
-        "title": "3.6 Backend",
+        "title": "3.6 A.A.S. Backend",
         "filename": "chapter-3.6.md"
       },
       {
         "id": "chapter-3.7",
-        "title": "3.7 Field Runtime Task Breakdown",
+        "title": "3.7 Documentation Consolidation Plan",
         "filename": "chapter-3.7.md"
+      }
+    ]
+  },
+  {
+    "id": "implementation",
+    "title": "Chapter 4: Implementation Plan",
+    "icon": "ListChecks",
+    "subtabs": [
+      {
+        "id": "chapter-4.1",
+        "title": "4.1 Implementation Plan",
+        "filename": "chapter-4.1.md"
       }
     ]
   }
