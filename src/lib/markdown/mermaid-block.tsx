@@ -13,15 +13,16 @@ import mermaid from "mermaid";
 import { TransformComponent, TransformWrapper } from "react-zoom-pan-pinch";
 import {
   Check,
-  ChevronDown,
-  ChevronUp,
+  Code2,
   Copy,
+  PanelBottomClose,
   Maximize2,
   Minimize2,
   MousePointer2,
   RotateCcw,
+  Minus,
+  Plus,
   ScanSearch,
-  Share2,
   Split,
   Undo2,
   ZoomIn,
@@ -79,15 +80,21 @@ type SourceGraph = {
 };
 type ViewFilter = {
   isolatedNodeIds: string[] | null;
-  includeNeighbors: boolean;
+  neighborHops: number;
 };
 
 const DEFAULT_VIEW_FILTER: ViewFilter = {
   isolatedNodeIds: null,
-  includeNeighbors: false,
+  neighborHops: 0,
 };
 
 const COPY_RESET_DELAY_MS = 2000;
+const MAX_NEIGHBOR_HOPS = 8;
+
+const DIAGRAM_TOOLBAR_BTN =
+  "inline-flex size-8 shrink-0 items-center justify-center rounded border p-0 transition-colors hover:bg-zinc-800 hover:text-white";
+const DIAGRAM_TOOLBAR_BTN_ACTIVE = "border-indigo-400 bg-indigo-500/20 text-indigo-200";
+const DIAGRAM_TOOLBAR_BTN_IDLE = "border-zinc-700 bg-zinc-900/95 text-zinc-400";
 
 export function isMermaid(code: string, language?: string) {
   const normalizedLanguage = language?.toLowerCase();
@@ -292,6 +299,41 @@ function parseSourceGraph(source: string): SourceGraph {
   return { initLines, headerLine, nodeIds: Array.from(nodeIds), nodeLines, edges, subgraphs, nodeSubgraph };
 }
 
+function expandNodeIdsByHops(graph: SourceGraph, seedIds: Set<string>, hops: number) {
+  if (hops <= 0) {
+    return new Set(seedIds);
+  }
+
+  const visible = new Set(seedIds);
+  let frontier = new Set(seedIds);
+
+  for (let hop = 0; hop < hops; hop += 1) {
+    const nextFrontier = new Set<string>();
+
+    for (const nodeId of frontier) {
+      for (const edge of graph.edges) {
+        if (edge.source === nodeId && !visible.has(edge.target)) {
+          visible.add(edge.target);
+          nextFrontier.add(edge.target);
+        }
+
+        if (edge.target === nodeId && !visible.has(edge.source)) {
+          visible.add(edge.source);
+          nextFrontier.add(edge.source);
+        }
+      }
+    }
+
+    frontier = nextFrontier;
+
+    if (frontier.size === 0) {
+      break;
+    }
+  }
+
+  return visible;
+}
+
 function getVisibleNodeIds(graph: SourceGraph, filter: ViewFilter) {
   let visible = new Set(graph.nodeIds);
 
@@ -302,23 +344,7 @@ function getVisibleNodeIds(graph: SourceGraph, filter: ViewFilter) {
         .filter((nodeId): nodeId is string => Boolean(nodeId))
     );
 
-    if (filter.includeNeighbors) {
-      const neighborhood = new Set(isolated);
-
-      for (const edge of graph.edges) {
-        if (isolated.has(edge.source)) {
-          neighborhood.add(edge.target);
-        }
-
-        if (isolated.has(edge.target)) {
-          neighborhood.add(edge.source);
-        }
-      }
-
-      visible = neighborhood;
-    } else {
-      visible = new Set(isolated);
-    }
+    visible = expandNodeIdsByHops(graph, isolated, filter.neighborHops);
   }
 
   return visible;
@@ -419,10 +445,9 @@ function ToolCluster({
         title={label}
         onClick={onClick}
         className={cn(
-          "relative z-20 rounded border p-1.5 transition-colors hover:bg-zinc-800 hover:text-white",
-          isActive
-            ? "border-indigo-400 bg-indigo-500/20 text-indigo-200"
-            : "border-zinc-700 bg-zinc-900/95 text-zinc-400"
+          DIAGRAM_TOOLBAR_BTN,
+          "relative z-20",
+          isActive ? DIAGRAM_TOOLBAR_BTN_ACTIVE : DIAGRAM_TOOLBAR_BTN_IDLE
         )}
       >
         {icon}
@@ -448,22 +473,11 @@ function MermaidSourceFloat({
   isFullscreen: boolean;
   visible: boolean;
 }) {
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const sourceRef = useRef<HTMLPreElement>(null);
   const lineCount = activeSource === "" ? 0 : activeSource.split("\n").length;
-
-  useEffect(() => {
-    if (!visible) {
-      return;
-    }
-
-    const timer = window.setTimeout(() => {
-      setIsExpanded(true);
-    }, 0);
-
-    return () => window.clearTimeout(timer);
-  }, [visible, activeSource]);
+  const lineLabel = `${lineCount} ${lineCount === 1 ? "line" : "lines"}`;
 
   if (!visible) {
     return null;
@@ -480,27 +494,47 @@ function MermaidSourceFloat({
     window.setTimeout(() => setCopied(false), COPY_RESET_DELAY_MS);
   }
 
+  if (!isOpen) {
+    return (
+      <div
+        data-mermaid-ui
+        className="pointer-events-auto absolute bottom-4 left-4 z-40"
+        onPointerDown={(event) => event.stopPropagation()}
+      >
+        <button
+          type="button"
+          onClick={() => setIsOpen(true)}
+          className={cn(DIAGRAM_TOOLBAR_BTN, DIAGRAM_TOOLBAR_BTN_IDLE, "shadow-xl")}
+          title={`Open isolated Mermaid source (${lineLabel})`}
+          aria-label={`Open isolated Mermaid source, ${lineLabel}`}
+        >
+          <Code2 size={14} />
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div
+      data-mermaid-ui
       className={cn(
-        "absolute left-4 bottom-4 z-30 flex w-[min(100%,28rem)] flex-col overflow-hidden rounded-lg border border-zinc-700 bg-black/90 shadow-xl backdrop-blur-sm",
+        "pointer-events-auto absolute bottom-4 left-4 z-40 flex w-[min(100%,28rem)] flex-col overflow-hidden rounded-lg border border-zinc-700 bg-black/90 shadow-xl backdrop-blur-sm",
         isFullscreen && "max-h-[40vh]"
       )}
+      onPointerDown={(event) => event.stopPropagation()}
     >
-      <div className="flex items-center justify-between gap-2 border-b border-zinc-800 px-3 py-2">
-        <div className="min-w-0">
-          <p className="font-mono text-[10px] font-medium uppercase tracking-wider text-zinc-400">
+      <div className="flex items-center justify-between gap-2 border-b border-zinc-800 px-2 py-1">
+        <div className="flex min-w-0 items-center gap-2">
+          <p className="truncate font-mono text-[10px] font-medium uppercase tracking-wider text-zinc-400">
             Isolated Mermaid
           </p>
-          <p className="font-mono text-[10px] text-zinc-600">
-            {lineCount} {lineCount === 1 ? "line" : "lines"}
-          </p>
+          <span className="shrink-0 font-mono text-[10px] text-zinc-600">{lineLabel}</span>
         </div>
-        <div className="flex shrink-0 items-center gap-1">
+        <div className="flex shrink-0 items-center gap-0.5">
           <button
             type="button"
             onClick={handleCopy}
-            className="rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-100"
+            className="rounded p-1 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-100"
             title="Copy isolated Mermaid source"
             aria-label="Copy isolated Mermaid source"
           >
@@ -508,23 +542,76 @@ function MermaidSourceFloat({
           </button>
           <button
             type="button"
-            onClick={() => setIsExpanded((current) => !current)}
-            className="rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-100"
-            title={isExpanded ? "Collapse source panel" : "Expand source panel"}
-            aria-label={isExpanded ? "Collapse source panel" : "Expand source panel"}
+            onClick={() => setIsOpen(false)}
+            className="rounded p-1 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-100"
+            title="Collapse to icon"
+            aria-label="Collapse isolated Mermaid source panel"
           >
-            {isExpanded ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+            <PanelBottomClose size={14} />
           </button>
         </div>
       </div>
-      {isExpanded && (
-        <pre
-          ref={sourceRef}
-          className="max-h-48 overflow-auto p-3 font-mono text-[11px] leading-relaxed text-zinc-300 sm:max-h-40"
-        >
-          {activeSource}
-        </pre>
+      <pre
+        ref={sourceRef}
+        className="max-h-48 overflow-auto px-3 py-1.5 pr-5 font-mono text-[11px] leading-relaxed text-zinc-300 sm:max-h-40"
+      >
+        {activeSource}
+      </pre>
+    </div>
+  );
+}
+
+function HopLevelControl({
+  hops,
+  maxHops = MAX_NEIGHBOR_HOPS,
+  onChange,
+}: {
+  hops: number;
+  maxHops?: number;
+  onChange: (hops: number) => void;
+}) {
+  const segmentClass =
+    "inline-flex size-8 shrink-0 items-center justify-center bg-zinc-900/95 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-white disabled:cursor-not-allowed disabled:opacity-40";
+
+  return (
+    <div
+      className={cn(
+        "inline-flex h-8 overflow-hidden rounded border",
+        hops > 0 ? "border-indigo-400" : "border-zinc-700"
       )}
+      role="group"
+      aria-label={`Neighbor hops: ${hops}`}
+    >
+      <button
+        type="button"
+        aria-label="Decrease neighbor hops"
+        title="Decrease neighbor hops"
+        disabled={hops <= 0}
+        onClick={() => onChange(Math.max(0, hops - 1))}
+        className={cn(segmentClass, "border-r border-zinc-700")}
+      >
+        <Minus size={14} />
+      </button>
+      <div
+        className={cn(
+          "flex min-w-9 items-center justify-center border-r border-zinc-700 px-1 font-mono text-[10px] uppercase tracking-wider",
+          hops > 0 ? "bg-indigo-500/20 text-indigo-200" : "bg-zinc-900/95 text-zinc-400"
+        )}
+        aria-live="polite"
+        title={`${hops} hop${hops === 1 ? "" : "s"} of neighbors`}
+      >
+        ±{hops}
+      </div>
+      <button
+        type="button"
+        aria-label="Increase neighbor hops"
+        title="Increase neighbor hops"
+        disabled={hops >= maxHops}
+        onClick={() => onChange(Math.min(maxHops, hops + 1))}
+        className={segmentClass}
+      >
+        <Plus size={14} />
+      </button>
     </div>
   );
 }
@@ -550,11 +637,10 @@ function SubToolButton({
       disabled={disabled}
       onClick={onClick}
       className={cn(
-        "rounded border p-1.5 shadow-lg transition-colors hover:bg-zinc-800 hover:text-white",
+        DIAGRAM_TOOLBAR_BTN,
+        "shadow-lg",
         disabled && "cursor-not-allowed opacity-40 hover:bg-zinc-900/95 hover:text-zinc-400",
-        isActive
-          ? "border-indigo-400 bg-indigo-500/20 text-indigo-200"
-          : "border-zinc-700 bg-zinc-900/95 text-zinc-400"
+        isActive ? DIAGRAM_TOOLBAR_BTN_ACTIVE : DIAGRAM_TOOLBAR_BTN_IDLE
       )}
     >
       {children}
@@ -770,6 +856,10 @@ function MermaidViewer({
           const isAdding = toolMode === "select" && dragBox?.shiftKey;
 
           function handlePointerDown(event: PointerEvent<HTMLDivElement>) {
+            if ((event.target as Element).closest("[data-mermaid-ui]")) {
+              return;
+            }
+
             if (event.button === 1) {
               event.preventDefault();
               event.currentTarget.setPointerCapture(event.pointerId);
@@ -907,7 +997,7 @@ function MermaidViewer({
 
           return (
             <>
-              <div className="absolute right-4 top-4 z-30 flex gap-1.5 opacity-100 transition-opacity sm:opacity-0 sm:group-hover/diagram:opacity-100">
+              <div className="absolute right-4 top-4 z-30 flex items-center gap-1.5 opacity-100 transition-opacity sm:opacity-0 sm:group-hover/diagram:opacity-100">
                 <ToolCluster
                   icon={<MousePointer2 size={14} />}
                   isActive={toolMode === "select"}
@@ -925,7 +1015,7 @@ function MermaidViewer({
 
                       onViewFilterChange({
                         isolatedNodeIds: selectedNodeIds,
-                        includeNeighbors: false,
+                        neighborHops: 0,
                       });
                       setSelectedNodeIds([]);
                     }}
@@ -934,26 +1024,15 @@ function MermaidViewer({
                   </SubToolButton>
                 </ToolCluster>
                 {hasFilter && (
-                  <button
-                    type="button"
-                    aria-label="Include +/- 1 hop neighbors"
-                    title="Include +/- 1 hop neighbors"
-                    onClick={() => {
+                  <HopLevelControl
+                    hops={viewFilter.neighborHops}
+                    onChange={(neighborHops) => {
                       onViewFilterChange({
                         ...viewFilter,
-                        includeNeighbors: !viewFilter.includeNeighbors,
+                        neighborHops,
                       });
                     }}
-                    className={cn(
-                      "flex items-center gap-1.5 rounded border px-2 py-1.5 font-mono text-[10px] uppercase tracking-wider transition-colors hover:bg-zinc-800 hover:text-white",
-                      viewFilter.includeNeighbors
-                        ? "border-indigo-400 bg-indigo-500/20 text-indigo-200"
-                        : "border-zinc-700 bg-zinc-900/95 text-zinc-400"
-                    )}
-                  >
-                    <Share2 size={14} />
-                    +/- 1 hop
-                  </button>
+                  />
                 )}
                 <ToolCluster
                   icon={<ScanSearch size={14} />}
@@ -998,7 +1077,7 @@ function MermaidViewer({
                   aria-label={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
                   title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
                   onClick={onToggleFullscreen}
-                  className="rounded border border-zinc-700 bg-zinc-900/95 p-1.5 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-white"
+                  className={cn(DIAGRAM_TOOLBAR_BTN, DIAGRAM_TOOLBAR_BTN_IDLE)}
                 >
                   {isFullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
                 </button>
@@ -1060,18 +1139,18 @@ function MermaidViewer({
                     style={dragStyle}
                   />
                 )}
-                <MermaidSourceFloat
-                  activeSource={activeSource}
-                  isFullscreen={isFullscreen}
-                  visible={hasFilter}
-                />
               </div>
+              <MermaidSourceFloat
+                activeSource={activeSource}
+                isFullscreen={isFullscreen}
+                visible={hasFilter}
+              />
             </>
           );
         }}
       </TransformWrapper>
       <div className="mt-2 text-center font-mono text-[10px] uppercase tracking-widest text-zinc-600 opacity-100 transition-opacity sm:opacity-0 sm:group-hover/diagram:opacity-100">
-        Select nodes, isolate crops the source, +/- 1 hop expands neighbors - wheel zooms, middle mouse pans
+        Select nodes, isolate crops the source, +/- hop control expands neighbors - wheel zooms, middle mouse pans
       </div>
     </div>
   );
