@@ -72,28 +72,33 @@
       },
       {
         "id": "chapter-3.3",
-        "title": "3.3 Design Ontology",
+        "title": "3.3 A.A.S. Agent Simulation Flowchart",
         "filename": "chapter-3.3.md"
       },
       {
         "id": "chapter-3.4",
-        "title": "3.4 A.A.S. System Architecture",
+        "title": "3.4 Design Ontology",
         "filename": "chapter-3.4.md"
       },
       {
         "id": "chapter-3.5",
-        "title": "3.5 Frontend",
+        "title": "3.5 A.A.S. System Architecture",
         "filename": "chapter-3.5.md"
       },
       {
         "id": "chapter-3.6",
-        "title": "3.6 A.A.S. Backend",
+        "title": "3.6 Frontend",
         "filename": "chapter-3.6.md"
       },
       {
         "id": "chapter-3.7",
-        "title": "3.7 Documentation Consolidation Plan",
+        "title": "3.7 A.A.S. Backend",
         "filename": "chapter-3.7.md"
+      },
+      {
+        "id": "chapter-3.8",
+        "title": "3.8 Documentation Consolidation Plan",
+        "filename": "chapter-3.8.md"
       }
     ]
   },
