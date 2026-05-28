@@ -971,7 +971,13 @@ function MermaidViewer({
 
   const isIsolateActive = Boolean(viewFilter.isolatedNodeIds?.length);
   const focusZoomOnSelection = toolMode === "select" && selectedNodeIds.length > 0;
-  const libraryPanningEnabled = toolMode === "pan" && !middlePan;
+  const libraryPanningEnabled = isCoarsePointer && toolMode === "pan" && !middlePan;
+
+  useEffect(() => {
+    if (!isCoarsePointer && toolMode === "pan") {
+      setToolMode("select");
+    }
+  }, [isCoarsePointer, toolMode]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -985,7 +991,7 @@ function MermaidViewer({
     const timer = window.setTimeout(() => {
       if (!hasFilter) {
         setSelectedNodeIds([]);
-        setToolMode("select");
+        setToolMode(isCoarsePointer ? "pan" : "select");
         return;
       }
 
@@ -1001,7 +1007,7 @@ function MermaidViewer({
     }, 0);
 
     return () => window.clearTimeout(timer);
-  }, [svg, hasFilter]);
+  }, [svg, hasFilter, isCoarsePointer]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -1110,16 +1116,22 @@ function MermaidViewer({
   }
 
   function shouldHandleCustomPointer(event: PointerEvent<HTMLDivElement>) {
-    if (event.pointerType === "touch") {
-      if (toolMode === "pan" || activePointersRef.current.size > 1) {
-        return false;
-      }
+    if (!isCoarsePointer || event.pointerType !== "touch") {
+      return true;
+    }
+
+    if (toolMode === "pan" || activePointersRef.current.size > 1) {
+      return false;
     }
 
     return true;
   }
 
   function trackPointer(event: PointerEvent<HTMLDivElement>) {
+    if (!isCoarsePointer) {
+      return;
+    }
+
     if (event.type === "pointerdown") {
       activePointersRef.current.add(event.pointerId);
       return;
@@ -1149,12 +1161,16 @@ function MermaidViewer({
           step: ZOOM_STEP_FACTOR,
         }}
         wheel={{ step: 0.18, disabled: focusZoomOnSelection }}
-        pinch={{ step: 8, disabled: false }}
-        panning={{
-          disabled: !libraryPanningEnabled,
-          velocityDisabled: false,
-          allowLeftClickPan: true,
-        }}
+        pinch={{ step: 8, disabled: !isCoarsePointer }}
+        panning={
+          isCoarsePointer
+            ? {
+                disabled: !libraryPanningEnabled,
+                velocityDisabled: false,
+                allowLeftClickPan: true,
+              }
+            : { disabled: true, velocityDisabled: false }
+        }
       >
         {({ zoomIn, zoomOut, resetTransform, setTransform, state }) => {
           function zoomAroundSelection(direction: "in" | "out") {
@@ -1261,17 +1277,19 @@ function MermaidViewer({
               return;
             }
 
-            trackPointer(event);
+            if (isCoarsePointer) {
+              trackPointer(event);
 
-            if (activePointersRef.current.size > 1) {
-              setDragBox(null);
-              setMiddlePan(null);
-              for (const pointerId of activePointersRef.current) {
-                if (event.currentTarget.hasPointerCapture(pointerId)) {
-                  event.currentTarget.releasePointerCapture(pointerId);
+              if (activePointersRef.current.size > 1) {
+                setDragBox(null);
+                setMiddlePan(null);
+                for (const pointerId of activePointersRef.current) {
+                  if (event.currentTarget.hasPointerCapture(pointerId)) {
+                    event.currentTarget.releasePointerCapture(pointerId);
+                  }
                 }
+                return;
               }
-              return;
             }
 
             if (!shouldHandleCustomPointer(event)) {
@@ -1297,8 +1315,13 @@ function MermaidViewer({
 
             event.preventDefault();
             event.currentTarget.setPointerCapture(event.pointerId);
-            const modifiers = getSelectionModifiers(event);
             const point = getPointerPosition(event);
+            const modifiers = isCoarsePointer
+              ? getSelectionModifiers(event)
+              : {
+                  add: event.shiftKey,
+                  remove: event.ctrlKey || event.metaKey,
+                };
             setDragBox({
               startX: point.x,
               startY: point.y,
@@ -1310,7 +1333,7 @@ function MermaidViewer({
           }
 
           function handlePointerMove(event: PointerEvent<HTMLDivElement>) {
-            if (activePointersRef.current.size > 1) {
+            if (isCoarsePointer && activePointersRef.current.size > 1) {
               setDragBox(null);
               return;
             }
@@ -1326,13 +1349,18 @@ function MermaidViewer({
               return;
             }
 
-            if (!dragBox || !shouldHandleCustomPointer(event)) {
+            if (!dragBox || (isCoarsePointer && !shouldHandleCustomPointer(event))) {
               return;
             }
 
             event.preventDefault();
-            const modifiers = getSelectionModifiers(event, dragBox);
             const point = getPointerPosition(event);
+            const modifiers = isCoarsePointer
+              ? getSelectionModifiers(event, dragBox)
+              : {
+                  add: event.shiftKey,
+                  remove: event.ctrlKey || event.metaKey,
+                };
             setDragBox((current) =>
               current
                 ? {
@@ -1347,10 +1375,12 @@ function MermaidViewer({
           }
 
           function handlePointerUp(event: PointerEvent<HTMLDivElement>) {
-            trackPointer(event);
+            if (isCoarsePointer) {
+              trackPointer(event);
 
-            if (activePointersRef.current.size > 0) {
-              return;
+              if (activePointersRef.current.size > 0) {
+                return;
+              }
             }
 
             if (middlePan) {
@@ -1359,13 +1389,18 @@ function MermaidViewer({
               return;
             }
 
-            if (!dragBox || !shouldHandleCustomPointer(event)) {
+            if (!dragBox || (isCoarsePointer && !shouldHandleCustomPointer(event))) {
               return;
             }
 
             event.preventDefault();
             const point = getPointerPosition(event);
-            const modifiers = getSelectionModifiers(event, dragBox);
+            const modifiers = isCoarsePointer
+              ? getSelectionModifiers(event, dragBox)
+              : {
+                  add: event.shiftKey || dragBox.shiftKey,
+                  remove: event.ctrlKey || event.metaKey || dragBox.ctrlKey,
+                };
             const finalDragBox = {
               ...dragBox,
               currentX: Math.max(0, Math.min(point.x, point.width)),
@@ -1374,7 +1409,8 @@ function MermaidViewer({
               ctrlKey: modifiers.remove,
             };
             const rect = getDragStyle(finalDragBox);
-            const isClick = rect.width < TAP_DRAG_THRESHOLD_PX && rect.height < TAP_DRAG_THRESHOLD_PX;
+            const clickThreshold = isCoarsePointer ? TAP_DRAG_THRESHOLD_PX : 8;
+            const isClick = rect.width < clickThreshold && rect.height < clickThreshold;
 
             setDragBox(null);
 
@@ -1429,14 +1465,21 @@ function MermaidViewer({
 
           return (
             <>
-              <div className="absolute right-4 top-4 z-30 flex max-w-[calc(100%-2rem)] flex-wrap items-center justify-end gap-1.5 opacity-100 transition-opacity sm:opacity-0 sm:group-hover/diagram:opacity-100">
-                <ToolCluster
-                  icon={<Hand size={14} />}
-                  isActive={toolMode === "pan"}
-                  isCoarsePointer={isCoarsePointer}
-                  label="Pan"
-                  onClick={() => setToolMode("pan")}
-                />
+              <div
+                className={cn(
+                  "absolute right-4 top-4 z-30 flex items-center gap-1.5 opacity-100 transition-opacity sm:opacity-0 sm:group-hover/diagram:opacity-100",
+                  isCoarsePointer && "max-w-[calc(100%-2rem)] flex-wrap justify-end"
+                )}
+              >
+                {isCoarsePointer && (
+                  <ToolCluster
+                    icon={<Hand size={14} />}
+                    isActive={toolMode === "pan"}
+                    isCoarsePointer
+                    label="Pan"
+                    onClick={() => setToolMode("pan")}
+                  />
+                )}
                 <ToolCluster
                   icon={<MousePointer2 size={14} />}
                   isActive={toolMode === "select"}
@@ -1561,7 +1604,9 @@ function MermaidViewer({
                   "relative w-full overflow-hidden",
                   toolMode === "select" && "cursor-crosshair",
                   toolMode === "zoom" && "cursor-zoom-in",
-                  toolMode === "pan" && (middlePan || libraryPanningEnabled ? "cursor-grab" : ""),
+                  isCoarsePointer &&
+                    toolMode === "pan" &&
+                    (middlePan || libraryPanningEnabled ? "cursor-grab" : ""),
                   middlePan && "cursor-grabbing",
                   isFullscreen ? "flex-1" : "min-h-[360px]"
                 )}
@@ -1569,12 +1614,14 @@ function MermaidViewer({
                 onPointerMove={handlePointerMove}
                 onPointerUp={handlePointerUp}
                 onPointerCancel={(event) => {
-                  trackPointer(event);
-                  activePointersRef.current.clear();
+                  if (isCoarsePointer) {
+                    trackPointer(event);
+                    activePointersRef.current.clear();
+                  }
                   setDragBox(null);
                   setMiddlePan(null);
                 }}
-                style={{ touchAction: "none" }}
+                {...(isCoarsePointer ? { style: { touchAction: "none" as const } } : {})}
                 onWheel={handleSelectionWheel}
                 onAuxClick={(event) => event.preventDefault()}
               >
@@ -1599,7 +1646,12 @@ function MermaidViewer({
                   />
                 </TransformComponent>
                 {toolMode === "select" && (
-                  <div className="pointer-events-none absolute left-4 top-4 z-20 max-w-[calc(100%-2rem)] rounded border border-zinc-700 bg-black/80 px-2 py-1 font-mono text-[10px] uppercase tracking-wider text-zinc-400">
+                  <div
+                    className={cn(
+                      "pointer-events-none absolute left-4 top-4 z-20 rounded border border-zinc-700 bg-black/80 px-2 py-1 font-mono text-[10px] uppercase tracking-wider text-zinc-400",
+                      isCoarsePointer && "max-w-[calc(100%-2rem)]"
+                    )}
+                  >
                     {isCoarsePointer
                       ? touchSelectionMode === "remove"
                         ? "Tap or drag to deselect"
