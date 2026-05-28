@@ -8,10 +8,13 @@ import {
   useState,
   type PointerEvent,
   type ReactNode,
+  type WheelEvent,
 } from "react";
 import mermaid from "mermaid";
 import { TransformComponent, TransformWrapper } from "react-zoom-pan-pinch";
 import {
+  ArrowDown,
+  ArrowUp,
   Check,
   Code2,
   Copy,
@@ -80,12 +83,16 @@ type SourceGraph = {
 };
 type ViewFilter = {
   isolatedNodeIds: string[] | null;
-  neighborHops: number;
+  /** Predecessors (upstream / top in TD flowcharts). */
+  neighborHopsUp: number;
+  /** Successors (downstream / bottom in TD flowcharts). */
+  neighborHopsDown: number;
 };
 
 const DEFAULT_VIEW_FILTER: ViewFilter = {
   isolatedNodeIds: null,
-  neighborHops: 0,
+  neighborHopsUp: 0,
+  neighborHopsDown: 0,
 };
 
 const COPY_RESET_DELAY_MS = 2000;
@@ -148,6 +155,37 @@ function getFlowchartEdges(root: HTMLElement): EdgeRecord[] {
     });
 }
 
+function getEdgeStrokeElements(edgeElement: SVGElement) {
+  if (edgeElement.tagName === "path") {
+    return [edgeElement];
+  }
+
+  return Array.from(edgeElement.querySelectorAll<SVGElement>("path"));
+}
+
+function isEdgeConnectedToSelection(edge: EdgeRecord, selectedNodeIds: Set<string>) {
+  if (selectedNodeIds.size === 0 || !edge.source || !edge.target) {
+    return false;
+  }
+
+  return selectedNodeIds.has(edge.source) || selectedNodeIds.has(edge.target);
+}
+
+function applyEdgeSelectionStyle(edge: EdgeRecord, highlighted: boolean) {
+  for (const path of getEdgeStrokeElements(edge.element)) {
+    if (highlighted) {
+      path.style.stroke = "#fbbf24";
+      path.style.strokeWidth = "3px";
+      path.style.filter = "drop-shadow(0 0 6px rgba(251, 191, 36, 0.65))";
+      continue;
+    }
+
+    path.style.stroke = "";
+    path.style.strokeWidth = "";
+    path.style.filter = "";
+  }
+}
+
 function getDragStyle(dragBox: DragBox) {
   const left = Math.min(dragBox.startX, dragBox.currentX);
   const top = Math.min(dragBox.startY, dragBox.currentY);
@@ -159,6 +197,58 @@ function getDragStyle(dragBox: DragBox) {
 
 function intersects(a: DOMRect, b: DOMRect) {
   return a.left <= b.right && a.right >= b.left && a.top <= b.bottom && a.bottom >= b.top;
+}
+
+const ZOOM_STEP_FACTOR = 1.8;
+const ZOOM_ANIMATION_MS = 180;
+
+function getSelectedNodeScreenBounds(diagramRoot: HTMLElement, selectedNodeIds: string[]) {
+  const selected = new Set(selectedNodeIds);
+  const rects = getFlowchartNodes(diagramRoot)
+    .filter((node) => selected.has(node.id))
+    .map((node) => node.element.getBoundingClientRect())
+    .filter((rect) => rect.width > 0 && rect.height > 0);
+
+  if (rects.length === 0) {
+    return null;
+  }
+
+  const left = Math.min(...rects.map((rect) => rect.left));
+  const top = Math.min(...rects.map((rect) => rect.top));
+  const right = Math.max(...rects.map((rect) => rect.right));
+  const bottom = Math.max(...rects.map((rect) => rect.bottom));
+
+  return new DOMRect(left, top, right - left, bottom - top);
+}
+
+function getContentCenterFromScreenBounds(
+  viewportRect: DOMRect,
+  positionX: number,
+  positionY: number,
+  scale: number,
+  screenBounds: DOMRect
+) {
+  const screenCenterX = screenBounds.left + screenBounds.width / 2;
+  const screenCenterY = screenBounds.top + screenBounds.height / 2;
+
+  return {
+    x: (screenCenterX - viewportRect.left - positionX) / scale,
+    y: (screenCenterY - viewportRect.top - positionY) / scale,
+  };
+}
+
+function getCenteredTransform(
+  viewportWidth: number,
+  viewportHeight: number,
+  contentCenterX: number,
+  contentCenterY: number,
+  scale: number
+) {
+  return {
+    x: viewportWidth / 2 - contentCenterX * scale,
+    y: viewportHeight / 2 - contentCenterY * scale,
+    scale,
+  };
 }
 
 function extractSourceIds(segment: string) {
@@ -299,35 +389,65 @@ function parseSourceGraph(source: string): SourceGraph {
   return { initLines, headerLine, nodeIds: Array.from(nodeIds), nodeLines, edges, subgraphs, nodeSubgraph };
 }
 
-function expandNodeIdsByHops(graph: SourceGraph, seedIds: Set<string>, hops: number) {
-  if (hops <= 0) {
-    return new Set(seedIds);
+function clampNeighborHops(value: number) {
+  if (!Number.isFinite(value)) {
+    return 0;
   }
 
+  return Math.min(MAX_NEIGHBOR_HOPS, Math.max(0, Math.round(value)));
+}
+
+function expandNodeIdsByDirectedHops(
+  graph: SourceGraph,
+  seedIds: Set<string>,
+  hopsUp: number,
+  hopsDown: number
+) {
   const visible = new Set(seedIds);
-  let frontier = new Set(seedIds);
 
-  for (let hop = 0; hop < hops; hop += 1) {
-    const nextFrontier = new Set<string>();
+  if (hopsUp > 0) {
+    let frontier = new Set(seedIds);
 
-    for (const nodeId of frontier) {
-      for (const edge of graph.edges) {
-        if (edge.source === nodeId && !visible.has(edge.target)) {
-          visible.add(edge.target);
-          nextFrontier.add(edge.target);
-        }
+    for (let hop = 0; hop < hopsUp; hop += 1) {
+      const nextFrontier = new Set<string>();
 
-        if (edge.target === nodeId && !visible.has(edge.source)) {
-          visible.add(edge.source);
-          nextFrontier.add(edge.source);
+      for (const nodeId of frontier) {
+        for (const edge of graph.edges) {
+          if (edge.target === nodeId && !visible.has(edge.source)) {
+            visible.add(edge.source);
+            nextFrontier.add(edge.source);
+          }
         }
       }
+
+      frontier = nextFrontier;
+
+      if (frontier.size === 0) {
+        break;
+      }
     }
+  }
 
-    frontier = nextFrontier;
+  if (hopsDown > 0) {
+    let frontier = new Set(seedIds);
 
-    if (frontier.size === 0) {
-      break;
+    for (let hop = 0; hop < hopsDown; hop += 1) {
+      const nextFrontier = new Set<string>();
+
+      for (const nodeId of frontier) {
+        for (const edge of graph.edges) {
+          if (edge.source === nodeId && !visible.has(edge.target)) {
+            visible.add(edge.target);
+            nextFrontier.add(edge.target);
+          }
+        }
+      }
+
+      frontier = nextFrontier;
+
+      if (frontier.size === 0) {
+        break;
+      }
     }
   }
 
@@ -344,7 +464,12 @@ function getVisibleNodeIds(graph: SourceGraph, filter: ViewFilter) {
         .filter((nodeId): nodeId is string => Boolean(nodeId))
     );
 
-    visible = expandNodeIdsByHops(graph, isolated, filter.neighborHops);
+    visible = expandNodeIdsByDirectedHops(
+      graph,
+      isolated,
+      filter.neighborHopsUp,
+      filter.neighborHopsDown
+    );
   }
 
   return visible;
@@ -561,57 +686,131 @@ function MermaidSourceFloat({
   );
 }
 
-function HopLevelControl({
+function HopDirectionRow({
+  direction,
   hops,
   maxHops = MAX_NEIGHBOR_HOPS,
   onChange,
 }: {
+  direction: "up" | "down";
   hops: number;
   maxHops?: number;
   onChange: (hops: number) => void;
 }) {
+  const [draft, setDraft] = useState(String(hops));
+  const isUp = direction === "up";
+  const directionLabel = isUp ? "upstream (top)" : "downstream (bottom)";
+
+  useEffect(() => {
+    setDraft(String(hops));
+  }, [hops]);
+
   const segmentClass =
-    "inline-flex size-8 shrink-0 items-center justify-center bg-zinc-900/95 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-white disabled:cursor-not-allowed disabled:opacity-40";
+    "inline-flex size-7 shrink-0 items-center justify-center bg-zinc-900/95 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-white disabled:cursor-not-allowed disabled:opacity-40";
+
+  const commitDraft = () => {
+    const parsed = Number.parseInt(draft, 10);
+
+    if (Number.isNaN(parsed)) {
+      setDraft(String(hops));
+      return;
+    }
+
+    onChange(clampNeighborHops(parsed));
+  };
 
   return (
     <div
       className={cn(
-        "inline-flex h-8 overflow-hidden rounded border",
+        "inline-flex h-7 overflow-hidden rounded border",
         hops > 0 ? "border-indigo-400" : "border-zinc-700"
       )}
       role="group"
-      aria-label={`Neighbor hops: ${hops}`}
+      aria-label={`${directionLabel} neighbor hops: ${hops}`}
     >
+      <div
+        className={cn(
+          "inline-flex w-6 shrink-0 items-center justify-center border-r border-zinc-700",
+          hops > 0 ? "bg-indigo-500/20 text-indigo-200" : "bg-zinc-900/95 text-zinc-500"
+        )}
+        title={directionLabel}
+        aria-hidden
+      >
+        {isUp ? <ArrowUp size={12} /> : <ArrowDown size={12} />}
+      </div>
       <button
         type="button"
-        aria-label="Decrease neighbor hops"
-        title="Decrease neighbor hops"
+        aria-label={`Decrease ${directionLabel} hops`}
+        title={`Decrease ${directionLabel} hops`}
         disabled={hops <= 0}
         onClick={() => onChange(Math.max(0, hops - 1))}
         className={cn(segmentClass, "border-r border-zinc-700")}
       >
-        <Minus size={14} />
+        <Minus size={12} />
       </button>
-      <div
+      <input
+        type="number"
+        min={0}
+        max={maxHops}
+        inputMode="numeric"
+        aria-label={`${directionLabel} hop count`}
+        title={`${directionLabel} hops (0-${maxHops})`}
+        value={draft}
+        onChange={(event) => setDraft(event.target.value)}
+        onBlur={commitDraft}
+        onKeyDown={(event) => {
+          if (event.key === "Enter") {
+            event.currentTarget.blur();
+          }
+
+          if (event.key === "Escape") {
+            setDraft(String(hops));
+            event.currentTarget.blur();
+          }
+        }}
         className={cn(
-          "flex min-w-9 items-center justify-center border-r border-zinc-700 px-1 font-mono text-[10px] uppercase tracking-wider",
-          hops > 0 ? "bg-indigo-500/20 text-indigo-200" : "bg-zinc-900/95 text-zinc-400"
+          "h-7 w-9 shrink-0 border-r border-zinc-700 bg-zinc-900/95 px-0 text-center font-mono text-[11px] tabular-nums text-zinc-200 outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
+          hops > 0 && "bg-indigo-500/20 text-indigo-100"
         )}
-        aria-live="polite"
-        title={`${hops} hop${hops === 1 ? "" : "s"} of neighbors`}
-      >
-        ±{hops}
-      </div>
+      />
       <button
         type="button"
-        aria-label="Increase neighbor hops"
-        title="Increase neighbor hops"
+        aria-label={`Increase ${directionLabel} hops`}
+        title={`Increase ${directionLabel} hops`}
         disabled={hops >= maxHops}
         onClick={() => onChange(Math.min(maxHops, hops + 1))}
         className={segmentClass}
       >
-        <Plus size={14} />
+        <Plus size={12} />
       </button>
+    </div>
+  );
+}
+
+function DirectedHopControls({
+  hopsUp,
+  hopsDown,
+  onChangeUp,
+  onChangeDown,
+}: {
+  hopsUp: number;
+  hopsDown: number;
+  onChangeUp: (hops: number) => void;
+  onChangeDown: (hops: number) => void;
+}) {
+  const isActive = hopsUp > 0 || hopsDown > 0;
+
+  return (
+    <div
+      className={cn(
+        "flex flex-col gap-1 rounded border p-1 shadow-lg",
+        isActive ? "border-indigo-400/80 bg-zinc-950/90" : "border-zinc-700 bg-zinc-950/90"
+      )}
+      role="group"
+      aria-label={`Neighbor hops: ${hopsUp} up, ${hopsDown} down`}
+    >
+      <HopDirectionRow direction="up" hops={hopsUp} onChange={onChangeUp} />
+      <HopDirectionRow direction="down" hops={hopsDown} onChange={onChangeDown} />
     </div>
   );
 }
@@ -674,6 +873,7 @@ function MermaidViewer({
   const [middlePan, setMiddlePan] = useState<MiddlePan | null>(null);
 
   const isIsolateActive = Boolean(viewFilter.isolatedNodeIds?.length);
+  const focusZoomOnSelection = toolMode === "select" && selectedNodeIds.length > 0;
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -737,8 +937,23 @@ function MermaidViewer({
       }
     }
 
+    const styledEdgeKeys = new Set<string>();
+
     for (const edge of getFlowchartEdges(root)) {
       edge.element.style.display = "";
+
+      const edgeKey =
+        edge.source && edge.target ? `${edge.source}\0${edge.target}` : edge.element.getAttribute("id") ?? "";
+
+      if (edgeKey && styledEdgeKeys.has(edgeKey)) {
+        continue;
+      }
+
+      if (edgeKey) {
+        styledEdgeKeys.add(edgeKey);
+      }
+
+      applyEdgeSelectionStyle(edge, isEdgeConnectedToSelection(edge, selected));
     }
   }, [selectedNodeIds, svg]);
 
@@ -794,12 +1009,56 @@ function MermaidViewer({
         maxScale={1000}
         centerOnInit
         limitToBounds={false}
-        doubleClick={{ disabled: toolMode !== "zoom", mode: "zoomIn", step: 1.8 }}
-        wheel={{ step: 0.18 }}
+        doubleClick={{ disabled: toolMode !== "zoom", mode: "zoomIn", step: ZOOM_STEP_FACTOR }}
+        wheel={{ step: 0.18, disabled: focusZoomOnSelection }}
         pinch={{ step: 8 }}
         panning={{ disabled: true, velocityDisabled: false }}
       >
         {({ zoomIn, zoomOut, resetTransform, setTransform, state }) => {
+          function zoomAroundSelection(direction: "in" | "out") {
+            const viewport = viewportRef.current;
+            const root = diagramRef.current;
+
+            if (!viewport || !root || selectedNodeIds.length === 0) {
+              return;
+            }
+
+            const screenBounds = getSelectedNodeScreenBounds(root, selectedNodeIds);
+
+            if (!screenBounds) {
+              return;
+            }
+
+            const viewportRect = viewport.getBoundingClientRect();
+            const contentCenter = getContentCenterFromScreenBounds(
+              viewportRect,
+              state.positionX,
+              state.positionY,
+              state.scale || 1,
+              screenBounds
+            );
+            const factor = direction === "in" ? ZOOM_STEP_FACTOR : 1 / ZOOM_STEP_FACTOR;
+            const newScale = Math.max(0.02, Math.min(1000, (state.scale || 1) * factor));
+            const transform = getCenteredTransform(
+              viewportRect.width,
+              viewportRect.height,
+              contentCenter.x,
+              contentCenter.y,
+              newScale
+            );
+
+            setTransform(transform.x, transform.y, transform.scale, ZOOM_ANIMATION_MS);
+          }
+
+          function handleSelectionWheel(event: WheelEvent<HTMLDivElement>) {
+            if (!focusZoomOnSelection) {
+              return;
+            }
+
+            event.preventDefault();
+            event.stopPropagation();
+            zoomAroundSelection(event.deltaY < 0 ? "in" : "out");
+          }
           fitViewRef.current = () => {
             const viewport = viewportRef.current;
             const svgElement = diagramRef.current?.querySelector("svg");
@@ -1015,7 +1274,8 @@ function MermaidViewer({
 
                       onViewFilterChange({
                         isolatedNodeIds: selectedNodeIds,
-                        neighborHops: 0,
+                        neighborHopsUp: 0,
+                        neighborHopsDown: 0,
                       });
                       setSelectedNodeIds([]);
                     }}
@@ -1024,12 +1284,19 @@ function MermaidViewer({
                   </SubToolButton>
                 </ToolCluster>
                 {hasFilter && (
-                  <HopLevelControl
-                    hops={viewFilter.neighborHops}
-                    onChange={(neighborHops) => {
+                  <DirectedHopControls
+                    hopsUp={viewFilter.neighborHopsUp}
+                    hopsDown={viewFilter.neighborHopsDown}
+                    onChangeUp={(neighborHopsUp) => {
                       onViewFilterChange({
                         ...viewFilter,
-                        neighborHops,
+                        neighborHopsUp: clampNeighborHops(neighborHopsUp),
+                      });
+                    }}
+                    onChangeDown={(neighborHopsDown) => {
+                      onViewFilterChange({
+                        ...viewFilter,
+                        neighborHopsDown: clampNeighborHops(neighborHopsDown),
                       });
                     }}
                   />
@@ -1040,10 +1307,30 @@ function MermaidViewer({
                   label="Zoom"
                   onClick={() => setToolMode("zoom")}
                 >
-                  <SubToolButton label="Zoom in" onClick={() => zoomIn(1.8)}>
+                  <SubToolButton
+                    label="Zoom in"
+                    onClick={() => {
+                      if (focusZoomOnSelection) {
+                        zoomAroundSelection("in");
+                        return;
+                      }
+
+                      zoomIn(ZOOM_STEP_FACTOR);
+                    }}
+                  >
                     <ZoomIn size={14} />
                   </SubToolButton>
-                  <SubToolButton label="Zoom out" onClick={() => zoomOut(1.8)}>
+                  <SubToolButton
+                    label="Zoom out"
+                    onClick={() => {
+                      if (focusZoomOnSelection) {
+                        zoomAroundSelection("out");
+                        return;
+                      }
+
+                      zoomOut(ZOOM_STEP_FACTOR);
+                    }}
+                  >
                     <ZoomOut size={14} />
                   </SubToolButton>
                 </ToolCluster>
@@ -1098,6 +1385,7 @@ function MermaidViewer({
                   setDragBox(null);
                   setMiddlePan(null);
                 }}
+                onWheel={handleSelectionWheel}
                 onAuxClick={(event) => event.preventDefault()}
               >
                 <TransformComponent
@@ -1150,7 +1438,7 @@ function MermaidViewer({
         }}
       </TransformWrapper>
       <div className="mt-2 text-center font-mono text-[10px] uppercase tracking-widest text-zinc-600 opacity-100 transition-opacity sm:opacity-0 sm:group-hover/diagram:opacity-100">
-        Select nodes, isolate crops the source, +/- hop control expands neighbors - wheel zooms, middle mouse pans
+        Select nodes, wheel and zoom buttons focus on selection when nodes are selected - middle mouse pans
       </div>
     </div>
   );
