@@ -31,13 +31,17 @@ This chapter maps a detailed A.A.S. simulation for how an agent would research, 
 flowchart TD
     A0(["User goal: simulate a contest-grade pivot door design workflow"])
     A1["Chat workspace receives prompt"]
-    A2["Backend command: create_project_goal"]
-    A3["Normalize GoalState"]
-    A4["Create project: Pivot Door Sketch Contest 2026"]
-    A5["Create session: concept-to-board simulation"]
-    A6["Initialize WorldState"]
-    A7["Emit event: aas.world.created"]
     A8["Open Architect direction field"]
+
+    subgraph GPS ["Goal And Project Setup"]
+        direction TB
+        A2["Backend command: create_project_goal"]
+        A3["Normalize GoalState"]
+        A4["Create project: Pivot Door Sketch Contest 2026"]
+        A5["Create session: concept-to-board simulation"]
+        A6["Initialize WorldState"]
+        A7["Emit event: aas.world.created"]
+    end
 
     A0 ==> A1
     A1 ==> A2
@@ -1040,6 +1044,7 @@ flowchart TD
     EX9 ==> END(["A.A.S. state: delivered package, committed concept, traceable decision history"])
     END ==> S7
 
+    style A0 fill:#7f1d1d,stroke:#fecaca,color:#ffffff,stroke-width:4px
     linkStyle 0,1,2,3,4,5,6,7 stroke:#818cf8,stroke-width:4px
     linkStyle 8,9,10,11,12,13,14,15,16 stroke:#818cf8,stroke-width:2px
 ```

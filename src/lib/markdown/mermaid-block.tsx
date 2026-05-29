@@ -8,7 +8,6 @@ import {
   useState,
   type PointerEvent,
   type ReactNode,
-  type WheelEvent,
 } from "react";
 import mermaid from "mermaid";
 import { TransformComponent, TransformWrapper } from "react-zoom-pan-pinch";
@@ -69,12 +68,14 @@ type SourceEdge = {
 type SubgraphBlock = {
   id: string;
   headerLine: string;
+  label: string;
   direction: string | null;
   nodeIds: string[];
 };
 type SourceGraph = {
   initLines: string[];
   headerLine: string;
+  styleLines: string[];
   nodeIds: string[];
   nodeLines: Map<string, string>;
   edges: SourceEdge[];
@@ -97,6 +98,7 @@ const DEFAULT_VIEW_FILTER: ViewFilter = {
 
 const COPY_RESET_DELAY_MS = 2000;
 const MAX_NEIGHBOR_HOPS = 8;
+const ORIGIN_NODE_ID = "A0";
 
 const DIAGRAM_TOOLBAR_BTN =
   "inline-flex size-8 shrink-0 items-center justify-center rounded border p-0 transition-colors hover:bg-zinc-800 hover:text-white";
@@ -127,8 +129,28 @@ function getNodeIdFromElement(element: Element) {
   return sourceId ? normalizeMermaidId(sourceId) : null;
 }
 
+function closestElement<T extends Element>(element: Element, selector: string) {
+  let current: Element | null = element;
+
+  while (current) {
+    if (current.matches(selector)) {
+      return current as T;
+    }
+
+    current = current.parentNode instanceof Element ? current.parentNode : null;
+  }
+
+  return null;
+}
+
 function getNodeElementFromTarget(target: Element) {
-  return target.closest<SVGGElement>("g.node[id]");
+  const nodeElement = closestElement<SVGGElement>(target, "g.node[id]");
+  if (nodeElement) {
+    return nodeElement;
+  }
+
+  const labelElement = closestElement<SVGGElement>(target, "g.nodeLabel, g.label");
+  return labelElement ? closestElement<SVGGElement>(labelElement, "g.node[id]") : null;
 }
 
 function getEndpointFromClassList(element: Element, prefix: "LS-" | "LE-") {
@@ -262,6 +284,130 @@ function getSubgraphId(line: string, index: number) {
   return match?.[1] ?? `Subgraph${index + 1}`;
 }
 
+function getSubgraphLabel(headerLine: string, id: string) {
+  const quotedMatch = headerLine.match(/\["([^"]+)"\]/);
+  if (quotedMatch) {
+    return quotedMatch[1];
+  }
+
+  const bracketMatch = headerLine.match(/\[(?!["'])([^\]]+)\]/);
+  if (bracketMatch) {
+    return bracketMatch[1].trim();
+  }
+
+  return id;
+}
+
+function escapeMermaidLabel(label: string) {
+  return label.replace(/"/g, "#quot;");
+}
+
+function isDatabaseNodeLine(line: string) {
+  return /\[\(\s*"/.test(line) || /\[\(\s*[^)]+\)\]/.test(line);
+}
+
+function isSubgraphId(graph: SourceGraph, id: string) {
+  return graph.subgraphs.some((subgraph) => subgraph.id === id);
+}
+
+function resolveCollapsedEndpoint(
+  graph: SourceGraph,
+  nodeId: string,
+  collapsedSubgraphIds: Set<string>
+) {
+  if (isSubgraphId(graph, nodeId)) {
+    return collapsedSubgraphIds.has(nodeId) ? nodeId : nodeId;
+  }
+
+  const subgraphId = graph.nodeSubgraph.get(nodeId);
+  if (subgraphId && collapsedSubgraphIds.has(subgraphId)) {
+    return subgraphId;
+  }
+
+  return nodeId;
+}
+
+function isEndpointVisible(
+  graph: SourceGraph,
+  endpointId: string,
+  expandedSubgraphIds: Set<string>,
+  visibleNodeIds: Set<string> | null
+) {
+  if (!visibleNodeIds) {
+    return true;
+  }
+
+  if (isSubgraphId(graph, endpointId)) {
+    if (expandedSubgraphIds.has(endpointId)) {
+      const subgraph = graph.subgraphs.find((item) => item.id === endpointId);
+      return subgraph ? subgraph.nodeIds.some((nodeId) => visibleNodeIds.has(nodeId)) : false;
+    }
+
+    const subgraph = graph.subgraphs.find((item) => item.id === endpointId);
+    return subgraph ? subgraph.nodeIds.some((nodeId) => visibleNodeIds.has(nodeId)) : visibleNodeIds.has(endpointId);
+  }
+
+  if (visibleNodeIds.has(endpointId)) {
+    return true;
+  }
+
+  const subgraphId = graph.nodeSubgraph.get(endpointId);
+  if (!subgraphId) {
+    return false;
+  }
+
+  if (expandedSubgraphIds.has(subgraphId)) {
+    return visibleNodeIds.has(endpointId);
+  }
+
+  return graph.subgraphs
+    .find((item) => item.id === subgraphId)
+    ?.nodeIds.some((nodeId) => visibleNodeIds.has(nodeId)) ?? false;
+}
+
+function getSubgraphIdFromNodeElement(nodeElement: SVGGElement, subgraphs: SubgraphBlock[]) {
+  const nodeId = getNodeIdFromElement(nodeElement);
+
+  if (nodeId && subgraphs.some((subgraph) => subgraph.id === nodeId)) {
+    return nodeId;
+  }
+
+  const labelText = getSvgText(nodeElement);
+
+  if (!labelText) {
+    return null;
+  }
+
+  return subgraphs.find((subgraph) => subgraph.label === labelText)?.id ?? null;
+}
+
+function getSvgText(element: Element) {
+  return element.textContent?.replace(/\s+/g, " ").trim() ?? "";
+}
+
+function getClusterLabelElement(cluster: Element) {
+  return cluster.querySelector<Element>(".cluster-label, .label");
+}
+
+function extractSubgraphIdFromCluster(cluster: Element, subgraphs: SubgraphBlock[]) {
+  const clusterId = cluster.getAttribute("id") ?? "";
+
+  for (const subgraph of subgraphs) {
+    if (clusterId.includes(subgraph.id)) {
+      return subgraph.id;
+    }
+  }
+
+  const labelElement = getClusterLabelElement(cluster);
+  const labelText = labelElement ? getSvgText(labelElement) : getSvgText(cluster);
+
+  if (!labelText) {
+    return null;
+  }
+
+  return subgraphs.find((subgraph) => subgraph.label === labelText)?.id ?? null;
+}
+
 function resolveSourceNodeId(graph: SourceGraph, id: string) {
   if (graph.nodeLines.has(id) || graph.nodeIds.includes(id)) {
     return id;
@@ -278,6 +424,7 @@ function resolveSourceNodeId(graph: SourceGraph, id: string) {
 function parseSourceGraph(source: string): SourceGraph {
   const initLines: string[] = [];
   let headerLine = "flowchart TD";
+  const styleLines: string[] = [];
   const nodeLines = new Map<string, string>();
   const nodeIds = new Set<string>();
   const edges: SourceEdge[] = [];
@@ -318,10 +465,17 @@ function parseSourceGraph(source: string): SourceGraph {
       continue;
     }
 
+    if (/^(style|classDef|class)\b/.test(line)) {
+      styleLines.push(line);
+      continue;
+    }
+
     if (/^subgraph\b/.test(line)) {
+      const id = getSubgraphId(line, subgraphs.length + subgraphStack.length);
       subgraphStack.push({
-        id: getSubgraphId(line, subgraphs.length + subgraphStack.length),
+        id,
         headerLine: line,
+        label: getSubgraphLabel(line, id),
         direction: null,
         nodeIds: [],
       });
@@ -386,7 +540,7 @@ function parseSourceGraph(source: string): SourceGraph {
     }
   }
 
-  return { initLines, headerLine, nodeIds: Array.from(nodeIds), nodeLines, edges, subgraphs, nodeSubgraph };
+  return { initLines, headerLine, styleLines, nodeIds: Array.from(nodeIds), nodeLines, edges, subgraphs, nodeSubgraph };
 }
 
 function clampNeighborHops(value: number) {
@@ -475,68 +629,153 @@ function getVisibleNodeIds(graph: SourceGraph, filter: ViewFilter) {
   return visible;
 }
 
-// Rebuilds flowchart source from visible nodes/edges only. Subgraph/linkStyle lines are
-// omitted because linkStyle indices do not survive edge removal.
-function createIsolatedMermaidSource(graph: SourceGraph, visibleNodeIds: Set<string>) {
+// Rebuilds flowchart source with optional subgraph collapse and node isolation.
+function createDisplayMermaidSource(
+  graph: SourceGraph,
+  expandedSubgraphIds: Set<string>,
+  visibleNodeIds: Set<string> | null
+) {
+  const collapsedSubgraphIds = new Set(
+    graph.subgraphs.map((subgraph) => subgraph.id).filter((id) => !expandedSubgraphIds.has(id))
+  );
   const lines = [...graph.initLines, graph.headerLine];
   const emittedNodeIds = new Set<string>();
+  const databaseNodeIds = new Set<string>();
+  const groupNodeIds = new Set<string>();
+
+  lines.push("    classDef dbNode fill:#0c4a6e,stroke:#38bdf8,stroke-width:2px,color:#e0f2fe");
+  lines.push("    classDef groupNode fill:#312e81,stroke:#a78bfa,stroke-width:2px,color:#ede9fe");
+
+  function emitNodeLine(nodeId: string, indent: string) {
+    const nodeLine = graph.nodeLines.get(nodeId) ?? `${nodeId}[${nodeId}]`;
+    lines.push(`${indent}${nodeLine}`);
+    emittedNodeIds.add(nodeId);
+
+    if (isDatabaseNodeLine(nodeLine)) {
+      databaseNodeIds.add(nodeId);
+    }
+  }
 
   for (const subgraph of graph.subgraphs) {
-    const visibleSubgraphNodeIds = subgraph.nodeIds.filter((nodeId) => visibleNodeIds.has(nodeId));
+    if (expandedSubgraphIds.has(subgraph.id)) {
+      const visibleSubgraphNodeIds = visibleNodeIds
+        ? subgraph.nodeIds.filter((nodeId) => visibleNodeIds.has(nodeId))
+        : subgraph.nodeIds;
 
-    if (visibleSubgraphNodeIds.length === 0) {
+      if (visibleSubgraphNodeIds.length === 0) {
+        continue;
+      }
+
+      lines.push(`    ${subgraph.headerLine}`);
+
+      if (subgraph.direction) {
+        lines.push(`        ${subgraph.direction}`);
+      }
+
+      for (const nodeId of visibleSubgraphNodeIds) {
+        emitNodeLine(nodeId, "        ");
+      }
+
+      lines.push("    end");
       continue;
     }
 
-    lines.push(`    ${subgraph.headerLine}`);
+    const hasVisibleMembers = visibleNodeIds
+      ? subgraph.nodeIds.some((nodeId) => visibleNodeIds.has(nodeId))
+      : subgraph.nodeIds.length > 0;
 
-    if (subgraph.direction) {
-      lines.push(`        ${subgraph.direction}`);
+    if (!hasVisibleMembers) {
+      continue;
     }
 
-    for (const nodeId of visibleSubgraphNodeIds) {
-      lines.push(`        ${graph.nodeLines.get(nodeId) ?? `${nodeId}[${nodeId}]`}`);
-      emittedNodeIds.add(nodeId);
-    }
-
-    lines.push("    end");
+    lines.push(`    ${subgraph.id}{{"${escapeMermaidLabel(subgraph.label)}"}}`);
+    emittedNodeIds.add(subgraph.id);
+    groupNodeIds.add(subgraph.id);
   }
 
   for (const nodeId of graph.nodeIds) {
-    if (!visibleNodeIds.has(nodeId) || emittedNodeIds.has(nodeId) || graph.nodeSubgraph.has(nodeId)) {
+    if (emittedNodeIds.has(nodeId) || graph.nodeSubgraph.has(nodeId)) {
       continue;
     }
 
-    lines.push(`    ${graph.nodeLines.get(nodeId) ?? `${nodeId}[${nodeId}]`}`);
+    if (visibleNodeIds && !visibleNodeIds.has(nodeId) && !isSubgraphId(graph, nodeId)) {
+      continue;
+    }
+
+    if (isSubgraphId(graph, nodeId) && !expandedSubgraphIds.has(nodeId)) {
+      continue;
+    }
+
+    emitNodeLine(nodeId, "    ");
   }
 
   const edgeKeys = new Set<string>();
   for (const edge of graph.edges) {
-    if (!visibleNodeIds.has(edge.source) || !visibleNodeIds.has(edge.target)) {
+    const sourceExpandedSubgraph = isSubgraphId(graph, edge.source) && expandedSubgraphIds.has(edge.source);
+    const targetExpandedSubgraph = isSubgraphId(graph, edge.target) && expandedSubgraphIds.has(edge.target);
+
+    const source = sourceExpandedSubgraph
+      ? edge.source
+      : resolveCollapsedEndpoint(graph, edge.source, collapsedSubgraphIds);
+    const target = targetExpandedSubgraph
+      ? edge.target
+      : resolveCollapsedEndpoint(graph, edge.target, collapsedSubgraphIds);
+
+    if (source === target) {
       continue;
     }
 
-    const key = `${edge.source}-${edge.arrow}-${edge.target}`;
+    if (
+      visibleNodeIds &&
+      (!isEndpointVisible(graph, source, expandedSubgraphIds, visibleNodeIds) ||
+        !isEndpointVisible(graph, target, expandedSubgraphIds, visibleNodeIds))
+    ) {
+      continue;
+    }
+
+    const key = `${source}-${edge.arrow}-${target}`;
     if (edgeKeys.has(key)) {
       continue;
     }
 
     edgeKeys.add(key);
-    lines.push(`    ${edge.source} ${edge.arrow} ${edge.target}`);
+    lines.push(`    ${source} ${edge.arrow} ${target}`);
   }
+
+  if (databaseNodeIds.size > 0) {
+    lines.push(`    class ${Array.from(databaseNodeIds).join(",")} dbNode`);
+  }
+
+  if (groupNodeIds.size > 0) {
+    lines.push(`    class ${Array.from(groupNodeIds).join(",")} groupNode`);
+  }
+
+  lines.push(...graph.styleLines.map((line) => `    ${line}`));
 
   return lines.join("\n");
 }
 
-function createFilteredSourceFromView(source: string, filter: ViewFilter) {
-  if (!filter.isolatedNodeIds?.length) {
+function createFilteredSourceFromView(
+  source: string,
+  viewFilter: ViewFilter,
+  expandedSubgraphIds: Set<string>
+) {
+  const graph = parseSourceGraph(source);
+  const hasSubgraphs = graph.subgraphs.length > 0;
+  const hasIsolation = Boolean(viewFilter.isolatedNodeIds?.length);
+  const allExpanded = !hasSubgraphs || graph.subgraphs.every((subgraph) => expandedSubgraphIds.has(subgraph.id));
+
+  if (!hasSubgraphs && !hasIsolation) {
     return source;
   }
 
-  const graph = parseSourceGraph(source);
-  const visible = getVisibleNodeIds(graph, filter);
+  if (allExpanded && !hasIsolation) {
+    return source;
+  }
 
-  return createIsolatedMermaidSource(graph, visible);
+  const visibleNodeIds = hasIsolation ? getVisibleNodeIds(graph, viewFilter) : null;
+
+  return createDisplayMermaidSource(graph, expandedSubgraphIds, visibleNodeIds);
 }
 
 function hashSource(source: string) {
@@ -849,24 +1088,37 @@ function SubToolButton({
 
 function MermaidViewer({
   activeSource,
+  collapsedSubgraphIds,
+  graphSubgraphs,
   hasFilter,
+  hasSubgraphCollapse,
   svg,
   isFullscreen,
   viewFilter,
+  onToggleSubgraph,
+  onResetView,
   onViewFilterChange,
   onToggleFullscreen,
 }: {
   activeSource: string;
+  collapsedSubgraphIds: Set<string>;
+  graphSubgraphs: SubgraphBlock[];
   hasFilter: boolean;
+  hasSubgraphCollapse: boolean;
   svg: string;
   isFullscreen: boolean;
   viewFilter: ViewFilter;
+  onToggleSubgraph: (subgraphId: string) => void;
+  onResetView: () => void;
   onViewFilterChange: (filter: ViewFilter) => void;
   onToggleFullscreen: () => void;
 }) {
   const diagramRef = useRef<HTMLDivElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
   const fitViewRef = useRef<(() => void) | null>(null);
+  const zoomAroundSelectionRef = useRef<(direction: "in" | "out") => void>(() => {});
+  const lastGroupToggleRef = useRef({ subgraphId: "", time: 0 });
+  const lastGroupClickRef = useRef({ subgraphId: "", time: 0 });
   const [toolMode, setToolMode] = useState<ToolMode>("select");
   const [dragBox, setDragBox] = useState<DragBox | null>(null);
   const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([]);
@@ -874,6 +1126,119 @@ function MermaidViewer({
 
   const isIsolateActive = Boolean(viewFilter.isolatedNodeIds?.length);
   const focusZoomOnSelection = toolMode === "select" && selectedNodeIds.length > 0;
+
+  function toggleSubgraphOnce(subgraphId: string) {
+    const now = window.performance.now();
+    const lastToggle = lastGroupToggleRef.current;
+
+    if (lastToggle.subgraphId === subgraphId && now - lastToggle.time < 250) {
+      return;
+    }
+
+    lastGroupToggleRef.current = { subgraphId, time: now };
+    onToggleSubgraph(subgraphId);
+  }
+
+  function getToggleSubgraphIdFromTarget(target: Element) {
+    const nodeElement = getNodeElementFromTarget(target);
+    if (nodeElement) {
+      const subgraphId = getSubgraphIdFromNodeElement(nodeElement, graphSubgraphs);
+
+      if (subgraphId && collapsedSubgraphIds.has(subgraphId)) {
+        return subgraphId;
+      }
+    }
+
+    const targetText = getSvgText(target);
+    const labelMatch = graphSubgraphs.find((subgraph) => subgraph.label === targetText);
+    if (labelMatch && !collapsedSubgraphIds.has(labelMatch.id)) {
+      return labelMatch.id;
+    }
+
+    const cluster = closestElement<SVGGElement>(target, "g.cluster");
+    const clusterLabel = closestElement<Element>(target, ".cluster-label, .label");
+    const clusterTitle = cluster ? getClusterLabelElement(cluster) : null;
+    if (
+      !cluster ||
+      !clusterLabel ||
+      !clusterTitle ||
+      (clusterLabel !== clusterTitle && !clusterTitle.contains(clusterLabel))
+    ) {
+      return null;
+    }
+
+    const subgraphId = extractSubgraphIdFromCluster(cluster, graphSubgraphs);
+    return subgraphId && !collapsedSubgraphIds.has(subgraphId) ? subgraphId : null;
+  }
+
+  function getToggleSubgraphIdFromPoint(clientX: number, clientY: number) {
+    for (const element of document.elementsFromPoint(clientX, clientY)) {
+      if (!(element instanceof Element)) {
+        continue;
+      }
+
+      const subgraphId = getToggleSubgraphIdFromTarget(element);
+      if (subgraphId) {
+        return subgraphId;
+      }
+    }
+
+    return null;
+  }
+
+  useEffect(() => {
+    const viewport = viewportRef.current;
+
+    if (!viewport) {
+      return;
+    }
+
+    const viewportElement = viewport;
+
+    function preventPageScroll(event: Event) {
+      const wheelEvent = event as globalThis.WheelEvent;
+
+      if ((wheelEvent.target as Element).closest("[data-mermaid-ui]")) {
+        return;
+      }
+
+      wheelEvent.preventDefault();
+    }
+
+    viewportElement.addEventListener("wheel", preventPageScroll, { passive: false, capture: true });
+
+    return () => {
+      viewportElement.removeEventListener("wheel", preventPageScroll, { capture: true });
+    };
+  }, [svg, isFullscreen]);
+
+  useEffect(() => {
+    const viewport = viewportRef.current;
+
+    if (!viewport || !focusZoomOnSelection) {
+      return;
+    }
+
+    const viewportElement = viewport;
+
+    function handleSelectionWheel(event: Event) {
+      const wheelEvent = event as globalThis.WheelEvent;
+
+      if ((wheelEvent.target as Element).closest("[data-mermaid-ui]")) {
+        return;
+      }
+
+      wheelEvent.preventDefault();
+      wheelEvent.stopPropagation();
+      zoomAroundSelectionRef.current(wheelEvent.deltaY < 0 ? "in" : "out");
+    }
+
+    viewportElement.addEventListener("wheel", handleSelectionWheel, { passive: false });
+
+    return () => {
+      viewportElement.removeEventListener("wheel", handleSelectionWheel);
+    };
+  }, [focusZoomOnSelection, selectedNodeIds, svg, isFullscreen]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -925,15 +1290,44 @@ function MermaidViewer({
 
     for (const node of nodes) {
       node.element.style.display = "";
-      node.element.style.cursor = "pointer";
+      const subgraphId = getSubgraphIdFromNodeElement(node.element, graphSubgraphs);
+      const isCollapsedGroup = Boolean(subgraphId && collapsedSubgraphIds.has(subgraphId));
+      node.element.style.cursor = isCollapsedGroup ? "pointer" : "pointer";
 
       const shape = node.element.querySelector<SVGElement>("rect, polygon, circle, ellipse, path");
       if (shape) {
-        shape.style.stroke = selected.has(node.id) ? "#fbbf24" : "";
+        const isOriginNode = node.id === ORIGIN_NODE_ID;
+        shape.style.fill = isOriginNode ? "#7f1d1d" : "";
+        shape.style.stroke = selected.has(node.id) ? "#fbbf24" : isOriginNode ? "#f87171" : "";
         shape.style.strokeWidth = selected.has(node.id) ? "4px" : "";
         shape.style.filter = selected.has(node.id)
           ? "drop-shadow(0 0 10px rgba(251, 191, 36, 0.75))"
+          : isOriginNode
+            ? "drop-shadow(0 0 10px rgba(248, 113, 113, 0.55))"
           : "";
+
+        if (isCollapsedGroup) {
+          node.element.setAttribute("title", "Double-click to expand group");
+        } else {
+          node.element.removeAttribute("title");
+        }
+      }
+    }
+
+    for (const cluster of Array.from(root.querySelectorAll<SVGGElement>("g.cluster"))) {
+      const subgraphId = extractSubgraphIdFromCluster(cluster, graphSubgraphs);
+      const isExpandedGroup = subgraphId && !collapsedSubgraphIds.has(subgraphId);
+      const labelElement = getClusterLabelElement(cluster) as SVGElement | null;
+
+      cluster.style.cursor = "";
+      cluster.setAttribute("title", "");
+
+      if (labelElement) {
+        labelElement.style.cursor = isExpandedGroup ? "pointer" : "";
+        labelElement.setAttribute(
+          "title",
+          isExpandedGroup ? "Double-click group label to collapse" : ""
+        );
       }
     }
 
@@ -955,7 +1349,46 @@ function MermaidViewer({
 
       applyEdgeSelectionStyle(edge, isEdgeConnectedToSelection(edge, selected));
     }
-  }, [selectedNodeIds, svg]);
+  }, [collapsedSubgraphIds, graphSubgraphs, selectedNodeIds, svg]);
+
+  useEffect(() => {
+    const root = diagramRef.current;
+
+    if (!root) {
+      return;
+    }
+
+    function handleGroupActivation(event: globalThis.MouseEvent) {
+      const target = event.target;
+
+      if (!(target instanceof Element) || target.closest("[data-mermaid-ui]")) {
+        return;
+      }
+
+      const subgraphId = getToggleSubgraphIdFromTarget(target);
+      if (!subgraphId) {
+        return;
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+      toggleSubgraphOnce(subgraphId);
+    }
+
+    function handleSvgClick(event: globalThis.MouseEvent) {
+      if (event.detail >= 2) {
+        handleGroupActivation(event);
+      }
+    }
+
+    root.addEventListener("click", handleSvgClick);
+    root.addEventListener("dblclick", handleGroupActivation);
+
+    return () => {
+      root.removeEventListener("click", handleSvgClick);
+      root.removeEventListener("dblclick", handleGroupActivation);
+    };
+  }, [collapsedSubgraphIds, graphSubgraphs, onToggleSubgraph, svg]);
 
   function getPointerPosition(event: PointerEvent<HTMLDivElement>) {
     const bounds = event.currentTarget.getBoundingClientRect();
@@ -1009,8 +1442,9 @@ function MermaidViewer({
         maxScale={1000}
         centerOnInit
         limitToBounds={false}
+        smooth
         doubleClick={{ disabled: toolMode !== "zoom", mode: "zoomIn", step: ZOOM_STEP_FACTOR }}
-        wheel={{ step: 0.18, disabled: focusZoomOnSelection }}
+        wheel={{ step: 0.15, disabled: focusZoomOnSelection }}
         pinch={{ step: 8 }}
         panning={{ disabled: true, velocityDisabled: false }}
       >
@@ -1050,15 +1484,8 @@ function MermaidViewer({
             setTransform(transform.x, transform.y, transform.scale, ZOOM_ANIMATION_MS);
           }
 
-          function handleSelectionWheel(event: WheelEvent<HTMLDivElement>) {
-            if (!focusZoomOnSelection) {
-              return;
-            }
+          zoomAroundSelectionRef.current = zoomAroundSelection;
 
-            event.preventDefault();
-            event.stopPropagation();
-            zoomAroundSelection(event.deltaY < 0 ? "in" : "out");
-          }
           fitViewRef.current = () => {
             const viewport = viewportRef.current;
             const svgElement = diagramRef.current?.querySelector("svg");
@@ -1136,7 +1563,6 @@ function MermaidViewer({
               return;
             }
 
-            event.preventDefault();
             event.currentTarget.setPointerCapture(event.pointerId);
             const point = getPointerPosition(event);
             setDragBox({
@@ -1191,7 +1617,6 @@ function MermaidViewer({
               return;
             }
 
-            event.preventDefault();
             const point = getPointerPosition(event);
             const finalDragBox = {
               ...dragBox,
@@ -1207,6 +1632,22 @@ function MermaidViewer({
 
             if (toolMode === "select") {
               if (isClick) {
+                const toggleSubgraphId = getToggleSubgraphIdFromPoint(event.clientX, event.clientY);
+                if (toggleSubgraphId) {
+                  const now = window.performance.now();
+                  const lastClick = lastGroupClickRef.current;
+
+                  if (lastClick.subgraphId === toggleSubgraphId && now - lastClick.time < 450) {
+                    lastGroupClickRef.current = { subgraphId: "", time: 0 };
+                    toggleSubgraphOnce(toggleSubgraphId);
+                    return;
+                  }
+
+                  lastGroupClickRef.current = { subgraphId: toggleSubgraphId, time: now };
+                } else {
+                  lastGroupClickRef.current = { subgraphId: "", time: 0 };
+                }
+
                 const nodeId = getNodeFromPoint(event.clientX, event.clientY);
                 updateSelection(nodeId ? [nodeId] : [], {
                   add: finalDragBox.shiftKey,
@@ -1215,6 +1656,7 @@ function MermaidViewer({
                 return;
               }
 
+              event.preventDefault();
               const selectionRect = new DOMRect(
                 point.bounds.left + rect.left,
                 point.bounds.top + rect.top,
@@ -1236,6 +1678,7 @@ function MermaidViewer({
             }
 
             if (toolMode === "zoom" && !isClick) {
+              event.preventDefault();
               const sourceScale = state.scale || 1;
               const contentLeft = (rect.left - state.positionX) / sourceScale;
               const contentTop = (rect.top - state.positionY) / sourceScale;
@@ -1283,7 +1726,7 @@ function MermaidViewer({
                     <Split size={14} />
                   </SubToolButton>
                 </ToolCluster>
-                {hasFilter && (
+                {isIsolateActive && (
                   <DirectedHopControls
                     hopsUp={viewFilter.neighborHopsUp}
                     hopsDown={viewFilter.neighborHopsDown}
@@ -1315,7 +1758,7 @@ function MermaidViewer({
                         return;
                       }
 
-                      zoomIn(ZOOM_STEP_FACTOR);
+                      zoomIn(0.2);
                     }}
                   >
                     <ZoomIn size={14} />
@@ -1328,7 +1771,7 @@ function MermaidViewer({
                         return;
                       }
 
-                      zoomOut(ZOOM_STEP_FACTOR);
+                      zoomOut(0.2);
                     }}
                   >
                     <ZoomOut size={14} />
@@ -1350,9 +1793,9 @@ function MermaidViewer({
                     <RotateCcw size={14} />
                   </SubToolButton>
                   <SubToolButton
-                    label="Show all nodes - restore full flowchart"
+                    label="Show all nodes - restore full flowchart and collapse parent groups"
                     onClick={() => {
-                      onViewFilterChange(DEFAULT_VIEW_FILTER);
+                      onResetView();
                       setSelectedNodeIds([]);
                     }}
                   >
@@ -1372,7 +1815,7 @@ function MermaidViewer({
               <div
                 ref={viewportRef}
                 className={cn(
-                  "relative w-full overflow-hidden",
+                  "relative w-full overflow-hidden overscroll-contain",
                   toolMode === "select" && "cursor-crosshair",
                   toolMode === "zoom" && "cursor-zoom-in",
                   middlePan && "cursor-grabbing",
@@ -1385,7 +1828,6 @@ function MermaidViewer({
                   setDragBox(null);
                   setMiddlePan(null);
                 }}
-                onWheel={handleSelectionWheel}
                 onAuxClick={(event) => event.preventDefault()}
               >
                 <TransformComponent
@@ -1431,14 +1873,16 @@ function MermaidViewer({
               <MermaidSourceFloat
                 activeSource={activeSource}
                 isFullscreen={isFullscreen}
-                visible={hasFilter}
+                visible={isIsolateActive}
               />
             </>
           );
         }}
       </TransformWrapper>
       <div className="mt-2 text-center font-mono text-[10px] uppercase tracking-widest text-zinc-600 opacity-100 transition-opacity sm:opacity-0 sm:group-hover/diagram:opacity-100">
-        Select nodes, wheel and zoom buttons focus on selection when nodes are selected - middle mouse pans
+        {hasSubgraphCollapse
+          ? "Double-click hexagon group nodes to expand or collapse - scroll wheel zooms at cursor inside chart - middle mouse pans"
+          : "Scroll wheel zooms at cursor inside chart - select nodes to focus toolbar zoom on selection - middle mouse pans"}
       </div>
     </div>
   );
@@ -1447,12 +1891,20 @@ function MermaidViewer({
 export function MermaidBlock({ content }: { content: string }) {
   const reactId = useId();
   const diagramSource = useMemo(() => content.trim(), [content]);
+  const sourceGraph = useMemo(() => parseSourceGraph(diagramSource), [diagramSource]);
+  const hasSubgraphs = sourceGraph.subgraphs.length > 0;
   const [viewFilter, setViewFilter] = useState<ViewFilter>(DEFAULT_VIEW_FILTER);
+  const [expandedSubgraphIds, setExpandedSubgraphIds] = useState<Set<string>>(() => new Set());
+  const collapsedSubgraphIds = useMemo(
+    () => new Set(sourceGraph.subgraphs.map((subgraph) => subgraph.id).filter((id) => !expandedSubgraphIds.has(id))),
+    [expandedSubgraphIds, sourceGraph.subgraphs]
+  );
   const activeSource = useMemo(
-    () => createFilteredSourceFromView(diagramSource, viewFilter),
-    [diagramSource, viewFilter]
+    () => createFilteredSourceFromView(diagramSource, viewFilter, expandedSubgraphIds),
+    [diagramSource, expandedSubgraphIds, viewFilter]
   );
   const hasFilter = activeSource !== diagramSource;
+  const hasSubgraphCollapse = hasSubgraphs && collapsedSubgraphIds.size > 0;
   const activeSourceHash = useMemo(() => hashSource(activeSource), [activeSource]);
   const renderId = useMemo(
     () => `mermaid-${reactId.replace(/[^a-zA-Z0-9_-]/g, "")}-${activeSourceHash}`,
@@ -1465,10 +1917,30 @@ export function MermaidBlock({ content }: { content: string }) {
   useEffect(() => {
     const timer = window.setTimeout(() => {
       setViewFilter(DEFAULT_VIEW_FILTER);
+      setExpandedSubgraphIds(new Set());
     }, 0);
 
     return () => window.clearTimeout(timer);
   }, [diagramSource]);
+
+  function toggleSubgraph(subgraphId: string) {
+    setExpandedSubgraphIds((current) => {
+      const next = new Set(current);
+
+      if (next.has(subgraphId)) {
+        next.delete(subgraphId);
+      } else {
+        next.add(subgraphId);
+      }
+
+      return next;
+    });
+  }
+
+  function resetViewAndCollapseSubgraphs() {
+    setViewFilter(DEFAULT_VIEW_FILTER);
+    setExpandedSubgraphIds(new Set());
+  }
 
   useEffect(() => {
     if (!isFullscreen) {
@@ -1529,10 +2001,15 @@ export function MermaidBlock({ content }: { content: string }) {
       ) : svg ? (
         <MermaidViewer
           activeSource={activeSource}
+          collapsedSubgraphIds={collapsedSubgraphIds}
+          graphSubgraphs={sourceGraph.subgraphs}
           hasFilter={hasFilter}
+          hasSubgraphCollapse={hasSubgraphCollapse}
           svg={svg}
           isFullscreen={isFullscreen}
           viewFilter={viewFilter}
+          onToggleSubgraph={toggleSubgraph}
+          onResetView={resetViewAndCollapseSubgraphs}
           onViewFilterChange={setViewFilter}
           onToggleFullscreen={() => setIsFullscreen((current) => !current)}
         />
