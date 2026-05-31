@@ -29,1026 +29,808 @@ This chapter maps a detailed A.A.S. simulation for how an agent would research, 
 ```mermaid
 %%{init: {'flowchart': {'arrowMarkerSize': 1.5}}}%%
 flowchart TD
-    A0(["User goal: simulate a contest-grade pivot door design workflow"])
-    A1["Chat workspace receives prompt"]
-    A8["Open Architect direction field"]
 
-    subgraph GPS ["Goal And Project Setup"]
-        direction TB
-        A2["Backend command: create_project_goal"]
-        A3["Normalize GoalState"]
-        A4["Create project: Pivot Door Sketch Contest 2026"]
-        A5["Create session: concept-to-board simulation"]
-        A6["Initialize WorldState"]
-        A7["Emit event: aas.world.created"]
-    end
+%% =========================================================
+%% AAS AGENT SIMULATION — PIVOT DOOR SKETCH CONTEST 2026
+%% =========================================================
 
-    A0 ==> A1
-    A1 ==> A2
-    A2 ==> A3
-    A3 ==> A4
-    A4 ==> A5
-    A5 ==> A6
-    A6 ==> A7
-    A7 ==> A8
+A0([USER GOAL: win / strongly place in FritsJurgens Pivot Door Sketch Contest 2026])
+A1[Chat Workspace receives prompt]
+A2[Backend Command: create_project_goal]
+A3[GoalState normalized]
+A4[Project created: Pivot Door Sketch Contest 2026]
+A5[Session created: concept-to-board run]
+A6[WorldState initialized]
+A7[Runtime event: aas.world.created]
+A8[Architect Mode opens direction field]
 
-    subgraph SOT ["Backend Source Of Truth"]
-        direction TB
-        S1[("Product graph")]
-        S2[("Runtime event log")]
-        S3[("Artifact registry")]
-        S4[("Commitment ledger")]
-        S5[("Preference store")]
-        S6[("Hermes bindings")]
-        S7[("WorldState snapshots")]
-        S8[("Evaluation records")]
-        S9[("Approval records")]
-    end
+A0 --> A1 --> A2 --> A3 --> A4 --> A5 --> A6 --> A7 --> A8
 
-    A6 ==> S1
-    A6 ==> S2
-    A6 ==> S3
-    A6 ==> S4
-    A6 ==> S5
-    A6 ==> S6
-    A6 ==> S7
-    A6 ==> S8
-    A6 ==> S9
+%% =========================================================
+%% SOURCE OF TRUTH
+%% =========================================================
 
-    subgraph GI ["Goal Intake And Brief Decode"]
-        direction TB
-        GI1["Parse user intent"]
-        GI2["Extract desired outputs: concept and board"]
-        GI3["Extract success target: strongly place or win"]
-        GI4["Extract simulation target: show inner A.A.S. workflow"]
-        GI5["Extract contest target: FritsJurgens Pivot Door Sketch Contest 2026"]
-        GI6["Extract required process: research, reason, curate, execute"]
-        GI7["Detect missing inputs: category, preferred scale, style, region, media"]
-        GI8{"Blocking unknown for simulation?"}
-        GI9["Ask operator only if missing input blocks legality"]
-        GI10["Proceed with explicit default assumptions"]
-        GI11["Write GoalState and open questions"]
-    end
+subgraph SOT[BACKEND SOURCE OF TRUTH]
+S1[(Product Graph)]
+S2[(Runtime Event Log)]
+S3[(Artifact Registry)]
+S4[(Commitment Ledger)]
+S5[(Preference Store)]
+S6[(Hermes Bindings)]
+S7[(WorldState Snapshots)]
+end
 
-    A8 ==> GI1
-    GI1 ==> GI2
-    GI2 ==> GI3
-    GI3 ==> GI4
-    GI4 ==> GI5
-    GI5 ==> GI6
-    GI6 ==> GI7
-    GI7 ==> GI8
-    GI8 -- yes --> GI9
-    GI8 -- no --> GI10
-    GI9 ==> GI10
-    GI10 ==> GI11
-    GI11 ==> S1
+A6 --> S1
+A6 --> S2
+A6 --> S3
+A6 --> S4
+A6 --> S5
+A6 --> S6
+A6 --> S7
 
-    subgraph RC ["Research Control Plane"]
-        direction TB
-        RC1["Generate research move candidates"]
-        RC2["Supervisor checks network and source risk"]
-        RC3["ContextDistiller creates research brief"]
-        RC4["MoveCompiler creates Hermes research task group"]
-        RC5["Research Agent reads official contest page"]
-        RC6["Research Agent reads 2026 PDF brief"]
-        RC7["Research Agent reads System M+ product facts"]
-        RC8["Research Agent reads System Fx product facts"]
-        RC9["Research Agent reads System One product facts"]
-        RC10["Research Agent reads previous sketch highlights"]
-        RC11["Research Agent reads pivot door precedents"]
-        RC12["Research Agent records source manifest"]
-        RC13["Research Agent emits structured research patch"]
-    end
+%% =========================================================
+%% GOAL DECODE
+%% =========================================================
 
-    GI11 ==> RC1
-    RC1 ==> RC2
-    RC2 ==> RC3
-    RC3 ==> RC4
-    RC4 -.-> RC5
-    RC4 -.-> RC6
-    RC4 -.-> RC7
-    RC4 -.-> RC8
-    RC4 -.-> RC9
-    RC4 -.-> RC10
-    RC4 -.-> RC11
-    RC5 -.-> RC12
-    RC6 -.-> RC12
-    RC7 -.-> RC12
-    RC8 -.-> RC12
-    RC9 -.-> RC12
-    RC10 -.-> RC12
-    RC11 -.-> RC12
-    RC12 ==> RC13
+subgraph GI[GOAL INTAKE / BRIEF DECODE]
+GI1[Parse user intent]
+GI2[Extract desired output: final concept + final presentation board]
+GI3[Extract success target: contest-grade concept, not generic door]
+GI4[Extract hidden constraints: sketch-first, FJ system visible, feasible, beautiful]
+GI5[Extract deliverables: sketch set, concept note, product logic, board]
+GI6[Detect unknowns: category, user style, submission format, board size]
+GI7{Blocking unknown?}
+GI8[Ask user only if needed]
+GI9[Proceed with default simulation assumptions]
+end
 
-    subgraph RF ["Contest Facts And Product Facts"]
-        direction TB
-        F1["Object: entries open May 4 2026"]
-        F2["Object: entries close August 20 2026"]
-        F3["Object: categories are student and professional"]
-        F4["Object: upload format is JPEG PNG or PDF"]
-        F5["Object: sketch name required"]
-        F6["Object: detailed concept note required"]
-        F7["Boundary: original pivot door design"]
-        F8["Boundary: FritsJurgens pivot system incorporated"]
-        F9["Boundary: pivot system clearly visible in drawing"]
-        F10["Boundary: precise enough to be possible to produce"]
-        F11["Rubric fact: creativity"]
-        F12["Rubric fact: practicality"]
-        F13["Rubric fact: aesthetics"]
-        F14["Rubric fact: innovation"]
-        F15["Product fact: System M+ controlled movement"]
-        F16["Product fact: System M+ supports light to heavy doors"]
-        F17["Product fact: System Fx has strong hold positions"]
-        F18["Product fact: System One is compact free-swing"]
-        F19["Product fact: top pivot, ceiling plate, floor plate, bottom pivot"]
-        F20["Brand fact: movement, precision, concealed engineering, spatial impact"]
-    end
+A8 --> GI1 --> GI2 --> GI3 --> GI4 --> GI5 --> GI6 --> GI7
+GI7 -- yes --> GI8 --> GI9
+GI7 -- no --> GI9
 
-    RC13 ==> F1
-    RC13 ==> F2
-    RC13 ==> F3
-    RC13 ==> F4
-    RC13 ==> F5
-    RC13 ==> F6
-    RC13 ==> F7
-    RC13 ==> F8
-    RC13 ==> F9
-    RC13 ==> F10
-    RC13 ==> F11
-    RC13 ==> F12
-    RC13 ==> F13
-    RC13 ==> F14
-    RC13 ==> F15
-    RC13 ==> F16
-    RC13 ==> F17
-    RC13 ==> F18
-    RC13 ==> F19
-    RC13 ==> F20
-    F1 ==> S1
-    F2 ==> S1
-    F3 ==> S1
-    F4 ==> S1
-    F5 ==> S1
-    F6 ==> S1
-    F7 ==> S1
-    F8 ==> S1
-    F9 ==> S1
-    F10 ==> S1
-    F11 ==> S8
-    F12 ==> S8
-    F13 ==> S8
-    F14 ==> S8
-    F15 ==> S1
-    F16 ==> S1
-    F17 ==> S1
-    F18 ==> S1
-    F19 ==> S1
-    F20 ==> S1
+%% =========================================================
+%% ONTOLOGY CREATION
+%% =========================================================
 
-    subgraph ONT ["Architect Ontology Build"]
-        direction TB
-        O0["Create Object nodes"]
-        SB0["Create Subject nodes"]
-        V0["Derive Vector nodes"]
-        B0["Derive Boundary nodes"]
-        SE0["Generate Seed search space"]
-        O1["Object: contest brief"]
-        O2["Object: FritsJurgens systems"]
-        O3["Object: pivot door mechanics"]
-        O4["Object: submission format"]
-        O5["Object: precedent set"]
-        O6["Object: material and fabrication facts"]
-        SU1["Subject: jury wants novelty with practicality"]
-        SU2["Subject: brand values precise movement"]
-        SU3["Subject: operator wants standout concept"]
-        SU4["Subject: user experience should be memorable"]
-        SU5["Subject: sketch should feel hand-designed"]
-        V1["Vector: make movement the core idea"]
-        V2["Vector: reveal the pivot system intelligently"]
-        V3["Vector: join architectural context and object detail"]
-        V4["Vector: balance poetic concept with buildability"]
-        V5["Vector: create board clarity at thumbnail scale"]
-        B1["Boundary: comply with contest rules"]
-        B2["Boundary: show FritsJurgens system"]
-        B3["Boundary: explain production logic"]
-        B4["Boundary: avoid generic slab door"]
-        B5["Boundary: avoid unsupported AI fantasy"]
-        B6["Boundary: preserve source uncertainty"]
-    end
+subgraph ONT[ARCHITECT MODE ONTOLOGY: OBJECT + SUBJECT -> VECTOR + BOUNDARY -> SEED]
+O0[Create Object nodes]
+S0[Create Subject nodes]
+V0[Derive Vector nodes]
+B0[Derive Boundary nodes]
+SE0[Generate Seed branch space]
 
-    F1 ==> O0
-    F15 ==> O0
-    F20 ==> SB0
-    O0 ==> O1
-    O0 ==> O2
-    O0 ==> O3
-    O0 ==> O4
-    O0 ==> O5
-    O0 ==> O6
-    SB0 ==> SU1
-    SB0 ==> SU2
-    SB0 ==> SU3
-    SB0 ==> SU4
-    SB0 ==> SU5
-    O1 ==> V0
-    O2 ==> V0
-    O3 ==> V0
-    SU1 ==> V0
-    SU2 ==> V0
-    SU3 ==> V0
-    SU4 ==> V0
-    V0 ==> V1
-    V0 ==> V2
-    V0 ==> V3
-    V0 ==> V4
-    V0 ==> V5
-    O1 ==> B0
-    O2 ==> B0
-    O4 ==> B0
-    O6 ==> B0
-    B0 ==> B1
-    B0 ==> B2
-    B0 ==> B3
-    B0 ==> B4
-    B0 ==> B5
-    B0 ==> B6
-    V0 ==> SE0
-    B0 ==> SE0
-    SE0 ==> S1
+O1[Object: contest brief]
+O2[Object: FritsJurgens product systems]
+O3[Object: pivot door mechanics]
+O4[Object: submission deadline]
+O5[Object: required visible pivot system]
+O6[Object: judging criteria]
+O7[Object: board deliverables]
+O8[Object: precedent database]
+O9[Object: material + fabrication facts]
 
-    subgraph WS ["WorldState Compiler"]
-        direction TB
-        WS1["Read product graph"]
-        WS2["Read event log"]
-        WS3["Read artifacts and source manifest"]
-        WS4["Read preferences and open questions"]
-        WS5["Read approvals and commitments"]
-        WS6["Compile GoalState"]
-        WS7["Compile IntentState: research to concept"]
-        WS8["Compile ProjectState: facts known, concepts absent"]
-        WS9["Compile active constraints"]
-        WS10["Compile risks and design debt"]
-        WS11["Compile artifact gaps"]
-        WS12["Write WorldState snapshot"]
-    end
+SUB1[Subject: jury desire for novelty]
+SUB2[Subject: brand taste: precision, movement, hidden engineering]
+SUB3[Subject: user ambition: win / stand out]
+SUB4[Subject: emotional target: first impression to final detail]
+SUB5[Subject: sketch artistry]
+SUB6[Subject: memorable story]
 
-    S1 ==> WS1
-    S2 ==> WS2
-    S3 ==> WS3
-    S5 ==> WS4
-    S9 ==> WS5
-    WS1 ==> WS6
-    WS2 ==> WS6
-    WS3 ==> WS7
-    WS4 ==> WS8
-    WS5 ==> WS9
-    WS6 ==> WS10
-    WS7 ==> WS10
-    WS8 ==> WS11
-    WS9 ==> WS11
-    WS10 ==> WS12
-    WS11 ==> WS12
-    WS12 ==> S7
+V1[Vector: make movement central]
+V2[Vector: turn pivot into spatial experience]
+V3[Vector: show product intelligently]
+V4[Vector: balance poetic idea + feasibility]
+V5[Vector: high sketch clarity]
+V6[Vector: distinct use case]
+V7[Vector: strong board narrative]
 
-    subgraph AF ["Affordance And Supervisor Loop"]
-        direction TB
-        AF1["AffordanceCompiler reads WorldState"]
-        AF2["Match move patterns"]
-        AF3["Generate candidate moves"]
-        AF4["Filter illegal or premature moves"]
-        AF5["Score with IntentGradient"]
-        AF6["Diversify top move set"]
-        AF7["Expose useful moves"]
-        AF8["Record blocked moves and reasons"]
-        SG1["Supervisor checks legality"]
-        SG2["Supervisor checks approval need"]
-        SG3["Supervisor checks source confidence"]
-        SG4["Supervisor checks locked commitments"]
-        SG5{"Safe to execute?"}
-        SG6["Return blocked reason"]
-        SG7["Approve move execution"]
-    end
+B1[Boundary: use FritsJurgens system]
+B2[Boundary: system must be visible / explained]
+B3[Boundary: concept must be buildable]
+B4[Boundary: submit before deadline]
+B5[Boundary: avoid pure AI fantasy]
+B6[Boundary: readable concept note]
+B7[Boundary: board must prove design, not decorate]
+B8[Boundary: no uncommitted claims as truth]
+end
 
-    WS12 ==> AF1
-    AF1 ==> AF2
-    AF2 ==> AF3
-    AF3 ==> AF4
-    AF4 ==> AF5
-    AF5 ==> AF6
-    AF6 ==> AF7
-    AF4 ==> AF8
-    SG1 ==> SG2
-    SG2 ==> SG3
-    SG3 ==> SG4
-    SG4 ==> SG5
-    SG5 -- no --> SG6
-    SG6 ==> AF8
-    SG5 -- yes --> SG7
+GI9 --> O0
+GI9 --> S0
+O0 --> O1 & O2 & O3 & O4 & O5 & O6 & O7 & O8 & O9
+S0 --> SUB1 & SUB2 & SUB3 & SUB4 & SUB5 & SUB6
+O1 --> V0
+O2 --> V0
+O3 --> V0
+SUB1 --> V0
+SUB2 --> V0
+SUB3 --> V0
+SUB4 --> V0
+V0 --> V1 & V2 & V3 & V4 & V5 & V6 & V7
+O1 --> B0
+O2 --> B0
+O4 --> B0
+O5 --> B0
+O6 --> B0
+B0 --> B1 & B2 & B3 & B4 & B5 & B6 & B7 & B8
+V0 --> SE0
+B0 --> SE0
 
-    subgraph MV ["Initial Move Set"]
-        direction TB
-        M1["Move: build contest compliance matrix"]
-        M2["Move: build FritsJurgens product matrix"]
-        M3["Move: build precedent and winner signal map"]
-        M4["Move: build weighted judging rubric"]
-        M5["Move: spawn concept branches"]
-        M6["Move: test branch feasibility"]
-        M7["Move: create board strategy"]
-    end
+%% =========================================================
+%% WORLDSTATE BUILD
+%% =========================================================
 
-    AF7 ==> M1
-    AF7 ==> M2
-    AF7 ==> M3
-    AF7 ==> M4
-    AF7 ==> M5
-    AF7 ==> M6
-    AF7 ==> M7
-    M1 ==> SG1
-    M2 ==> SG1
-    M3 ==> SG1
-    M4 ==> SG1
-    M5 ==> SG1
-    M6 ==> SG1
-    M7 ==> SG1
+subgraph WS[WORLDSTATE COMPILER]
+WS1[Compile direction graph]
+WS2[Compile GoalState]
+WS3[Compile IntentState: research phase]
+WS4[Compile ProjectState: brief rough / research partial / concept none]
+WS5[Compile active constraints]
+WS6[Compile open questions]
+WS7[Compile artifact gaps]
+WS8[Compile risks]
+WS9[Compile available move request]
+end
 
-    subgraph CD ["Context Distiller And Hermes Bridge"]
-        direction TB
-        CD1["Select relevant Object, Subject, Vector, Boundary, Seed nodes"]
-        CD2["Select active constraints and source confidence"]
-        CD3["Select artifact gaps and required outputs"]
-        CD4["Select source manifest"]
-        CD5["Select valid moves"]
-        CD6["Attach warnings and approval gates"]
-        CD7["Create role-specific Agent Briefs"]
-        HB1["MoveCompiler converts moves to task group"]
-        HB2["Create Hermes Kanban tasks"]
-        HB3["Assign Research Agent"]
-        HB4["Assign Concept Agent"]
-        HB5["Assign Critic Evaluator"]
-        HB6["Assign Model Agent"]
-        HB7["Assign Representation Agent"]
-        HB8["Assign Supervisor Agent"]
-        HB9["Write output contracts"]
-        HB10["Watch task logs and artifacts"]
-    end
+SE0 --> WS1 --> WS2 --> WS3 --> WS4 --> WS5 --> WS6 --> WS7 --> WS8 --> WS9
+WS9 --> S7
 
-    SG7 ==> CD1
-    CD1 ==> CD2
-    CD2 ==> CD3
-    CD3 ==> CD4
-    CD4 ==> CD5
-    CD5 ==> CD6
-    CD6 ==> CD7
-    CD7 ==> HB1
-    HB1 ==> HB2
-    HB2 -.-> HB3
-    HB2 -.-> HB4
-    HB2 -.-> HB5
-    HB2 -.-> HB6
-    HB2 -.-> HB7
-    HB2 -.-> HB8
-    HB1 ==> HB9
-    HB9 ==> HB10
-    HB10 ==> S6
+%% =========================================================
+%% AFFORDANCE COMPILER
+%% =========================================================
 
-    subgraph MAT ["Contest And Product Matrices"]
-        direction TB
-        CM1["Build compliance matrix"]
-        CM2["Map each rule to evidence source"]
-        CM3["Mark hard constraints"]
-        CM4["Mark soft judging signals"]
-        PM1["Compare FritsJurgens systems"]
-        PM2{"Need controlled heavy movement?"}
-        PM3["Prefer System M+"]
-        PM4{"Need stable hold positions?"}
-        PM5["Prefer System Fx"]
-        PM6{"Need compact free-swing movement?"}
-        PM7["Prefer System One"]
-        PM8["Create system-choice hypotheses"]
-        PM9["Create visible-system drawing requirement"]
-    end
+subgraph AC[AFFORDANCE COMPILER: GENERATE LEGAL MOVES]
+AC1[Read WorldState]
+AC2[Match move patterns]
+AC3[Generate candidate moves]
+AC4[Filter illegal / premature moves]
+AC5[Score with IntentGradient]
+AC6[Diversify top moves]
+AC7[Expose 3-7 useful moves]
+AC8[Create blocked moves with reasons]
 
-    HB3 ==> CM1
-    CM1 ==> CM2
-    CM2 ==> CM3
-    CM3 ==> CM4
-    HB3 ==> PM1
-    PM1 ==> PM2
-    PM2 -- yes --> PM3
-    PM2 -- no --> PM4
-    PM4 -- yes --> PM5
-    PM4 -- no --> PM6
-    PM6 -- yes --> PM7
-    PM6 -- no --> PM1
-    PM3 ==> PM8
-    PM5 ==> PM8
-    PM7 ==> PM8
-    PM8 ==> PM9
-    CM4 ==> S8
-    PM9 ==> S1
+M1[Move: research official brief]
+M2[Move: research FJ systems]
+M3[Move: research winners / brand taste]
+M4[Move: create evaluation rubric]
+M5[Move: spawn concept branches]
+M6[Move: ask user category/style]
+M7[Move: create board strategy]
+end
 
-    subgraph RUB ["Weighted Contest Rubric"]
-        direction TB
-        RU1["Create rubric object"]
-        RU2["Creativity score"]
-        RU3["Practicality score"]
-        RU4["Aesthetics score"]
-        RU5["Innovation score"]
-        RU6["FritsJurgens system integration score"]
-        RU7["Movement experience score"]
-        RU8["Sketch communication score"]
-        RU9["Concept note clarity score"]
-        RU10["Board narrative score"]
-        RU11["Feasibility risk penalty"]
-        RU12["Generic-door penalty"]
-        RU13["Hidden-system penalty"]
-        RU14["AI-fantasy penalty"]
-        RU15["Store weighted rubric"]
-    end
+WS9 --> AC1 --> AC2 --> AC3 --> AC4 --> AC5 --> AC6 --> AC7
+AC4 --> AC8
+AC7 --> M1 & M2 & M3 & M4 & M5 & M6 & M7
 
-    CM4 ==> RU1
-    RU1 ==> RU2
-    RU1 ==> RU3
-    RU1 ==> RU4
-    RU1 ==> RU5
-    RU1 ==> RU6
-    RU1 ==> RU7
-    RU1 ==> RU8
-    RU1 ==> RU9
-    RU1 ==> RU10
-    RU1 ==> RU11
-    RU1 ==> RU12
-    RU1 ==> RU13
-    RU1 ==> RU14
-    RU2 ==> RU15
-    RU3 ==> RU15
-    RU4 ==> RU15
-    RU5 ==> RU15
-    RU6 ==> RU15
-    RU7 ==> RU15
-    RU8 ==> RU15
-    RU9 ==> RU15
-    RU10 ==> RU15
-    RU11 ==> RU15
-    RU12 ==> RU15
-    RU13 ==> RU15
-    RU14 ==> RU15
-    RU15 ==> S8
+%% =========================================================
+%% SUPERVISOR GATE 1
+%% =========================================================
 
-    subgraph CB ["Concept Branch Generation"]
-        direction TB
-        CB0["Concept Agent reads ontology, facts, rubric, and product matrix"]
-        CB1["Generate wide branch pool"]
-        CB2["Branch A: Threshold Weather Instrument"]
-        CB3["Branch B: Rotating Room Divider Furniture"]
-        CB4["Branch C: Public Ritual Gate"]
-        CB5["Branch D: Light Clock Pivot"]
-        CB6["Branch E: Acoustic Privacy Wing"]
-        CB7["Branch F: Archive Display Door"]
-        CB8["Branch G: Climate Screen Breathing Wall"]
-        CB9["Branch H: Courtyard Compass Door"]
-        CB10["Attach product hypothesis"]
-        CB11["Attach site and use case"]
-        CB12["Attach movement sequence"]
-        CB13["Attach materials and build-up"]
-        CB14["Attach visible-system sketch plan"]
-        CB15["Attach risks and unknowns"]
-        CB16["Register Seed nodes and branch records"]
-    end
+subgraph SG1[SUPERVISOR GATE: BEFORE EXECUTION]
+SG1A[Check move legality]
+SG1B[Check cost/risk]
+SG1C[Check approval need]
+SG1D[Check locked commits]
+SG1E{Safe to execute?}
+SG1F[Return blocked reason]
+SG1G[Approve execution]
+end
 
-    RU15 ==> CB0
-    PM9 ==> CB0
-    CB0 ==> CB1
-    CB1 ==> CB2
-    CB1 ==> CB3
-    CB1 ==> CB4
-    CB1 ==> CB5
-    CB1 ==> CB6
-    CB1 ==> CB7
-    CB1 ==> CB8
-    CB1 ==> CB9
-    CB2 ==> CB10
-    CB3 ==> CB10
-    CB4 ==> CB10
-    CB5 ==> CB10
-    CB6 ==> CB10
-    CB7 ==> CB10
-    CB8 ==> CB10
-    CB9 ==> CB10
-    CB10 ==> CB11
-    CB11 ==> CB12
-    CB12 ==> CB13
-    CB13 ==> CB14
-    CB14 ==> CB15
-    CB15 ==> CB16
-    CB16 ==> S1
-    CB16 ==> S2
+AC7 --> SG1A --> SG1B --> SG1C --> SG1D --> SG1E
+SG1E -- no --> SG1F --> AC8
+SG1E -- yes --> SG1G
 
-    subgraph BE ["Branch Enrichment Loop"]
-        direction TB
-        BE1["For each branch define title"]
-        BE2["Define narrative hook"]
-        BE3["Define architectural context"]
-        BE4["Define user interaction"]
-        BE5["Define closed half-open open states"]
-        BE6["Define pivot offset and swing path"]
-        BE7["Define product system and why"]
-        BE8["Define visible component callout"]
-        BE9["Define material stack"]
-        BE10["Define fabrication plausibility"]
-        BE11["Define plan elevation section needs"]
-        BE12["Define hero sketch composition"]
-        BE13["Define board hierarchy"]
-        BE14["Create branch brief artifact"]
-    end
+%% =========================================================
+%% CONTEXT DISTILLER / AGENT BRIEF
+%% =========================================================
 
-    CB16 ==> BE1
-    BE1 ==> BE2
-    BE2 ==> BE3
-    BE3 ==> BE4
-    BE4 ==> BE5
-    BE5 ==> BE6
-    BE6 ==> BE7
-    BE7 ==> BE8
-    BE8 ==> BE9
-    BE9 ==> BE10
-    BE10 ==> BE11
-    BE11 ==> BE12
-    BE12 ==> BE13
-    BE13 ==> BE14
-    BE14 ==> S3
+subgraph CD[CONTEXT DISTILLER]
+CD1[Select relevant nodes]
+CD2[Select relevant constraints]
+CD3[Select relevant artifacts]
+CD4[Select source manifest]
+CD5[Select valid moves]
+CD6[Include warnings]
+CD7[Create Agent Brief]
+CD8[Assign profiles]
+end
 
-    subgraph TE ["Tension Engine"]
-        direction TB
-        TE1["Scan contradictions"]
-        TE2["Novelty versus buildability"]
-        TE3["Concealed hardware versus visible-system rule"]
-        TE4["Sketch beauty versus technical clarity"]
-        TE5["Poetic story versus product explanation"]
-        TE6["Door object versus architectural threshold"]
-        TE7["Movement drama versus everyday usability"]
-        TE8["Board density versus readability"]
-        TE9["Create tension records"]
-        TE10["Link tensions to branches"]
-        TE11["Generate resolution moves"]
-    end
+SG1G --> CD1 --> CD2 --> CD3 --> CD4 --> CD5 --> CD6 --> CD7 --> CD8
 
-    BE14 ==> TE1
-    TE1 ==> TE2
-    TE1 ==> TE3
-    TE1 ==> TE4
-    TE1 ==> TE5
-    TE1 ==> TE6
-    TE1 ==> TE7
-    TE1 ==> TE8
-    TE2 ==> TE9
-    TE3 ==> TE9
-    TE4 ==> TE9
-    TE5 ==> TE9
-    TE6 ==> TE9
-    TE7 ==> TE9
-    TE8 ==> TE9
-    TE9 ==> TE10
-    TE10 ==> TE11
-    TE9 ==> S1
-    TE9 ==> S2
+%% =========================================================
+%% HERMES TASK PACKETS
+%% =========================================================
 
-    subgraph EV1 ["Critic Evaluator Pass One"]
-        direction TB
-        EV1A["Read all branch briefs"]
-        EV1B["Score against weighted rubric"]
-        EV1C["Check contest compliance"]
-        EV1D["Check FritsJurgens integration"]
-        EV1E["Check feasibility and material plausibility"]
-        EV1F["Check originality and precedent distance"]
-        EV1G["Check sketchability"]
-        EV1H["Check board potential"]
-        EV1I["Apply penalties"]
-        EV1J["Write evaluation artifact"]
-        EV1K["Recommend kill, refine, or keep"]
-    end
+subgraph HERMES[AAS-HERMES BRIDGE / EXECUTION FABRIC]
+HB1[MoveCompiler converts move to task group]
+HB2[Create Kanban tasks]
+HB3[Assign Research Agent]
+HB4[Assign Concept Agent]
+HB5[Assign Critic/Evaluator]
+HB6[Assign Model Agent]
+HB7[Assign Representation Agent]
+HB8[Assign Supervisor]
+HB9[Write output contracts]
+HB10[Watch logs + artifacts]
+end
 
-    TE11 ==> EV1A
-    EV1A ==> EV1B
-    EV1B ==> EV1C
-    EV1C ==> EV1D
-    EV1D ==> EV1E
-    EV1E ==> EV1F
-    EV1F ==> EV1G
-    EV1G ==> EV1H
-    EV1H ==> EV1I
-    EV1I ==> EV1J
-    EV1J ==> EV1K
-    EV1J ==> S8
-    EV1K ==> S1
+CD8 --> HB1 --> HB2
+HB2 --> HB3 & HB4 & HB5 & HB6 & HB7 & HB8
+HB1 --> HB9 --> HB10
 
-    subgraph CUR ["Branch Curation"]
-        direction TB
-        CUR1["Sort by score and risk"]
-        CUR2["Preserve conceptual diversity"]
-        CUR3["Reject generic branches"]
-        CUR4["Reject unbuildable branches"]
-        CUR5["Keep top three"]
-        CUR6["Archive weak branches as history"]
-        CUR7["Create top-three comparison artifact"]
-        CUR8["Ask operator for approval or override"]
-        CUR9{"Operator override?"}
-        CUR10["Apply override as approved patch"]
-        CUR11["Proceed with top three"]
-    end
+%% =========================================================
+%% RESEARCH LANES
+%% =========================================================
 
-    EV1K ==> CUR1
-    CUR1 ==> CUR2
-    CUR2 ==> CUR3
-    CUR3 ==> CUR4
-    CUR4 ==> CUR5
-    CUR3 ==> CUR6
-    CUR4 ==> CUR6
-    CUR5 ==> CUR7
-    CUR7 ==> CUR8
-    CUR8 ==> CUR9
-    CUR9 -- yes --> CUR10
-    CUR9 -- no --> CUR11
-    CUR10 ==> CUR11
-    CUR6 ==> S1
-    CUR7 ==> S3
+subgraph R[RESEARCH PHASE]
+R0[Research Agent starts]
+R1[Read contest page / brief]
+R2[Extract hard requirements]
+R3[Extract judging criteria]
+R4[Extract dates / category / prize / format]
+R5[Research FritsJurgens System M+]
+R6[Research FritsJurgens System Fx]
+R7[Research FritsJurgens System One]
+R8[Research FJ brand language]
+R9[Research Best Pivot Door winners]
+R10[Research architectural pivot precedents]
+R11[Research door use cases: entrance / interior / specialty]
+R12[Research material systems: timber / glass / metal / stone / fabric / screen]
+R13[Research movement typologies]
+R14[Register research artifacts]
+R15[Emit research summary]
+end
 
-    subgraph DEV ["Top Three Development"]
-        direction TB
-        D1["Develop concept one narrative"]
-        D2["Develop concept one mechanism detail"]
-        D3["Develop concept one sketch package"]
-        D4["Develop concept one board thumbnail"]
-        D5["Develop concept two narrative"]
-        D6["Develop concept two mechanism detail"]
-        D7["Develop concept two sketch package"]
-        D8["Develop concept two board thumbnail"]
-        D9["Develop concept three narrative"]
-        D10["Develop concept three mechanism detail"]
-        D11["Develop concept three sketch package"]
-        D12["Develop concept three board thumbnail"]
-        D13["Register developed branch artifacts"]
-    end
+HB3 --> R0
+R0 --> R1 --> R2 --> R3 --> R4
+R0 --> R5 --> R6 --> R7
+R0 --> R8 --> R9
+R0 --> R10 --> R11 --> R12 --> R13
+R2 --> R14
+R3 --> R14
+R4 --> R14
+R5 --> R14
+R6 --> R14
+R7 --> R14
+R8 --> R14
+R9 --> R14
+R10 --> R14
+R11 --> R14
+R12 --> R14
+R13 --> R14 --> R15
 
-    CUR11 ==> D1
-    D1 ==> D2
-    D2 ==> D3
-    D3 ==> D4
-    D4 ==> D13
-    CUR11 ==> D5
-    D5 ==> D6
-    D6 ==> D7
-    D7 ==> D8
-    D8 ==> D13
-    CUR11 ==> D9
-    D9 ==> D10
-    D10 ==> D11
-    D11 ==> D12
-    D12 ==> D13
-    D13 ==> S3
+%% =========================================================
+%% RESEARCH OUTPUTS INTO WORLDSTATE
+%% =========================================================
 
-    subgraph MOD ["Model And Feasibility Pass"]
-        direction TB
-        MO1["Model Agent receives top three"]
-        MO2["Create simplified pivot geometry"]
-        MO3["Check pivot point and offset"]
-        MO4["Check swing path"]
-        MO5["Check collision envelope"]
-        MO6["Check door thickness and weight plausibility"]
-        MO7["Check material build-up"]
-        MO8["Check selected FritsJurgens system fit"]
-        MO9["Check visible component placement"]
-        MO10["Generate plan elevation section sequence diagrams"]
-        MO11["Flag invalid branch details"]
-        MO12["Register model-derived artifacts"]
-    end
+subgraph RD[RESEARCH DATA PATCH]
+RD1[AgentPatch: add Object nodes]
+RD2[AgentPatch: add Boundary nodes]
+RD3[AgentPatch: add Reference artifacts]
+RD4[AgentPatch: add Product System matrix]
+RD5[AgentPatch: add judging rubric]
+RD6[Backend validates expected versions]
+RD7[Write records + events]
+RD8[Recompute WorldState]
+end
 
-    D13 ==> MO1
-    MO1 ==> MO2
-    MO2 ==> MO3
-    MO3 ==> MO4
-    MO4 ==> MO5
-    MO5 ==> MO6
-    MO6 ==> MO7
-    MO7 ==> MO8
-    MO8 ==> MO9
-    MO9 ==> MO10
-    MO10 ==> MO12
-    MO8 ==> MO11
-    MO11 ==> TE9
-    MO12 ==> S3
+R15 --> RD1 & RD2 & RD3 & RD4 & RD5
+RD1 --> RD6
+RD2 --> RD6
+RD3 --> RD6
+RD4 --> RD6
+RD5 --> RD6
+RD6 --> RD7 --> RD8 --> S1
+RD7 --> S2
+RD7 --> S3
+RD8 --> S7
 
-    subgraph EV2 ["Critic Evaluator Pass Two"]
-        direction TB
-        EV2A["Compare top three after feasibility"]
-        EV2B["Score narrative clarity"]
-        EV2C["Score movement originality"]
-        EV2D["Score FritsJurgens integration"]
-        EV2E["Score material intelligence"]
-        EV2F["Score presentation potential"]
-        EV2G["Score production plausibility"]
-        EV2H["Score contest differentiation"]
-        EV2I["Select strongest concept"]
-        EV2J["Write final comparison memo"]
-        EV2K["Generate commit affordance"]
-    end
+%% =========================================================
+%% PRODUCT SYSTEM DECISION
+%% =========================================================
 
-    MO12 ==> EV2A
-    EV2A ==> EV2B
-    EV2B ==> EV2C
-    EV2C ==> EV2D
-    EV2D ==> EV2E
-    EV2E ==> EV2F
-    EV2F ==> EV2G
-    EV2G ==> EV2H
-    EV2H ==> EV2I
-    EV2I ==> EV2J
-    EV2J ==> EV2K
-    EV2J ==> S8
+subgraph PM[PRODUCT MECHANISM MATRIX]
+PM1[Compare systems]
+PM2{Door needs controlled heavy movement?}
+PM3[Use System M+]
+PM4{Door needs fixed positions / spatial partition?}
+PM5[Use System Fx]
+PM6{Door needs pure free-swing minimal pivot?}
+PM7[Use System One]
+PM8[Create system-use constraint]
+PM9[Create product explanation note]
+end
 
-    subgraph COM ["Commitment Ledger"]
-        direction TB
-        CO1["Supervisor checks critical tensions"]
-        CO2{"Critical unresolved tension?"}
-        CO3["Return to resolution moves"]
-        CO4["Prepare commit proposal"]
-        CO5["Commit selected concept"]
-        CO6["Commit rationale"]
-        CO7["Commit product system"]
-        CO8["Commit material direction"]
-        CO9["Commit board deliverables"]
-        CO10["Request operator approval"]
-        CO11{"Approved?"}
-        CO12["Commit becomes project truth"]
-        CO13["Rejected: return to comparison"]
-    end
+RD8 --> PM1 --> PM2
+PM2 -- yes --> PM3 --> PM8
+PM2 -- no --> PM4
+PM4 -- yes --> PM5 --> PM8
+PM4 -- no --> PM6
+PM6 -- yes --> PM7 --> PM8
+PM6 -- no --> PM1
+PM8 --> PM9
 
-    EV2K ==> CO1
-    CO1 ==> CO2
-    CO2 -- yes --> CO3
-    CO3 ==> TE11
-    CO2 -- no --> CO4
-    CO4 ==> CO5
-    CO5 ==> CO6
-    CO6 ==> CO7
-    CO7 ==> CO8
-    CO8 ==> CO9
-    CO9 ==> CO10
-    CO10 ==> CO11
-    CO11 -- yes --> CO12
-    CO11 -- no --> CO13
-    CO12 ==> S4
-    CO13 ==> CUR7
+%% =========================================================
+%% RUBRIC BUILD
+%% =========================================================
 
-    subgraph WCP ["Winning Concept Packet"]
-        direction TB
-        W1["Generate final concept title"]
-        W2["Generate one-sentence thesis"]
-        W3["Write 150 to 250 word concept note"]
-        W4["State inspiration"]
-        W5["State where it lives"]
-        W6["State why it matters"]
-        W7["State FritsJurgens system and reason"]
-        W8["State material and production logic"]
-        W9["State movement sequence"]
-        W10["State required sketch views"]
-        W11["Create final concept packet"]
-    end
+subgraph RUB[CONTEST EVALUATION RUBRIC]
+RU1[Create scoring model]
+RU2[Creativity score]
+RU3[Practicality score]
+RU4[Aesthetics score]
+RU5[Innovation score]
+RU6[FJ system integration score]
+RU7[Movement experience score]
+RU8[Sketch communication score]
+RU9[Concept note clarity score]
+RU10[Board narrative score]
+RU11[Feasibility risk penalty]
+RU12[Generic-door penalty]
+RU13[AI-looking-work penalty]
+RU14[Weighted rubric stored]
+end
 
-    CO12 ==> W1
-    W1 ==> W2
-    W2 ==> W3
-    W3 ==> W4
-    W4 ==> W5
-    W5 ==> W6
-    W6 ==> W7
-    W7 ==> W8
-    W8 ==> W9
-    W9 ==> W10
-    W10 ==> W11
-    W11 ==> S3
+RD5 --> RU1
+RU1 --> RU2 & RU3 & RU4 & RU5 & RU6 & RU7 & RU8 & RU9 & RU10 & RU11 & RU12 & RU13
+RU2 --> RU14
+RU3 --> RU14
+RU4 --> RU14
+RU5 --> RU14
+RU6 --> RU14
+RU7 --> RU14
+RU8 --> RU14
+RU9 --> RU14
+RU10 --> RU14
+RU11 --> RU14
+RU12 --> RU14
+RU13 --> RU14
+RU14 --> S1
 
-    subgraph DRAW ["Draw Mode Board Production"]
-        direction TB
-        DR0["Representation Agent enters Draw Mode"]
-        DR1["Create board strategy"]
-        DR2["Choose simulated board format"]
-        DR3["Define visual hierarchy"]
-        DR4["Hero sketch: door in architectural context"]
-        DR5["Detail sketch: visible pivot system"]
-        DR6["Plan diagram: swing path and pivot point"]
-        DR7["Sequence diagram: closed half-open open"]
-        DR8["Material diagram: layers and texture"]
-        DR9["Use-case vignette"]
-        DR10["Concept note placement"]
-        DR11["Product-system callout"]
-        DR12["Annotations and scale"]
-        DR13["Margins, title, and metadata"]
-        DR14["Assemble board package"]
-        DR15["Register board draft"]
-    end
+%% =========================================================
+%% CONCEPT BRANCH SPAWN
+%% =========================================================
 
-    W11 ==> DR0
-    DR0 ==> DR1
-    DR1 ==> DR2
-    DR2 ==> DR3
-    DR3 ==> DR4
-    DR3 ==> DR5
-    DR3 ==> DR6
-    DR3 ==> DR7
-    DR3 ==> DR8
-    DR3 ==> DR9
-    DR3 ==> DR10
-    DR3 ==> DR11
-    DR3 ==> DR12
-    DR3 ==> DR13
-    DR4 ==> DR14
-    DR5 ==> DR14
-    DR6 ==> DR14
-    DR7 ==> DR14
-    DR8 ==> DR14
-    DR9 ==> DR14
-    DR10 ==> DR14
-    DR11 ==> DR14
-    DR12 ==> DR14
-    DR13 ==> DR14
-    DR14 ==> DR15
-    DR15 ==> S3
+subgraph CB[CONCEPT AGENT: SEED BRANCH GENERATION]
+CB0[Context: Object + Subject + Vector + Boundary + Rubric]
+CB1[Generate wide branch pool]
+CB2[Branch A: Threshold Weather Instrument]
+CB3[Branch B: Rotating Room / Door as Furniture]
+CB4[Branch C: Public Ritual Gate]
+CB5[Branch D: Light Clock Pivot]
+CB6[Branch E: Acoustic Privacy Wing]
+CB7[Branch F: Archive / Display Door]
+CB8[Branch G: Climate Screen / Breathing Wall]
+CB9[Attach product hypothesis to each branch]
+CB10[Attach materials]
+CB11[Attach use case]
+CB12[Attach sketch composition idea]
+CB13[Attach risks]
+CB14[Register Seed nodes]
+CB15[Runtime event: branches spawned]
+end
 
-    subgraph SK ["Sketch Language Control"]
-        direction TB
-        SK1["Check hand-sketch character"]
-        SK2["Check line-weight hierarchy"]
-        SK3["Check perspective clarity"]
-        SK4["Check technical readability"]
-        SK5["Check no generic render look"]
-        SK6["Check visible FritsJurgens system"]
-        SK7["Check human scale"]
-        SK8["Check material tactility"]
-        SK9["Check movement arrows"]
-        SK10["Check annotation density"]
-        SK11["Update sketch art direction"]
-    end
+RU14 --> CB0
+PM9 --> CB0
+CB0 --> CB1
+CB1 --> CB2 & CB3 & CB4 & CB5 & CB6 & CB7 & CB8
+CB2 --> CB9
+CB3 --> CB9
+CB4 --> CB9
+CB5 --> CB9
+CB6 --> CB9
+CB7 --> CB9
+CB8 --> CB9
+CB9 --> CB10 --> CB11 --> CB12 --> CB13 --> CB14 --> CB15
+CB15 --> S1
+CB15 --> S2
 
-    DR15 ==> SK1
-    SK1 ==> SK2
-    SK2 ==> SK3
-    SK3 ==> SK4
-    SK4 ==> SK5
-    SK5 ==> SK6
-    SK6 ==> SK7
-    SK7 ==> SK8
-    SK8 ==> SK9
-    SK9 ==> SK10
-    SK10 ==> SK11
-    SK11 ==> DR14
+%% =========================================================
+%% BRANCH ENRICHMENT
+%% =========================================================
 
-    subgraph QA ["Final QA And Validation Gates"]
-        direction TB
-        QA1["Supervisor starts final QA"]
-        QA2["Check contest requirement coverage"]
-        QA3["Check sketch name exists"]
-        QA4["Check concept note exists"]
-        QA5["Check selected system is named"]
-        QA6["Check pivot system is visible"]
-        QA7["Check drawing is precise enough to produce"]
-        QA8["Check inspiration, context, and purpose"]
-        QA9["Check feasibility proof exists"]
-        QA10["Check board readable at thumbnail"]
-        QA11["Check originality and generic penalty"]
-        QA12["Check spelling, labels, dates, and source notes"]
-        QA13["Check format assumptions: JPEG PNG PDF"]
-        QA14["Check artifact lineage"]
-        QA15["Check no critical unresolved tensions"]
-        QA16{"Pass?"}
-        QA17["Create fix affordances"]
-        QA18["Approve final board"]
-    end
+subgraph BE[BRANCH ENRICHMENT LOOP]
+BE1[For each branch: define story]
+BE2[Define spatial context]
+BE3[Define door movement sequence]
+BE4[Define open/closed state]
+BE5[Define hinge visibility]
+BE6[Define product choice]
+BE7[Define material build-up]
+BE8[Define human interaction]
+BE9[Define sketch views needed]
+BE10[Define board narrative]
+BE11[Define feasibility assumptions]
+BE12[Create branch brief artifact]
+end
 
-    DR15 ==> QA1
-    QA1 ==> QA2
-    QA2 ==> QA3
-    QA3 ==> QA4
-    QA4 ==> QA5
-    QA5 ==> QA6
-    QA6 ==> QA7
-    QA7 ==> QA8
-    QA8 ==> QA9
-    QA9 ==> QA10
-    QA10 ==> QA11
-    QA11 ==> QA12
-    QA12 ==> QA13
-    QA13 ==> QA14
-    QA14 ==> QA15
-    QA15 ==> QA16
-    QA16 -- no --> QA17
-    QA17 ==> AF7
-    QA16 -- yes --> QA18
+CB14 --> BE1 --> BE2 --> BE3 --> BE4 --> BE5 --> BE6 --> BE7 --> BE8 --> BE9 --> BE10 --> BE11 --> BE12
+BE12 --> S3
 
-    subgraph EXP ["Export And Delivery"]
-        direction TB
-        EX1["Create final board export"]
-        EX2["Create final concept note export"]
-        EX3["Create source package"]
-        EX4["Create submission checklist"]
-        EX5["Create final WorldState snapshot"]
-        EX6["Emit event: aas.artifact.created"]
-        EX7["Emit event: aas.commit.created"]
-        EX8["Emit event: aas.delivery.ready"]
-        EX9(["Final output: submission-ready concept and presentation board"])
-    end
+%% =========================================================
+%% TENSION ENGINE
+%% =========================================================
 
-    QA18 ==> EX1
-    EX1 ==> EX2
-    EX2 ==> EX3
-    EX3 ==> EX4
-    EX4 ==> EX5
-    EX5 ==> EX6
-    EX6 ==> EX7
-    EX7 ==> EX8
-    EX8 ==> EX9
-    EX1 ==> S3
-    EX2 ==> S3
-    EX3 ==> S3
-    EX5 ==> S7
-    EX7 ==> S4
+subgraph TE[TENSION ENGINE]
+TE1[Scan branch contradictions]
+TE2[Detect tension: novelty vs buildability]
+TE3[Detect tension: hidden hinge vs visible system requirement]
+TE4[Detect tension: sketch beauty vs technical clarity]
+TE5[Detect tension: poetic story vs product explanation]
+TE6[Detect tension: door as object vs door as architecture]
+TE7[Detect tension: movement drama vs practical use]
+TE8[Create tension records]
+TE9[Link tensions to branches]
+TE10[Generate resolution affordances]
+end
 
-    subgraph UI ["Four Workspace Visibility"]
-        direction TB
-        UI1["Chat shows reasoning, questions, approvals, status"]
-        UI2["Architect shows nodes, branches, tensions, commits"]
-        UI3["Model shows pivot geometry and feasibility"]
-        UI4["Draw shows board, sketches, annotations"]
-        UI5["Inspector shows scores, links, artifacts, JSON"]
-        UI6["Event stream shows move progress"]
-    end
+BE12 --> TE1
+TE1 --> TE2 & TE3 & TE4 & TE5 & TE6 & TE7
+TE2 --> TE8
+TE3 --> TE8
+TE4 --> TE8
+TE5 --> TE8
+TE6 --> TE8
+TE7 --> TE8
+TE8 --> TE9 --> TE10
+TE8 --> S1
+TE8 --> S2
 
-    S2 ==> UI1
-    S1 ==> UI2
-    S3 ==> UI3
-    S3 ==> UI4
-    S8 ==> UI5
-    S2 ==> UI6
-    UI1 ==> A1
-    UI2 ==> A8
-    UI3 ==> MOD
-    UI4 ==> DRAW
+%% =========================================================
+%% CRITIC / EVALUATOR PASS 1
+%% =========================================================
 
-    subgraph LL ["Learning And Pattern Statistics"]
-        direction TB
-        LL1["Compare predicted move effect to evaluator result"]
-        LL2["Update move pattern stats"]
-        LL3["Update sensitivity matrix"]
-        LL4["Record branch failures"]
-        LL5["Record successful concept signals"]
-        LL6["Improve future affordance ranking"]
-        LL7["Do not treat model weights as project truth"]
-    end
+subgraph EV1[CRITIC + EVALUATOR PASS 1]
+EV1A[Read branch briefs]
+EV1B[Score each branch against rubric]
+EV1C[Check system integration]
+EV1D[Check feasibility]
+EV1E[Check originality]
+EV1F[Check sketchability]
+EV1G[Check board potential]
+EV1H[Check emotional hook]
+EV1I[Apply penalties]
+EV1J[Write evaluation artifact]
+EV1K[Recommend kill / refine / keep]
+end
 
-    EV1J ==> LL1
-    EV2J ==> LL1
-    QA18 ==> LL1
-    LL1 ==> LL2
-    LL2 ==> LL3
-    LL3 ==> LL4
-    LL4 ==> LL5
-    LL5 ==> LL6
-    LL6 ==> LL7
-    LL6 ==> AF5
+TE10 --> EV1A
+EV1A --> EV1B --> EV1C --> EV1D --> EV1E --> EV1F --> EV1G --> EV1H --> EV1I --> EV1J --> EV1K
+EV1J --> S3
+EV1K --> S1
 
-    subgraph REC ["Failure And Recovery"]
-        direction TB
-        RE1{"Research missing?"}
-        RE2["Create research retry move"]
-        RE3{"Branch pool weak?"}
-        RE4["Spawn new branches"]
-        RE5{"Model invalid?"}
-        RE6["Refine geometry, material, or system choice"]
-        RE7{"Board unclear?"}
-        RE8["Recompose board hierarchy"]
-        RE9{"Operator rejects commit?"}
-        RE10["Return to top-three comparison"]
-    end
+%% =========================================================
+%% BRANCH CURATION
+%% =========================================================
 
-    RC13 ==> RE1
-    RE1 -- yes --> RE2
-    RE2 ==> HB3
-    EV1K ==> RE3
-    RE3 -- yes --> RE4
-    RE4 ==> CB1
-    MO11 ==> RE5
-    RE5 -- yes --> RE6
-    RE6 ==> DEV
-    QA16 ==> RE7
-    RE7 -- yes --> RE8
-    RE8 ==> DRAW
-    CO11 ==> RE9
-    RE9 -- yes --> RE10
-    RE10 ==> CUR7
+subgraph CUR[CURATE TOP BRANCHES]
+CUR1[Sort by total score]
+CUR2[Preserve diversity]
+CUR3[Reject generic concepts]
+CUR4[Reject unbuildable concepts]
+CUR5[Keep top 3]
+CUR6[Archive weak branches as history]
+CUR7[Create top-3 comparison]
+CUR8[Ask user approval if needed]
+CUR9{User wants override?}
+CUR10[Apply override]
+CUR11[Proceed with top 3]
+end
 
-    EX9 ==> END(["A.A.S. state: delivered package, committed concept, traceable decision history"])
-    END ==> S7
+EV1K --> CUR1 --> CUR2 --> CUR3 --> CUR4 --> CUR5
+CUR5 --> CUR7 --> CUR8 --> CUR9
+CUR9 -- yes --> CUR10 --> CUR11
+CUR9 -- no --> CUR11
+CUR3 --> CUR6
+CUR4 --> CUR6
+CUR6 --> S1
+CUR7 --> S3
+
+%% =========================================================
+%% TOP 3 DEVELOPMENT
+%% =========================================================
+
+subgraph DEV3[DEVELOP TOP 3]
+D31[Develop Branch 1: narrative + use case]
+D32[Develop Branch 1: system detail]
+D33[Develop Branch 1: sketch package]
+D34[Develop Branch 1: board thumbnail]
+
+D41[Develop Branch 2: narrative + use case]
+D42[Develop Branch 2: system detail]
+D43[Develop Branch 2: sketch package]
+D44[Develop Branch 2: board thumbnail]
+
+D51[Develop Branch 3: narrative + use case]
+D52[Develop Branch 3: system detail]
+D53[Develop Branch 3: sketch package]
+D54[Develop Branch 3: board thumbnail]
+
+D60[Register developed branch artifacts]
+end
+
+CUR11 --> D31 --> D32 --> D33 --> D34 --> D60
+CUR11 --> D41 --> D42 --> D43 --> D44 --> D60
+CUR11 --> D51 --> D52 --> D53 --> D54 --> D60
+D60 --> S3
+
+%% =========================================================
+%% MODEL / FEASIBILITY CHECK
+%% =========================================================
+
+subgraph MOD[MODEL MODE / FEASIBILITY CHECK]
+MO1[Model Agent receives top 3]
+MO2[Create simplified pivot geometry]
+MO3[Check pivot offset]
+MO4[Check swing path]
+MO5[Check collision envelope]
+MO6[Check door weight/material plausibility]
+MO7[Check FJ system fit]
+MO8[Check open/closed drawings]
+MO9[Create diagrams: plan / elevation / sequence]
+MO10[Register model-derived artifacts]
+MO11[Flag invalid branch details]
+end
+
+D60 --> MO1
+MO1 --> MO2 --> MO3 --> MO4 --> MO5 --> MO6 --> MO7 --> MO8 --> MO9 --> MO10
+MO7 --> MO11
+MO11 --> TE8
+MO10 --> S3
+
+%% =========================================================
+%% CRITIC / EVALUATOR PASS 2
+%% =========================================================
+
+subgraph EV2[CRITIC + EVALUATOR PASS 2]
+EV2A[Compare top 3 after feasibility]
+EV2B[Score narrative clarity]
+EV2C[Score movement originality]
+EV2D[Score FJ integration]
+EV2E[Score material intelligence]
+EV2F[Score presentation potential]
+EV2G[Score risk]
+EV2H[Identify strongest concept]
+EV2I[Write final comparison memo]
+EV2J[Generate commit affordance]
+end
+
+MO10 --> EV2A --> EV2B --> EV2C --> EV2D --> EV2E --> EV2F --> EV2G --> EV2H --> EV2I --> EV2J
+EV2I --> S3
+
+%% =========================================================
+%% COMMIT WINNING CONCEPT
+%% =========================================================
+
+subgraph COM[COMMITMENT LEDGER]
+CO1[Supervisor checks critical tensions]
+CO2{Critical unresolved tension?}
+CO3[Return to resolution moves]
+CO4[Prepare commit proposal]
+CO5[Commit decision: selected concept]
+CO6[Commit rationale]
+CO7[Commit product system]
+CO8[Commit material direction]
+CO9[Commit board deliverables]
+CO10[User approval]
+CO11{Approved?}
+CO12[Commit becomes project truth]
+CO13[Rejected: return to branch compare]
+end
+
+EV2J --> CO1 --> CO2
+CO2 -- yes --> CO3 --> TE10
+CO2 -- no --> CO4 --> CO5 --> CO6 --> CO7 --> CO8 --> CO9 --> CO10 --> CO11
+CO11 -- yes --> CO12 --> S4
+CO11 -- no --> CO13 --> CUR7
+
+%% =========================================================
+%% WINNING CONCEPT PACKAGE
+%% =========================================================
+
+subgraph WCP[WINNING CONCEPT PRODUCTION PLAN]
+W1[Generate final concept title]
+W2[Generate one-sentence thesis]
+W3[Generate 150-250 word concept note]
+W4[Define inspiration]
+W5[Define selected FJ system + why]
+W6[Define materials]
+W7[Define use context]
+W8[Define movement sequence]
+W9[Define construction logic]
+W10[Define submission checklist]
+W11[Create final concept packet]
+end
+
+CO12 --> W1 --> W2 --> W3 --> W4 --> W5 --> W6 --> W7 --> W8 --> W9 --> W10 --> W11
+W11 --> S3
+
+%% =========================================================
+%% DRAW MODE BOARD PRODUCTION
+%% =========================================================
+
+subgraph DRAW[DRAW MODE: FINAL PRESENTATION BOARD]
+DR0[Representation Agent enters Draw Mode]
+DR1[Create board strategy]
+DR2[Select board format]
+DR3[Define visual hierarchy]
+DR4[Hero sketch: door in architectural context]
+DR5[Detail sketch: pivot system visible]
+DR6[Plan diagram: swing path + pivot point]
+DR7[Sequence diagram: closed / half-open / open]
+DR8[Material diagram: layers + texture]
+DR9[Use case vignette]
+DR10[Concept note placement]
+DR11[Product-system callout]
+DR12[Annotations]
+DR13[Margins / title / metadata]
+DR14[Assemble board]
+DR15[Register board draft]
+end
+
+W11 --> DR0 --> DR1 --> DR2 --> DR3
+DR3 --> DR4 & DR5 & DR6 & DR7 & DR8 & DR9 & DR10 & DR11 & DR12 & DR13
+DR4 --> DR14
+DR5 --> DR14
+DR6 --> DR14
+DR7 --> DR14
+DR8 --> DR14
+DR9 --> DR14
+DR10 --> DR14
+DR11 --> DR14
+DR12 --> DR14
+DR13 --> DR14 --> DR15
+DR15 --> S3
+
+%% =========================================================
+%% SKETCH ART DIRECTION
+%% =========================================================
+
+subgraph SK[SKETCH LANGUAGE CONTROL]
+SK1[Check hand-sketch character]
+SK2[Check line weight hierarchy]
+SK3[Check perspective clarity]
+SK4[Check technical readability]
+SK5[Check no generic render look]
+SK6[Check hinge/product shown]
+SK7[Check human scale]
+SK8[Check material tactility]
+SK9[Check movement arrows]
+SK10[Check annotations]
+SK11[Update sketch art direction]
+end
+
+DR15 --> SK1 --> SK2 --> SK3 --> SK4 --> SK5 --> SK6 --> SK7 --> SK8 --> SK9 --> SK10 --> SK11
+SK11 --> DR14
+
+%% =========================================================
+%% FINAL QA
+%% =========================================================
+
+subgraph QA[FINAL QA / VALIDATION GATES]
+QA1[Supervisor starts final QA]
+QA2[Check contest requirement coverage]
+QA3[Check selected FJ system is named]
+QA4[Check pivot system visible]
+QA5[Check concept note answers inspiration]
+QA6[Check concept note answers materials]
+QA7[Check concept note answers use case]
+QA8[Check feasibility proof exists]
+QA9[Check board readability at thumbnail]
+QA10[Check originality / generic penalty]
+QA11[Check spelling / labels / dates]
+QA12[Check file format assumptions]
+QA13[Check no critical unresolved tensions]
+QA14[Check artifact lineage]
+QA15{Pass?}
+QA16[Create fix affordances]
+QA17[Approve final board]
+end
+
+DR15 --> QA1 --> QA2 --> QA3 --> QA4 --> QA5 --> QA6 --> QA7 --> QA8 --> QA9 --> QA10 --> QA11 --> QA12 --> QA13 --> QA14 --> QA15
+QA15 -- no --> QA16 --> AC7
+QA15 -- yes --> QA17
+
+%% =========================================================
+%% EXPORT / DELIVERY
+%% =========================================================
+
+subgraph EXP[EXPORT / DELIVERY]
+EX1[Create final board export]
+EX2[Create final concept note export]
+EX3[Create source package]
+EX4[Create submission checklist]
+EX5[Create final WorldState snapshot]
+EX6[Runtime event: aas.artifact.created]
+EX7[Runtime event: aas.commit.created]
+EX8[Runtime event: aas.delivery.ready]
+EX9([FINAL OUTPUT: submission-ready concept + presentation board])
+end
+
+QA17 --> EX1 --> EX2 --> EX3 --> EX4 --> EX5 --> EX6 --> EX7 --> EX8 --> EX9
+EX1 --> S3
+EX2 --> S3
+EX3 --> S3
+EX5 --> S7
+EX7 --> S4
+
+%% =========================================================
+%% LIVE UI FEEDBACK LOOPS
+%% =========================================================
+
+subgraph UI[FOUR WORKSPACE VISIBILITY]
+UI1[Chat shows reasoning, questions, approvals]
+UI2[Architect shows nodes, branches, tensions, commits]
+UI3[Model shows pivot geometry, swing path, feasibility]
+UI4[Draw shows board, sketches, annotations]
+UI5[Inspector shows raw scores, links, artifacts, JSON]
+UI6[Event stream shows move status]
+end
+
+S2 --> UI1
+S1 --> UI2
+S3 --> UI3
+S3 --> UI4
+S1 --> UI5
+S2 --> UI6
+UI1 --> A1
+UI2 --> A8
+UI3 --> MOD
+UI4 --> DRAW
+
+%% =========================================================
+%% LEARNING LOOP
+%% =========================================================
+
+subgraph LL[LEARNING / PATTERN STATS]
+LL1[Compare predicted move effect vs evaluator result]
+LL2[Update move pattern stats]
+LL3[Update sensitivity matrix]
+LL4[Record branch failures]
+LL5[Record successful concept signals]
+LL6[Improve future affordance ranking]
+LL7[No model weights treated as project truth]
+end
+
+EV1J --> LL1
+EV2I --> LL1
+QA17 --> LL1
+LL1 --> LL2 --> LL3 --> LL4 --> LL5 --> LL6 --> LL7
+LL6 --> AC5
+
+%% =========================================================
+%% RECOVERY LOOPS
+%% =========================================================
+
+subgraph REC[FAILURE / RECOVERY]
+RE1{Research missing?}
+RE2[Create research retry move]
+RE3{Branch weak?}
+RE4[Spawn new branch]
+RE5{Model invalid?}
+RE6[Refine geometry / material / system choice]
+RE7{Board unclear?}
+RE8[Recompose board hierarchy]
+RE9{User rejects commit?}
+RE10[Return to top-3 compare]
+end
+
+R15 --> RE1
+RE1 -- yes --> RE2 --> HB3
+EV1K --> RE3
+RE3 -- yes --> RE4 --> CB1
+MO11 --> RE5
+RE5 -- yes --> RE6 --> DEV3
+QA15 --> RE7
+RE7 -- yes --> RE8 --> DRAW
+CO11 --> RE9
+RE9 -- yes --> RE10 --> CUR7
+
+%% =========================================================
+%% END
+%% =========================================================
+
+EX9 --> END([AAS STATE: delivered artifact package, committed concept, traceable decision history])
+END --> S7
 
     style A0 fill:#7f1d1d,stroke:#fecaca,color:#ffffff,stroke-width:4px
     linkStyle 0,1,2,3,4,5,6,7 stroke:#818cf8,stroke-width:4px

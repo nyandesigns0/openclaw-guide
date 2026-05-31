@@ -6,7 +6,6 @@ import {
   useMemo,
   useRef,
   useState,
-  type PointerEvent,
   type ReactNode,
 } from "react";
 import mermaid from "mermaid";
@@ -21,6 +20,7 @@ import {
   Maximize2,
   Minimize2,
   MousePointer2,
+  Hand,
   RotateCcw,
   Minus,
   Plus,
@@ -32,6 +32,16 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { copyText } from "./copy";
+import {
+  getGestureHint,
+  useCoarsePointer,
+  useMermaidGestures,
+  ZOOM_ANIMATION_MS,
+  ZOOM_STEP_FACTOR,
+  type SelectionMode,
+  type ToolMode,
+  type TransformSnapshot,
+} from "./mermaid-gestures";
 
 mermaid.initialize({
   startOnLoad: false,
@@ -40,21 +50,6 @@ mermaid.initialize({
   fontFamily: "inherit",
 });
 
-type ToolMode = "select" | "zoom";
-type DragBox = {
-  startX: number;
-  startY: number;
-  currentX: number;
-  currentY: number;
-  shiftKey: boolean;
-  ctrlKey: boolean;
-};
-type MiddlePan = {
-  startClientX: number;
-  startClientY: number;
-  startPositionX: number;
-  startPositionY: number;
-};
 type EdgeRecord = {
   element: SVGElement;
   source?: string;
@@ -208,21 +203,9 @@ function applyEdgeSelectionStyle(edge: EdgeRecord, highlighted: boolean) {
   }
 }
 
-function getDragStyle(dragBox: DragBox) {
-  const left = Math.min(dragBox.startX, dragBox.currentX);
-  const top = Math.min(dragBox.startY, dragBox.currentY);
-  const width = Math.abs(dragBox.currentX - dragBox.startX);
-  const height = Math.abs(dragBox.currentY - dragBox.startY);
-
-  return { left, top, width, height };
-}
-
 function intersects(a: DOMRect, b: DOMRect) {
   return a.left <= b.right && a.right >= b.left && a.top <= b.bottom && a.bottom >= b.top;
 }
-
-const ZOOM_STEP_FACTOR = 1.8;
-const ZOOM_ANIMATION_MS = 180;
 
 function getSelectedNodeScreenBounds(diagramRoot: HTMLElement, selectedNodeIds: string[]) {
   const selected = new Set(selectedNodeIds);
@@ -792,12 +775,14 @@ function ToolCluster({
   children,
   icon,
   isActive,
+  isCoarsePointer,
   label,
   onClick,
 }: {
   children?: ReactNode;
   icon: ReactNode;
   isActive?: boolean;
+  isCoarsePointer?: boolean;
   label: string;
   onClick: () => void;
 }) {
@@ -816,14 +801,49 @@ function ToolCluster({
       >
         {icon}
       </button>
-      {children && (
+      {children && !isCoarsePointer && (
         <div className="absolute left-1/2 top-full z-10 flex w-12 -translate-x-1/2 -translate-y-3 justify-center pt-3 opacity-0 transition-all delay-150 duration-150 ease-out pointer-events-none group-hover/tool:translate-y-0 group-hover/tool:opacity-100 group-hover/tool:delay-0 group-hover/tool:pointer-events-auto">
           <div className="absolute inset-x-0 top-0 h-3" />
-          <div className="flex flex-col gap-1">
-          {children}
-          </div>
+          <div className="flex flex-col gap-1">{children}</div>
         </div>
       )}
+    </div>
+  );
+}
+
+function SelectionModeToggle({
+  mode,
+  onChange,
+}: {
+  mode: SelectionMode;
+  onChange: (mode: SelectionMode) => void;
+}) {
+  const options: { value: SelectionMode; label: string }[] = [
+    { value: "replace", label: "Replace" },
+    { value: "add", label: "Add" },
+    { value: "remove", label: "Remove" },
+  ];
+
+  return (
+    <div
+      className="pointer-events-auto absolute left-4 top-14 z-20 flex overflow-hidden rounded border border-zinc-700 bg-black/80 font-mono text-[10px] uppercase tracking-wider"
+      data-mermaid-ui
+    >
+      {options.map((option) => (
+        <button
+          key={option.value}
+          type="button"
+          onClick={() => onChange(option.value)}
+          className={cn(
+            "px-2 py-1 transition-colors",
+            mode === option.value
+              ? "bg-indigo-500/25 text-indigo-200"
+              : "text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100"
+          )}
+        >
+          {option.label}
+        </button>
+      ))}
     </div>
   );
 }
@@ -1119,13 +1139,25 @@ function MermaidViewer({
   const zoomAroundSelectionRef = useRef<(direction: "in" | "out") => void>(() => {});
   const lastGroupToggleRef = useRef({ subgraphId: "", time: 0 });
   const lastGroupClickRef = useRef({ subgraphId: "", time: 0 });
+  const transformRef = useRef<TransformSnapshot>({ positionX: 0, positionY: 0, scale: 1 });
+  const setTransformRef = useRef<
+    ((x: number, y: number, scale: number, animationTime?: number) => void) | null
+  >(null);
+  const isCoarsePointer = useCoarsePointer();
+  const hasSetDefaultToolRef = useRef(false);
   const [toolMode, setToolMode] = useState<ToolMode>("select");
-  const [dragBox, setDragBox] = useState<DragBox | null>(null);
+  const [selectionMode, setSelectionMode] = useState<SelectionMode>("replace");
   const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([]);
-  const [middlePan, setMiddlePan] = useState<MiddlePan | null>(null);
 
   const isIsolateActive = Boolean(viewFilter.isolatedNodeIds?.length);
   const focusZoomOnSelection = toolMode === "select" && selectedNodeIds.length > 0;
+
+  useEffect(() => {
+    if (!hasSetDefaultToolRef.current && isCoarsePointer) {
+      setToolMode("pan");
+      hasSetDefaultToolRef.current = true;
+    }
+  }, [isCoarsePointer]);
 
   function toggleSubgraphOnce(subgraphId: string) {
     const now = window.performance.now();
@@ -1186,31 +1218,55 @@ function MermaidViewer({
     return null;
   }
 
-  useEffect(() => {
-    const viewport = viewportRef.current;
+  function updateSelection(nodeIds: string[], options: { add: boolean; remove: boolean }) {
+    const normalized = Array.from(new Set(nodeIds));
 
-    if (!viewport) {
-      return;
-    }
-
-    const viewportElement = viewport;
-
-    function preventPageScroll(event: Event) {
-      const wheelEvent = event as globalThis.WheelEvent;
-
-      if ((wheelEvent.target as Element).closest("[data-mermaid-ui]")) {
-        return;
+    setSelectedNodeIds((current) => {
+      if (options.remove) {
+        return current.filter((id) => !normalized.includes(id));
       }
 
-      wheelEvent.preventDefault();
-    }
+      if (options.add) {
+        return Array.from(new Set([...current, ...normalized]));
+      }
 
-    viewportElement.addEventListener("wheel", preventPageScroll, { passive: false, capture: true });
+      return normalized;
+    });
+  }
 
-    return () => {
-      viewportElement.removeEventListener("wheel", preventPageScroll, { capture: true });
-    };
-  }, [svg, isFullscreen]);
+  function getNodeFromPoint(clientX: number, clientY: number) {
+    const elements = document.elementsFromPoint(clientX, clientY);
+    const nodeElement = elements
+      .map((element) => getNodeElementFromTarget(element))
+      .find(Boolean);
+
+    return nodeElement ? getNodeIdFromElement(nodeElement) : null;
+  }
+
+  const {
+    activeTouchPointers,
+    dragBox,
+    dragStyle,
+    isAdding,
+    isDeselecting,
+    cursorClass,
+    handlers,
+    resetGesture,
+  } = useMermaidGestures({
+    viewportRef,
+    diagramRef,
+    toolMode,
+    selectionMode,
+    updateSelection,
+    getNodeFromPoint,
+    getToggleSubgraphIdFromPoint,
+    toggleSubgraphOnce,
+    lastGroupClickRef,
+    transformRef,
+    setTransformRef,
+    intersects,
+    getFlowchartNodes,
+  });
 
   useEffect(() => {
     const viewport = viewportRef.current;
@@ -1242,17 +1298,17 @@ function MermaidViewer({
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      setDragBox(null);
+      resetGesture();
     }, 0);
 
     return () => window.clearTimeout(timer);
-  }, [isFullscreen]);
+  }, [isFullscreen, resetGesture]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
       if (!hasFilter) {
         setSelectedNodeIds([]);
-        setToolMode("select");
+        setToolMode(isCoarsePointer ? "pan" : "select");
         return;
       }
 
@@ -1268,7 +1324,7 @@ function MermaidViewer({
     }, 0);
 
     return () => window.clearTimeout(timer);
-  }, [svg, hasFilter]);
+  }, [svg, hasFilter, isCoarsePointer]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -1390,43 +1446,6 @@ function MermaidViewer({
     };
   }, [collapsedSubgraphIds, graphSubgraphs, onToggleSubgraph, svg]);
 
-  function getPointerPosition(event: PointerEvent<HTMLDivElement>) {
-    const bounds = event.currentTarget.getBoundingClientRect();
-
-    return {
-      x: event.clientX - bounds.left,
-      y: event.clientY - bounds.top,
-      width: bounds.width,
-      height: bounds.height,
-      bounds,
-    };
-  }
-
-  function updateSelection(nodeIds: string[], options: { add: boolean; remove: boolean }) {
-    const normalized = Array.from(new Set(nodeIds));
-
-    setSelectedNodeIds((current) => {
-      if (options.remove) {
-        return current.filter((id) => !normalized.includes(id));
-      }
-
-      if (options.add) {
-        return Array.from(new Set([...current, ...normalized]));
-      }
-
-      return normalized;
-    });
-  }
-
-  function getNodeFromPoint(clientX: number, clientY: number) {
-    const elements = document.elementsFromPoint(clientX, clientY);
-    const nodeElement = elements
-      .map((element) => getNodeElementFromTarget(element))
-      .find(Boolean);
-
-    return nodeElement ? getNodeIdFromElement(nodeElement) : null;
-  }
-
   return (
     <div
       className={cn(
@@ -1443,12 +1462,26 @@ function MermaidViewer({
         centerOnInit
         limitToBounds={false}
         smooth
-        doubleClick={{ disabled: toolMode !== "zoom", mode: "zoomIn", step: ZOOM_STEP_FACTOR }}
+        doubleClick={{
+          disabled: toolMode !== "zoom" || activeTouchPointers > 0,
+          mode: "zoomIn",
+          step: ZOOM_STEP_FACTOR,
+        }}
         wheel={{ step: 0.15, disabled: focusZoomOnSelection }}
-        pinch={{ step: 8 }}
-        panning={{ disabled: true, velocityDisabled: false }}
+        pinch={{ step: 5, disabled: false }}
+        panning={{
+          disabled: true,
+          velocityDisabled: false,
+        }}
       >
         {({ zoomIn, zoomOut, resetTransform, setTransform, state }) => {
+          transformRef.current = {
+            positionX: state.positionX,
+            positionY: state.positionY,
+            scale: state.scale || 1,
+          };
+          setTransformRef.current = setTransform;
+
           function zoomAroundSelection(direction: "in" | "out") {
             const viewport = viewportRef.current;
             const root = diagramRef.current;
@@ -1537,195 +1570,111 @@ function MermaidViewer({
             });
           };
 
-          const dragStyle = dragBox ? getDragStyle(dragBox) : null;
-          const isDeselecting = toolMode === "select" && dragBox?.ctrlKey;
-          const isAdding = toolMode === "select" && dragBox?.shiftKey;
+          const selectSubTools = (
+            <SubToolButton
+              label="Isolate selection - cut flow to selected nodes and their links, then re-render"
+              disabled={selectedNodeIds.length === 0}
+              isActive={isIsolateActive}
+              onClick={() => {
+                if (selectedNodeIds.length === 0) {
+                  return;
+                }
 
-          function handlePointerDown(event: PointerEvent<HTMLDivElement>) {
-            if ((event.target as Element).closest("[data-mermaid-ui]")) {
-              return;
-            }
+                onViewFilterChange({
+                  isolatedNodeIds: selectedNodeIds,
+                  neighborHopsUp: 0,
+                  neighborHopsDown: 0,
+                });
+                setSelectedNodeIds([]);
+              }}
+            >
+              <Split size={14} />
+            </SubToolButton>
+          );
 
-            if (event.button === 1) {
-              event.preventDefault();
-              event.currentTarget.setPointerCapture(event.pointerId);
-              setDragBox(null);
-              setMiddlePan({
-                startClientX: event.clientX,
-                startClientY: event.clientY,
-                startPositionX: state.positionX,
-                startPositionY: state.positionY,
-              });
-              return;
-            }
-
-            if (event.button !== 0) {
-              return;
-            }
-
-            event.currentTarget.setPointerCapture(event.pointerId);
-            const point = getPointerPosition(event);
-            setDragBox({
-              startX: point.x,
-              startY: point.y,
-              currentX: point.x,
-              currentY: point.y,
-              shiftKey: event.shiftKey,
-              ctrlKey: event.ctrlKey || event.metaKey,
-            });
-          }
-
-          function handlePointerMove(event: PointerEvent<HTMLDivElement>) {
-            if (middlePan) {
-              event.preventDefault();
-              setTransform(
-                middlePan.startPositionX + event.clientX - middlePan.startClientX,
-                middlePan.startPositionY + event.clientY - middlePan.startClientY,
-                state.scale,
-                0
-              );
-              return;
-            }
-
-            if (!dragBox) {
-              return;
-            }
-
-            event.preventDefault();
-            const point = getPointerPosition(event);
-            setDragBox((current) =>
-              current
-                ? {
-                    ...current,
-                    currentX: Math.max(0, Math.min(point.x, point.width)),
-                    currentY: Math.max(0, Math.min(point.y, point.height)),
-                    shiftKey: event.shiftKey,
-                    ctrlKey: event.ctrlKey || event.metaKey,
-                  }
-                : current
-            );
-          }
-
-          function handlePointerUp(event: PointerEvent<HTMLDivElement>) {
-            if (middlePan) {
-              event.preventDefault();
-              setMiddlePan(null);
-              return;
-            }
-
-            if (!dragBox) {
-              return;
-            }
-
-            const point = getPointerPosition(event);
-            const finalDragBox = {
-              ...dragBox,
-              currentX: Math.max(0, Math.min(point.x, point.width)),
-              currentY: Math.max(0, Math.min(point.y, point.height)),
-              shiftKey: event.shiftKey || dragBox.shiftKey,
-              ctrlKey: event.ctrlKey || event.metaKey || dragBox.ctrlKey,
-            };
-            const rect = getDragStyle(finalDragBox);
-            const isClick = rect.width < 8 && rect.height < 8;
-
-            setDragBox(null);
-
-            if (toolMode === "select") {
-              if (isClick) {
-                const toggleSubgraphId = getToggleSubgraphIdFromPoint(event.clientX, event.clientY);
-                if (toggleSubgraphId) {
-                  const now = window.performance.now();
-                  const lastClick = lastGroupClickRef.current;
-
-                  if (lastClick.subgraphId === toggleSubgraphId && now - lastClick.time < 450) {
-                    lastGroupClickRef.current = { subgraphId: "", time: 0 };
-                    toggleSubgraphOnce(toggleSubgraphId);
+          const zoomSubTools = (
+            <>
+              <SubToolButton
+                label="Zoom in"
+                onClick={() => {
+                  if (focusZoomOnSelection) {
+                    zoomAroundSelection("in");
                     return;
                   }
 
-                  lastGroupClickRef.current = { subgraphId: toggleSubgraphId, time: now };
-                } else {
-                  lastGroupClickRef.current = { subgraphId: "", time: 0 };
-                }
+                  zoomIn(0.2);
+                }}
+              >
+                <ZoomIn size={14} />
+              </SubToolButton>
+              <SubToolButton
+                label="Zoom out"
+                onClick={() => {
+                  if (focusZoomOnSelection) {
+                    zoomAroundSelection("out");
+                    return;
+                  }
 
-                const nodeId = getNodeFromPoint(event.clientX, event.clientY);
-                updateSelection(nodeId ? [nodeId] : [], {
-                  add: finalDragBox.shiftKey,
-                  remove: finalDragBox.ctrlKey,
-                });
-                return;
-              }
+                  zoomOut(0.2);
+                }}
+              >
+                <ZoomOut size={14} />
+              </SubToolButton>
+            </>
+          );
 
-              event.preventDefault();
-              const selectionRect = new DOMRect(
-                point.bounds.left + rect.left,
-                point.bounds.top + rect.top,
-                rect.width,
-                rect.height
-              );
-              const nodeIds =
-                diagramRef.current
-                  ? getFlowchartNodes(diagramRef.current)
-                      .filter((node) => intersects(node.element.getBoundingClientRect(), selectionRect))
-                      .map((node) => node.id)
-                  : [];
+          const resetSubTools = (
+            <>
+              <SubToolButton
+                label="Fit to view"
+                onClick={() => {
+                  fitViewRef.current?.();
+                }}
+              >
+                <RotateCcw size={14} />
+              </SubToolButton>
+              <SubToolButton
+                label="Show all nodes - restore full flowchart and collapse parent groups"
+                onClick={() => {
+                  onResetView();
+                  setSelectedNodeIds([]);
+                }}
+              >
+                <Undo2 size={14} />
+              </SubToolButton>
+            </>
+          );
 
-              updateSelection(nodeIds, {
-                add: finalDragBox.shiftKey,
-                remove: finalDragBox.ctrlKey,
-              });
-              return;
-            }
-
-            if (toolMode === "zoom" && !isClick) {
-              event.preventDefault();
-              const sourceScale = state.scale || 1;
-              const contentLeft = (rect.left - state.positionX) / sourceScale;
-              const contentTop = (rect.top - state.positionY) / sourceScale;
-              const contentWidth = rect.width / sourceScale;
-              const contentHeight = rect.height / sourceScale;
-              const contentCenterX = contentLeft + contentWidth / 2;
-              const contentCenterY = contentTop + contentHeight / 2;
-              const targetScale = Math.max(
-                0.02,
-                Math.min(1000, Math.min(point.width / contentWidth, point.height / contentHeight) * 0.9)
-              );
-              const targetX = point.width / 2 - contentCenterX * targetScale;
-              const targetY = point.height / 2 - contentCenterY * targetScale;
-
-              setTransform(targetX, targetY, targetScale, 240);
-            }
-          }
+          const coarseSubTools =
+            toolMode === "select"
+              ? selectSubTools
+              : toolMode === "zoom"
+                ? zoomSubTools
+                : null;
 
           return (
             <>
-              <div className="absolute right-4 top-4 z-30 flex items-center gap-1.5 opacity-100 transition-opacity sm:opacity-0 sm:group-hover/diagram:opacity-100">
+              <div
+                className="absolute right-4 top-4 z-30 flex flex-col items-end gap-1.5 opacity-100 transition-opacity sm:opacity-0 sm:group-hover/diagram:opacity-100"
+                data-mermaid-ui
+              >
+                <div className="flex items-center gap-1.5">
                 <ToolCluster
                   icon={<MousePointer2 size={14} />}
                   isActive={toolMode === "select"}
+                  isCoarsePointer={isCoarsePointer}
                   label="Select"
                   onClick={() => setToolMode("select")}
                 >
-                  <SubToolButton
-                    label="Isolate selection - cut flow to selected nodes and their links, then re-render"
-                    disabled={selectedNodeIds.length === 0}
-                    isActive={isIsolateActive}
-                    onClick={() => {
-                      if (selectedNodeIds.length === 0) {
-                        return;
-                      }
-
-                      onViewFilterChange({
-                        isolatedNodeIds: selectedNodeIds,
-                        neighborHopsUp: 0,
-                        neighborHopsDown: 0,
-                      });
-                      setSelectedNodeIds([]);
-                    }}
-                  >
-                    <Split size={14} />
-                  </SubToolButton>
+                  {selectSubTools}
                 </ToolCluster>
+                <ToolCluster
+                  icon={<Hand size={14} />}
+                  isActive={toolMode === "pan"}
+                  isCoarsePointer={isCoarsePointer}
+                  label="Pan"
+                  onClick={() => setToolMode("pan")}
+                />
                 {isIsolateActive && (
                   <DirectedHopControls
                     hopsUp={viewFilter.neighborHopsUp}
@@ -1747,60 +1696,22 @@ function MermaidViewer({
                 <ToolCluster
                   icon={<ScanSearch size={14} />}
                   isActive={toolMode === "zoom"}
+                  isCoarsePointer={isCoarsePointer}
                   label="Zoom"
                   onClick={() => setToolMode("zoom")}
                 >
-                  <SubToolButton
-                    label="Zoom in"
-                    onClick={() => {
-                      if (focusZoomOnSelection) {
-                        zoomAroundSelection("in");
-                        return;
-                      }
-
-                      zoomIn(0.2);
-                    }}
-                  >
-                    <ZoomIn size={14} />
-                  </SubToolButton>
-                  <SubToolButton
-                    label="Zoom out"
-                    onClick={() => {
-                      if (focusZoomOnSelection) {
-                        zoomAroundSelection("out");
-                        return;
-                      }
-
-                      zoomOut(0.2);
-                    }}
-                  >
-                    <ZoomOut size={14} />
-                  </SubToolButton>
+                  {zoomSubTools}
                 </ToolCluster>
                 <ToolCluster
                   icon={<RotateCcw size={14} />}
+                  isActive={false}
+                  isCoarsePointer={isCoarsePointer}
                   label="Reset"
                   onClick={() => {
                     fitViewRef.current?.();
                   }}
                 >
-                  <SubToolButton
-                    label="Fit to view"
-                    onClick={() => {
-                      fitViewRef.current?.();
-                    }}
-                  >
-                    <RotateCcw size={14} />
-                  </SubToolButton>
-                  <SubToolButton
-                    label="Show all nodes - restore full flowchart and collapse parent groups"
-                    onClick={() => {
-                      onResetView();
-                      setSelectedNodeIds([]);
-                    }}
-                  >
-                    <Undo2 size={14} />
-                  </SubToolButton>
+                  {resetSubTools}
                 </ToolCluster>
                 <button
                   type="button"
@@ -1811,23 +1722,26 @@ function MermaidViewer({
                 >
                   {isFullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
                 </button>
+                </div>
+                {isCoarsePointer && coarseSubTools && (
+                  <div className="flex items-center gap-1 rounded border border-zinc-700 bg-zinc-900/95 p-1">
+                    {coarseSubTools}
+                  </div>
+                )}
+                {isCoarsePointer && toolMode !== "select" && toolMode !== "zoom" && (
+                  <div className="flex items-center gap-1 rounded border border-zinc-700 bg-zinc-900/95 p-1">
+                    {resetSubTools}
+                  </div>
+                )}
               </div>
               <div
                 ref={viewportRef}
                 className={cn(
-                  "relative w-full overflow-hidden overscroll-contain",
-                  toolMode === "select" && "cursor-crosshair",
-                  toolMode === "zoom" && "cursor-zoom-in",
-                  middlePan && "cursor-grabbing",
+                  "relative w-full overflow-hidden overscroll-contain touch-none select-none",
+                  cursorClass,
                   isFullscreen ? "flex-1" : "min-h-[360px]"
                 )}
-                onPointerDown={handlePointerDown}
-                onPointerMove={handlePointerMove}
-                onPointerUp={handlePointerUp}
-                onPointerCancel={() => {
-                  setDragBox(null);
-                  setMiddlePan(null);
-                }}
+                {...handlers}
                 onAuxClick={(event) => event.preventDefault()}
               >
                 <TransformComponent
@@ -1850,9 +1764,26 @@ function MermaidViewer({
                     dangerouslySetInnerHTML={{ __html: svg }}
                   />
                 </TransformComponent>
+                {toolMode === "select" && isCoarsePointer && (
+                  <SelectionModeToggle mode={selectionMode} onChange={setSelectionMode} />
+                )}
                 {toolMode === "select" && (
                   <div className="pointer-events-none absolute left-4 top-4 z-20 rounded border border-zinc-700 bg-black/80 px-2 py-1 font-mono text-[10px] uppercase tracking-wider text-zinc-400">
-                    {dragBox?.ctrlKey ? "- deselect" : dragBox?.shiftKey ? "+ add select" : selectedNodeIds.length > 0 ? "+ replace select" : "+ select"}
+                    {isCoarsePointer
+                      ? selectionMode === "remove"
+                        ? "- remove"
+                        : selectionMode === "add"
+                          ? "+ add select"
+                          : selectedNodeIds.length > 0
+                            ? "replace select"
+                            : "+ select"
+                      : dragBox?.ctrlKey
+                        ? "- deselect"
+                        : dragBox?.shiftKey
+                          ? "+ add select"
+                          : selectedNodeIds.length > 0
+                            ? "+ replace select"
+                            : "+ select"}
                   </div>
                 )}
                 {dragStyle && (
@@ -1880,9 +1811,7 @@ function MermaidViewer({
         }}
       </TransformWrapper>
       <div className="mt-2 text-center font-mono text-[10px] uppercase tracking-widest text-zinc-600 opacity-100 transition-opacity sm:opacity-0 sm:group-hover/diagram:opacity-100">
-        {hasSubgraphCollapse
-          ? "Double-click hexagon group nodes to expand or collapse - scroll wheel zooms at cursor inside chart - middle mouse pans"
-          : "Scroll wheel zooms at cursor inside chart - select nodes to focus toolbar zoom on selection - middle mouse pans"}
+        {getGestureHint(isCoarsePointer, hasSubgraphCollapse, toolMode)}
       </div>
     </div>
   );
