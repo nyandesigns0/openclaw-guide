@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { useMermaidFullscreenActive } from "@/lib/mermaid-fullscreen";
 import type { ContentGroup, ContentTab } from "@/lib/content";
 
 function flattenChapters(tabs: ContentGroup[]): ContentTab[] {
@@ -47,6 +48,7 @@ export function ChapterPicker({
   activeTabId: string;
 }) {
   const router = useRouter();
+  const isMermaidFullscreen = useMermaidFullscreenActive();
   const chapters = useMemo(() => flattenChapters(tabs), [tabs]);
   const currentIndex = chapters.findIndex((chapter) => chapter.id === activeTabId);
   const [draft, setDraft] = useState(() => formatChapterLabel(activeTabId));
@@ -74,6 +76,10 @@ export function ChapterPicker({
     }
 
     setDraft(formatChapterLabel(activeTabId));
+  }
+
+  if (isMermaidFullscreen) {
+    return null;
   }
 
   return (

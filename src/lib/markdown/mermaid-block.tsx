@@ -32,6 +32,7 @@ import {
   ZoomOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { setMermaidFullscreen } from "@/lib/mermaid-fullscreen";
 import { copyText } from "./copy";
 import {
   getGestureHint,
@@ -1881,6 +1882,16 @@ export function MermaidBlock({ content }: { content: string }) {
     setViewFilter(DEFAULT_VIEW_FILTER);
     setExpandedSubgraphIds(new Set());
   }
+
+  useEffect(() => {
+    setMermaidFullscreen(isFullscreen);
+
+    return () => {
+      if (isFullscreen) {
+        setMermaidFullscreen(false);
+      }
+    };
+  }, [isFullscreen]);
 
   useEffect(() => {
     if (!isFullscreen) {

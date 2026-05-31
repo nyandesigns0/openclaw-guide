@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ChevronRight, ChevronDown, Menu, X, Info, Lightbulb, Layers, Settings, Globe, Shield, History, FileText } from "lucide-react";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { useMermaidFullscreenActive } from "@/lib/mermaid-fullscreen";
 import { usePathname, useSearchParams, useRouter } from "next/navigation";
 
 const iconMap: Record<string, any> = {
@@ -18,6 +19,7 @@ const iconMap: Record<string, any> = {
 
 export function Sidebar({ tabs, activeTabId }: { tabs: any[], activeTabId: string }) {
   const [isOpen, setIsOpen] = useState(false);
+  const isMermaidFullscreen = useMermaidFullscreenActive();
   
   // Find which group contains the active tab to expand it initially
   const initialExpandedGroupId = tabs.find(g => g.subtabs.some((s: any) => s.id === activeTabId))?.id;
@@ -33,6 +35,12 @@ export function Sidebar({ tabs, activeTabId }: { tabs: any[], activeTabId: strin
     setIsOpen(false);
   }, [pathname, searchParams]);
 
+  useEffect(() => {
+    if (isMermaidFullscreen) {
+      setIsOpen(false);
+    }
+  }, [isMermaidFullscreen]);
+
   const toggleGroup = (groupId: string) => {
     setExpandedGroups(prev => ({
       ...prev,
@@ -42,14 +50,16 @@ export function Sidebar({ tabs, activeTabId }: { tabs: any[], activeTabId: strin
 
   return (
     <>
+      {!isMermaidFullscreen && (
       <button 
         className="lg:hidden fixed top-4 right-4 z-[60] p-2 bg-zinc-900 border border-zinc-800 rounded-md text-zinc-100"
         onClick={() => setIsOpen(!isOpen)}
       >
         {isOpen ? <X size={20} /> : <Menu size={20} />}
       </button>
+      )}
 
-      {isOpen && (
+      {isOpen && !isMermaidFullscreen && (
         <div 
           className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[50] lg:hidden"
           onClick={() => setIsOpen(false)}
