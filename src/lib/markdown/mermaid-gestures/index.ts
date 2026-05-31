@@ -5,6 +5,7 @@ export {
   getDragStyle,
   isClickDrag,
   resolveSelectionFlags,
+  shouldDelegateTouchToLibrary,
 } from "./gesture-state";
 export { isDoubleTap, zoomInAtPoint, zoomToRect } from "./gesture-router";
 export { useMermaidGestures } from "./use-mermaid-gestures";

@@ -19,6 +19,7 @@ import {
   resolveInitialIntent,
   resolveSelectionFlags,
   shouldDeferCapture,
+  shouldDelegateTouchToLibrary,
 } from "./gesture-state";
 import { isDoubleTap, zoomInAtPoint, zoomToRect, type DoubleTapState } from "./gesture-router";
 import {
@@ -79,8 +80,9 @@ export function useMermaidGestures({
 }: UseMermaidGesturesOptions) {
   const isCoarsePointer = useCoarsePointer();
   const [dragBox, setDragBox] = useState<DragBox | null>(null);
-  const [panSession, setPanSession] = useState<PanSession | null>(null);
-  const [middlePan, setMiddlePan] = useState<PanSession | null>(null);
+  const [isPanning, setIsPanning] = useState(false);
+  const middlePanRef = useRef<PanSession | null>(null);
+  const panSessionRef = useRef<PanSession | null>(null);
   const [activeTouchPointers, setActiveTouchPointers] = useState(0);
   const [intent, setIntent] = useState<GestureIntent>("idle");
 
@@ -88,6 +90,15 @@ export function useMermaidGestures({
   const capturedPointerRef = useRef<number | null>(null);
   const lastTapRef = useRef<DoubleTapState>({ time: 0, clientX: 0, clientY: 0 });
   const pendingPanRef = useRef<{ pointerId: number; startX: number; startY: number } | null>(null);
+
+  const clearForPinchDelegation = useCallback(() => {
+    setDragBox(null);
+    middlePanRef.current = null;
+    panSessionRef.current = null;
+    setIsPanning(false);
+    setIntent("pinch-pending");
+    pendingPanRef.current = null;
+  }, []);
 
   const releaseCapture = useCallback((target: HTMLDivElement | null) => {
     if (capturedPointerRef.current !== null && target) {
@@ -105,8 +116,9 @@ export function useMermaidGestures({
     (target?: HTMLDivElement | null) => {
       releaseCapture(target ?? viewportRef.current);
       setDragBox(null);
-      setPanSession(null);
-      setMiddlePan(null);
+      middlePanRef.current = null;
+      panSessionRef.current = null;
+      setIsPanning(false);
       setIntent("idle");
       pendingPanRef.current = null;
       activePointersRef.current.clear();
@@ -133,17 +145,19 @@ export function useMermaidGestures({
     }
 
     viewportElement.addEventListener("wheel", preventViewportScroll, { passive: false, capture: true });
-    viewportElement.addEventListener("touchmove", preventViewportScroll, { passive: false, capture: true });
 
     return () => {
       viewportElement.removeEventListener("wheel", preventViewportScroll, { capture: true });
-      viewportElement.removeEventListener("touchmove", preventViewportScroll, { capture: true });
     };
   }, [viewportRef]);
 
   const handlePointerDown = useCallback(
     (event: PointerEvent<HTMLDivElement>) => {
       if ((event.target as Element).closest("[data-mermaid-ui]")) {
+        return;
+      }
+
+      if (event.pointerType === "touch" && toolMode === "pan") {
         return;
       }
 
@@ -164,13 +178,9 @@ export function useMermaidGestures({
       const touchCount = countTouchPointers(activePointersRef.current);
       setActiveTouchPointers(touchCount);
 
-      if (event.pointerType === "touch" && touchCount > 1) {
+      if (event.pointerType === "touch" && shouldDelegateTouchToLibrary(toolMode, touchCount)) {
         releaseCapture(event.currentTarget);
-        setDragBox(null);
-        setPanSession(null);
-        setMiddlePan(null);
-        setIntent("pinch-pending");
-        pendingPanRef.current = null;
+        clearForPinchDelegation();
         return;
       }
 
@@ -179,9 +189,13 @@ export function useMermaidGestures({
         event.currentTarget.setPointerCapture(event.pointerId);
         capturedPointerRef.current = event.pointerId;
         setDragBox(null);
-        setMiddlePan(
-          createPanSession(event.clientX, event.clientY, transform.positionX, transform.positionY)
+        middlePanRef.current = createPanSession(
+          event.clientX,
+          event.clientY,
+          transform.positionX,
+          transform.positionY
         );
+        setIsPanning(true);
         setIntent("pan");
         return;
       }
@@ -196,9 +210,13 @@ export function useMermaidGestures({
       if (nextIntent === "pan") {
         event.currentTarget.setPointerCapture(event.pointerId);
         capturedPointerRef.current = event.pointerId;
-        setPanSession(
-          createPanSession(event.clientX, event.clientY, transform.positionX, transform.positionY)
+        panSessionRef.current = createPanSession(
+          event.clientX,
+          event.clientY,
+          transform.positionX,
+          transform.positionY
         );
+        setIsPanning(true);
         setDragBox(null);
         return;
       }
@@ -223,11 +241,15 @@ export function useMermaidGestures({
         ctrlKey: event.ctrlKey || event.metaKey,
       });
     },
-    [releaseCapture, setTransformRef, toolMode, transformRef]
+    [clearForPinchDelegation, releaseCapture, setTransformRef, toolMode, transformRef]
   );
 
   const handlePointerMove = useCallback(
     (event: PointerEvent<HTMLDivElement>) => {
+      if (event.pointerType === "touch" && toolMode === "pan") {
+        return;
+      }
+
       const pointer = activePointersRef.current.get(event.pointerId);
 
       if (pointer) {
@@ -241,13 +263,9 @@ export function useMermaidGestures({
       const touchCount = countTouchPointers(activePointersRef.current);
       setActiveTouchPointers(touchCount);
 
-      if (event.pointerType === "touch" && touchCount > 1) {
+      if (event.pointerType === "touch" && shouldDelegateTouchToLibrary(toolMode, touchCount)) {
         releaseCapture(event.currentTarget);
-        setDragBox(null);
-        setPanSession(null);
-        setMiddlePan(null);
-        setIntent("pinch-pending");
-        pendingPanRef.current = null;
+        clearForPinchDelegation();
         return;
       }
 
@@ -258,7 +276,7 @@ export function useMermaidGestures({
         return;
       }
 
-      const activePan = middlePan ?? panSession;
+      const activePan = middlePanRef.current ?? panSessionRef.current;
 
       if (activePan) {
         event.preventDefault();
@@ -308,10 +326,9 @@ export function useMermaidGestures({
       );
     },
     [
+      clearForPinchDelegation,
       dragBox,
       intent,
-      middlePan,
-      panSession,
       releaseCapture,
       setTransformRef,
       toolMode,
@@ -321,6 +338,10 @@ export function useMermaidGestures({
 
   const handlePointerUp = useCallback(
     (event: PointerEvent<HTMLDivElement>) => {
+      if (event.pointerType === "touch" && toolMode === "pan") {
+        return;
+      }
+
       activePointersRef.current.delete(event.pointerId);
 
       const touchCount = countTouchPointers(activePointersRef.current);
@@ -329,9 +350,10 @@ export function useMermaidGestures({
       const setTransform = setTransformRef.current;
       const transform = transformRef.current;
 
-      if (middlePan) {
+      if (middlePanRef.current) {
         event.preventDefault();
-        setMiddlePan(null);
+        middlePanRef.current = null;
+        setIsPanning(Boolean(panSessionRef.current));
         releaseCapture(event.currentTarget);
         if (touchCount === 0) {
           setIntent("idle");
@@ -339,9 +361,10 @@ export function useMermaidGestures({
         return;
       }
 
-      if (panSession) {
+      if (panSessionRef.current) {
         event.preventDefault();
-        setPanSession(null);
+        panSessionRef.current = null;
+        setIsPanning(false);
         releaseCapture(event.currentTarget);
         if (touchCount === 0) {
           setIntent("idle");
@@ -349,7 +372,7 @@ export function useMermaidGestures({
         return;
       }
 
-      if (intent === "pinch-pending") {
+      if (intent === "pinch-pending" || (event.pointerType === "touch" && touchCount > 0)) {
         if (touchCount === 0) {
           setIntent("idle");
         }
@@ -507,8 +530,6 @@ export function useMermaidGestures({
       intent,
       intersects,
       lastGroupClickRef,
-      middlePan,
-      panSession,
       releaseCapture,
       resetGesture,
       selectionMode,
@@ -533,7 +554,6 @@ export function useMermaidGestures({
     [resetGesture]
   );
 
-  const isPanning = Boolean(middlePan || panSession);
   const isDeselecting =
     toolMode === "select" && (Boolean(dragBox?.ctrlKey) || selectionMode === "remove");
   const isAdding =

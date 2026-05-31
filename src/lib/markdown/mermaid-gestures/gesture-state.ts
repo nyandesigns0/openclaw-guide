@@ -53,6 +53,10 @@ export function resolveSelectionFlags(
   };
 }
 
+export function shouldDelegateTouchToLibrary(toolMode: ToolMode, touchPointerCount: number) {
+  return toolMode === "pan" || touchPointerCount > 1;
+}
+
 export function resolveInitialIntent(
   toolMode: ToolMode,
   pointerType: string,
@@ -62,7 +66,7 @@ export function resolveInitialIntent(
     return "pinch-pending";
   }
 
-  if (toolMode === "pan") {
+  if (toolMode === "pan" && pointerType !== "touch") {
     return "pan";
   }
 

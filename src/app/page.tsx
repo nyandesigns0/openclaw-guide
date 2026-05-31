@@ -1,5 +1,6 @@
 import React from "react";
 import { Sidebar } from "@/components/Sidebar";
+import { ChapterPicker } from "@/components/ChapterPicker";
 import { getTabDocument } from "@/lib/content";
 import { MarkdownRenderer } from "@/lib/markdown";
 
@@ -18,6 +19,8 @@ export default async function Page(props: { searchParams: Promise<{ tab?: string
             <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-indigo-900/20 blur-[120px]"></div>
             <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-cyan-900/10 blur-[120px]"></div>
         </div>
+
+        <ChapterPicker tabs={tabs} activeTabId={tab.id} />
 
         <div className="flex-1 overflow-y-auto p-8 md:p-12 lg:p-20 pt-16 lg:pt-20 scrollbar-thin">
           <div className="max-w-3xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700">

@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  useCallback,
   useEffect,
   useId,
   useMemo,
@@ -1159,6 +1160,14 @@ function MermaidViewer({
     }
   }, [isCoarsePointer]);
 
+  const syncTransformRef = useCallback((positionX: number, positionY: number, scale: number) => {
+    transformRef.current = {
+      positionX,
+      positionY,
+      scale: scale || 1,
+    };
+  }, []);
+
   function toggleSubgraphOnce(subgraphId: string) {
     const now = window.performance.now();
     const lastToggle = lastGroupToggleRef.current;
@@ -1462,24 +1471,26 @@ function MermaidViewer({
         centerOnInit
         limitToBounds={false}
         smooth
+        onInit={(ref) => {
+          syncTransformRef(ref.state.positionX, ref.state.positionY, ref.state.scale);
+        }}
+        onTransform={(_ref, state) => {
+          syncTransformRef(state.positionX, state.positionY, state.scale);
+        }}
         doubleClick={{
           disabled: toolMode !== "zoom" || activeTouchPointers > 0,
           mode: "zoomIn",
           step: ZOOM_STEP_FACTOR,
         }}
         wheel={{ step: 0.15, disabled: focusZoomOnSelection }}
-        pinch={{ step: 5, disabled: false }}
+        pinch={{ step: 5, disabled: false, excluded: ["data-mermaid-ui"] }}
         panning={{
-          disabled: true,
+          disabled: !(isCoarsePointer && toolMode === "pan"),
           velocityDisabled: false,
+          excluded: ["data-mermaid-ui"],
         }}
       >
         {({ zoomIn, zoomOut, resetTransform, setTransform, state }) => {
-          transformRef.current = {
-            positionX: state.positionX,
-            positionY: state.positionY,
-            scale: state.scale || 1,
-          };
           setTransformRef.current = setTransform;
 
           function zoomAroundSelection(direction: "in" | "out") {
