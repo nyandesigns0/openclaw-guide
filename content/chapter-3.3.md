@@ -338,7 +338,6 @@ flowchart TD
     AF5 ==> AF6
     AF6 ==> AF7
     AF4 ==> AF8
-    AF7 ==> SG1
     SG1 ==> SG2
     SG2 ==> SG3
     SG3 ==> SG4
@@ -365,6 +364,13 @@ flowchart TD
     AF7 ==> M5
     AF7 ==> M6
     AF7 ==> M7
+    M1 ==> SG1
+    M2 ==> SG1
+    M3 ==> SG1
+    M4 ==> SG1
+    M5 ==> SG1
+    M6 ==> SG1
+    M7 ==> SG1
 
     subgraph CD ["Context Distiller And Hermes Bridge"]
         direction TB
