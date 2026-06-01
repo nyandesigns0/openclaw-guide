@@ -111,6 +111,11 @@
         "id": "chapter-4.1",
         "title": "4.1 Implementation Plan",
         "filename": "chapter-4.1.md"
+      },
+      {
+        "id": "chapter-4.2",
+        "title": "4.2 Current Implementation State",
+        "filename": "chapter-4.2.md"
       }
     ]
   }
