@@ -97,8 +97,13 @@
       },
       {
         "id": "chapter-3.8",
-        "title": "3.8 Documentation Consolidation Plan",
+        "title": "3.8 Artifacts",
         "filename": "chapter-3.8.md"
+      },
+      {
+        "id": "chapter-3.9",
+        "title": "3.9 Documentation Consolidation Plan",
+        "filename": "chapter-3.9.md"
       }
     ]
   },
