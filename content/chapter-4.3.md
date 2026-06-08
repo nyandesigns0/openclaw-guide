@@ -248,6 +248,8 @@ flowchart TD
 
 **Independent behavior:** Draw context injection works independently of Hermes profile routing. \
 **Summary inputs:** A.A.S. reads local Draw state and creates a compact workspace summary containing project ID, session ID, boards, artifacts, references, recent events, board and artifact IDs, status, versions, resolvable references, and an instruction to use A.A.S. command APIs. \
+**Exact Draw instruction:** The injected guidance includes: `When operating on Draw from Hermes, use actor ids prefixed with hermes and call the existing AAS Draw command APIs instead of mutating UI state.` \
+**A.A.S. synthetic Draw stream events:** A.A.S. can prepend `draw_context.started`, `draw_context.fresh`, `draw_context.stale`, and `draw_context.skipped` before the proxied Hermes stream to explain whether Draw context was generated, reused, unavailable, or intentionally omitted. \
 **Delivery:** A.A.S. sends the summary through Hermes `instructions`. \
 **Hermes instruction semantics:** Per-run, ephemeral, combined with the core profile prompt, not stored in message history, and not automatically reused on the next turn. \
 **A.A.S. consequence:** Regenerating Draw context for every send is correct. \
@@ -468,7 +470,442 @@ flowchart TD
 **Draw evidence — event:** Resulting A.A.S. event ID. \
 **Draw evidence — persistence:** Whether the mutation survives an A.A.S. reload. \
 
-### 4.3.24 Evidence, Qualifications, and Read-Only Verification
+### 4.3.24 Hermes Endpoint Surface and Authentication Mechanics
+
+**Endpoint source:** The supplied Hermes report identifies the following endpoint surface. A.A.S. currently wraps many of these through its Hermes client layer rather than exposing the Hermes API key to the browser. \
+
+| Method | Path | Purpose in this integration |
+|---|---|---|
+| `GET` | `/health` | Lightweight process health |
+| `GET` | `/health/detailed` | Detailed runtime health |
+| `GET` | `/v1/capabilities` | Authenticated capability metadata |
+| `GET` | `/v1/models` | Authenticated model listing |
+| `GET` | `/v1/toolsets` | Authenticated toolset listing |
+| `GET` | `/v1/skills` | Authenticated skill listing |
+| `POST` | `/v1/runs` | Direct run creation surface |
+| `GET` | `/v1/runs/{run_id}` | Direct run status lookup |
+| `GET` | `/v1/runs/{run_id}/events` | Live run event queue |
+| `POST` | `/v1/runs/{run_id}/stop` | Best-effort run stop |
+| `GET` | `/api/sessions` | Session listing |
+| `POST` | `/api/sessions` | Session creation |
+| `GET` | `/api/sessions/{session_id}` | Session lookup |
+| `PATCH` | `/api/sessions/{session_id}` | Session update, including model override when sent correctly |
+| `DELETE` | `/api/sessions/{session_id}` | Session deletion |
+| `GET` | `/api/sessions/{session_id}/messages` | Durable message history |
+| `POST` | `/api/sessions/{session_id}/fork` | Session fork |
+| `POST` | `/api/sessions/{session_id}/chat` | Non-streaming session chat |
+| `POST` | `/api/sessions/{session_id}/chat/stream` | Streaming session chat |
+
+**Server-side auth injection:** A.A.S. adds `Authorization: Bearer <HERMES_API_KEY>` on Hermes requests. \
+**Browser isolation:** The browser never receives the Hermes API key. It calls same-origin A.A.S. routes, and A.A.S. performs the server-to-Hermes request. \
+**Implementation location:** A.A.S. injects bearer authentication in its `hermesFetch` path. \
+**Reported runtime requirement:** The current Hermes runtime requires bearer authentication. This comes from the Hermes report, not local runtime verification. \
+**Auth failure shape:** Authentication failure returns HTTP `401` with code `invalid_api_key`, according to the Hermes report. \
+
+### 4.3.25 Environment Variables, WSL Bridge, and Profile Discovery
+
+**Per-agent URL variants:** A.A.S. checks `HERMES_API_URL_<AGENT>` and `HERMES_<AGENT>_API_URL` before falling back to base `HERMES_API_URL`. \
+**Per-agent key variants:** A.A.S. checks `HERMES_API_KEY_<AGENT>` and `HERMES_<AGENT>_API_KEY` before falling back to base `HERMES_API_KEY`. \
+**Per-agent model variants:** A.A.S. reads `HERMES_MODEL_<AGENT>`, `HERMES_DEFAULT_MODEL_<AGENT>`, `HERMES_PROVIDER_<AGENT>`, `HERMES_BASE_URL_<AGENT>`, and `HERMES_API_MODE_<AGENT>` before profile configuration. \
+**Agent token format:** `<AGENT>` is the uppercased agent key, so Ezra examples include `HERMES_API_URL_EZRA`, `HERMES_EZRA_API_URL`, `HERMES_API_KEY_EZRA`, `HERMES_EZRA_API_KEY`, `HERMES_MODEL_EZRA`, and `HERMES_DEFAULT_MODEL_EZRA`. \
+**Default local URL:** A.A.S. default Hermes URL is `http://127.0.0.1:8642`. \
+**Windows rewrite rule:** On Windows, when the URL host is `localhost` or `127.0.0.1` and `HERMES_WSL_BRIDGE` is not `0`, A.A.S. rewrites the target to the WSL IP and port `8643` when the configured port is `8642`. \
+**Rewrite implementation:** This behavior is implemented in `resolveHermesApiUrl`. \
+**Bridge script behavior:** The bridge script forwards `0.0.0.0:8643` → `127.0.0.1:8642`. \
+**Current runtime nuance:** The supplied Hermes report says `:8642` is dead, so the old `8642` → `8643` bridge path is likely stale or nonfunctional in the reported deployment. \
+**Profile discovery sources:** A.A.S. can fall back through dashboard/profile endpoints, Hermes API candidate endpoints, a WSL script, and static fallback profiles. \
+**Profile UI warning:** Seeing Genesis, Ezra, or Solomon in the A.A.S. UI does not prove those profile gateways are reachable. The UI profile list can exist even when Hermes has no official profile endpoint and even when dedicated gateway URLs are missing. \
+
+### 4.3.26 Health, Readiness, Capabilities, and Runtime Model Reporting
+
+**Basic health schema:** `GET /health` returns the reported shape below when the process is alive. \
+
+```json
+{
+  "status": "ok",
+  "platform": "hermes-agent"
+}
+```
+
+**Readiness limitation:** `/health` alone does not prove that the provider and model are usable. \
+**Best readiness sequence:** `GET /health`; authenticated `GET /v1/capabilities`; authenticated `GET /v1/models`; create a session; send a real chat turn. \
+**Current A.A.S. readiness:** A.A.S. currently checks `/health` and `/v1/capabilities`, but it does not perform a real chat probe as part of health readiness. \
+**Capabilities quirk:** The `model` value in `/v1/capabilities` is not the actual configured model for named profiles in the reported runtime. \
+
+| Gateway | Reported `/v1/capabilities` model value | Reported actual profile model |
+|---:|---|---|
+| `:8644` | `hermes-agent` | `gpt-5.5` |
+| `:8645` | `ezra` | `gpt-5.4-mini` |
+| `:8646` | `solomon` | `gpt-5.4` |
+| `:8647` | `esther` | `gpt-5.5` |
+
+**Model display risk:** Health and capability display can mislead if A.A.S. treats the capability `model` field as the actual runtime model. \
+**Reported provider table:** The profile model/provider/base URL values below come from the Hermes report, not local code. \
+
+| Profile | Model | Provider | Base URL |
+|---|---|---|---|
+| default | `gpt-5.5` | `openai-codex` | `https://chatgpt.com/backend-api/codex` |
+| ezra | `gpt-5.4-mini` | `openai-codex` | Same as default |
+| solomon | `gpt-5.4` | `openai-codex` | Same as default |
+| esther | `gpt-5.5` | `openai-codex` | Same as default |
+
+### 4.3.27 Session and Message Response Schemas
+
+**Hermes session response schema:** The supplied Hermes report describes session responses with the following shape. The important absence remains: no `profile`, no `session_key`, no gateway identity, and no authoritative `agent_id`. \
+
+```json
+{
+  "object": "hermes.session",
+  "session": {
+    "id": "...",
+    "source": "...",
+    "user_id": "...",
+    "model": "...",
+    "title": "...",
+    "started_at": 0,
+    "ended_at": 0,
+    "end_reason": "...",
+    "message_count": 0,
+    "tool_call_count": 0,
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "cache_read_tokens": 0,
+    "cache_write_tokens": 0,
+    "reasoning_tokens": 0,
+    "estimated_cost_usd": 0,
+    "actual_cost_usd": 0,
+    "api_call_count": 0,
+    "parent_session_id": "...",
+    "last_active": 0,
+    "preview": "...",
+    "_lineage_root_id": "...",
+    "has_system_prompt": true,
+    "has_model_config": true,
+    "runtime_override": {
+      "model": "...",
+      "provider": "...",
+      "base_url": "...",
+      "api_mode": "..."
+    },
+    "provider": "...",
+    "base_url": "...",
+    "api_mode": "..."
+  }
+}
+```
+
+**Normalizer consequence:** A.A.S. currently tries to normalize `session_key` and `agent_id` if those fields are present, but the reported Hermes session schema does not include them. \
+**Hermes messages response schema:** The supplied Hermes report describes the durable message-list response with the following shape. \
+
+```json
+{
+  "object": "list",
+  "session_id": "<session_id>",
+  "data": [
+    {
+      "id": 123,
+      "session_id": "<session_id>",
+      "role": "user|assistant|tool|...",
+      "content": "... or structured multimodal content ...",
+      "tool_call_id": "...",
+      "tool_calls": [],
+      "tool_name": "...",
+      "timestamp": 1234567890.0,
+      "token_count": 123,
+      "finish_reason": "...",
+      "reasoning": "...",
+      "reasoning_content": "..."
+    }
+  ]
+}
+```
+
+**Message normalizer limitation:** A.A.S. message normalization currently maps content, tool data, and display metadata, but it does not preserve every reported Hermes field such as `tool_call_id`, `tool_calls`, token counts, finish reason, and reasoning fields. \
+
+### 4.3.28 Stream Request Schema, Multimodal Parts, and Session-Key Header
+
+**Input aliases:** Hermes reads either `message` or `input` from the session-chat request body. \
+**Instruction aliases:** Hermes reads either `system_message` or `instructions`. \
+**Instruction precedence:** A truthy `system_message` wins; otherwise Hermes uses `instructions`. \
+**Current A.A.S. request body:** A.A.S. sends `input` and `instructions`. \
+**Text part support:** Hermes supports `{ "type": "text", "text": "..." }`, `{ "type": "input_text", "text": "..." }`, and `{ "type": "output_text", "text": "..." }`. \
+**Image part support:** Hermes supports `{ "type": "image_url", "image_url": { "url": "...", "detail": "..." } }` and `{ "type": "input_image", "image_url": "..." }`. \
+**Supported image URL schemes:** `http://`, `https://`, and `data:image/...`. \
+**Unsupported input types:** `file`, `input_file`, and non-image `data:` URLs. \
+**Current A.A.S. multimodal output:** A.A.S. emits text parts and `image_url` parts. \
+**Session-key header:** A.A.S. builds and sends `X-Hermes-Session-Key` on Hermes chat and stream calls. \
+**Capability signal:** The Hermes report says capabilities expose `session_key_header: "X-Hermes-Session-Key"`. \
+**Session-key limitation:** A.A.S. uses `X-Hermes-Session-Key`, but Hermes does not persist `session_key` into the session response. Its practical routing, grouping, or compatibility value still needs separate confirmation. \
+
+### 4.3.29 Stream Event Payload Schemas
+
+**Schema purpose:** A.A.S. currently treats stream events generically, so documenting exact payload expectations matters for future UI correlation, cancellation, truncation detection, and reconciliation. \
+**Shared fields:** Important repeated fields include `run_id`, `message_id`, `session_id`, `seq`, `ts`, `args`, `preview`, `usage`, `messages`, `partial`, and `interrupted`. \
+**`run.started` payload:** Establishes the run early. \
+
+```json
+{
+  "run_id": "<run_id>",
+  "session_id": "<session_id>",
+  "user_message": "...",
+  "seq": 1,
+  "ts": 1234567890.0
+}
+```
+
+**`message.started` payload:** Establishes the assistant message before text or tool output. \
+
+```json
+{
+  "run_id": "<run_id>",
+  "session_id": "<session_id>",
+  "message_id": "<message_id>",
+  "role": "assistant",
+  "seq": 2,
+  "ts": 1234567890.0
+}
+```
+
+**`assistant.delta` payload:** Carries streamed assistant text. \
+
+```json
+{
+  "run_id": "<run_id>",
+  "session_id": "<session_id>",
+  "message_id": "<message_id>",
+  "delta": "...",
+  "seq": 3,
+  "ts": 1234567890.0
+}
+```
+
+**`tool.progress` payload:** Carries progress or reasoning-preview text, including `_thinking` events in the reported runtime. \
+
+```json
+{
+  "run_id": "<run_id>",
+  "session_id": "<session_id>",
+  "message_id": "<message_id>",
+  "tool_name": "_thinking",
+  "delta": "...",
+  "preview": "...",
+  "seq": 4,
+  "ts": 1234567890.0
+}
+```
+
+**`tool.started` payload:** Announces a tool call. \
+
+```json
+{
+  "run_id": "<run_id>",
+  "session_id": "<session_id>",
+  "message_id": "<message_id>",
+  "tool_name": "...",
+  "args": {},
+  "preview": "...",
+  "seq": 5,
+  "ts": 1234567890.0
+}
+```
+
+**`tool.completed` payload:** Announces tool completion, but does not necessarily contain the full persisted tool result. \
+
+```json
+{
+  "run_id": "<run_id>",
+  "session_id": "<session_id>",
+  "message_id": "<message_id>",
+  "tool_name": "...",
+  "args": {},
+  "preview": "...",
+  "seq": 6,
+  "ts": 1234567890.0
+}
+```
+
+**`tool.failed` payload:** Announces tool failure. \
+
+```json
+{
+  "run_id": "<run_id>",
+  "session_id": "<session_id>",
+  "message_id": "<message_id>",
+  "tool_name": "...",
+  "args": {},
+  "preview": "...",
+  "error": "...",
+  "seq": 7,
+  "ts": 1234567890.0
+}
+```
+
+**`assistant.completed` payload:** Carries final assistant content and completion flags. \
+
+```json
+{
+  "run_id": "<run_id>",
+  "session_id": "<session_id>",
+  "message_id": "<message_id>",
+  "content": "...",
+  "completed": true,
+  "partial": false,
+  "interrupted": false,
+  "usage": {
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "total_tokens": 0
+  },
+  "seq": 8,
+  "ts": 1234567890.0
+}
+```
+
+**`run.completed` payload:** Announces run completion and can include usage and message summary data. \
+
+```json
+{
+  "run_id": "<run_id>",
+  "session_id": "<session_id>",
+  "usage": {},
+  "messages": [],
+  "seq": 9,
+  "ts": 1234567890.0
+}
+```
+
+**`error` payload:** Announces an agent or request error. \
+
+```json
+{
+  "message": "...",
+  "run_id": "<run_id>",
+  "session_id": "<session_id>",
+  "seq": 10,
+  "ts": 1234567890.0
+}
+```
+
+**`done` payload:** Terminates the Hermes SSE protocol. \
+
+```json
+{
+  "run_id": "<run_id>",
+  "session_id": "<session_id>",
+  "seq": 11,
+  "ts": 1234567890.0
+}
+```
+
+### 4.3.30 Non-Streaming Completion Response, Headers, and A.A.S. Timing Instrumentation
+
+**Full non-streaming response:** Hermes reports the session-chat completion shape below. \
+
+```json
+{
+  "object": "hermes.session.chat.completion",
+  "session_id": "<effective_session_id>",
+  "message": {
+    "role": "assistant",
+    "content": "<final_response>"
+  },
+  "usage": {
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "total_tokens": 0
+  }
+}
+```
+
+**Response headers:** Hermes can return `X-Hermes-Session-Id` and optional `X-Hermes-Session-Key`. \
+**A.A.S. non-streaming handler:** A.A.S. checks `message.content` and returns a generated local assistant message to the browser. \
+**Stream dev headers:** In non-production, the A.A.S. stream response can include `x-aas-route-ms`, `x-aas-hermes-ms`, `x-aas-draw-context-ms`, and `x-aas-cache-status`. \
+**Debugging use:** These headers help separate A.A.S. route overhead, Hermes upstream time, Draw-context generation time, and cache state while diagnosing stream startup delays. \
+
+### 4.3.31 Concurrency, Resumability, and Idempotency
+
+**Session-chat concurrency:** `/api/sessions/{id}/chat` and `/api/sessions/{id}/chat/stream` have no explicit session-busy guard in the reported Hermes contract. \
+**Concurrent same-session risk:** Hermes can run concurrent requests in the same session. \
+**Global cap:** The reported global concurrent run cap is `10` per server process. \
+**A.A.S. UI guard:** The browser UI blocks local sends while a stream is active, but the API can still be called concurrently by another client or manual request. \
+**Stream resumability:** `/api/sessions/{id}/chat/stream` is one-shot. There is no resumable or replayable session-chat SSE stream. \
+**Run-event resumability:** `GET /v1/runs/{id}/events` is a live queue, not a replayable event log. \
+**Idempotency contrast:** `/v1/chat/completions` supports `Idempotency-Key`, but `/api/sessions/{id}/chat` does not expose idempotency in the reported contract. \
+**Retry consequence:** A.A.S. should be careful retrying session-chat requests after transport uncertainty because a retry can create a second durable assistant turn rather than resume the first turn. \
+
+### 4.3.32 Hermes Error Status and Stop Response Contracts
+
+**Hermes error mapping:** A.A.S. maps Hermes API failures through `HermesApiError`, but product behavior still depends on the upstream HTTP status and code. \
+
+| Case | HTTP | Code |
+|---|---:|---|
+| Session missing | `404` | `session_not_found` |
+| Run missing | `404` | `run_not_found` |
+| Auth failure | `401` | `invalid_api_key` |
+| Duplicate session ID | `409` | `session_exists` |
+| Approval conflict | `409` | `approval_not_active`, `approval_not_pending` |
+| Invalid body, field, or type | `400` | varies |
+| Concurrent run cap exceeded | `429` | `rate_limit_exceeded` |
+| Hard chat-completion failure | `502` | `agent_incomplete` |
+| Generic internal failure | `500` | varies |
+
+**Successful stop response:** Hermes returns the following shape for a stop request that finds the run. \
+
+```json
+{
+  "run_id": "<run_id>",
+  "status": "stopping"
+}
+```
+
+**Missing-run stop response:** Hermes returns the following error shape when the stop request reaches the wrong gateway or the run does not exist. \
+
+```json
+{
+  "error": {
+    "message": "Run not found: <run_id>",
+    "type": "invalid_request_error",
+    "code": "run_not_found"
+  }
+}
+```
+
+**Stop request body:** The stop request body is ignored; empty JSON is fine. \
+**Current A.A.S. body:** A.A.S. sends empty JSON for stop. \
+
+### 4.3.33 Browser Cache and Slash-Command Limitations
+
+**Browser cache contents:** The browser stores the active Hermes session pointer, model selection, goal/footer/voice/reasoning preferences, cached sessions, cached messages, cached models, cached health, cached agents, and recent stream events. \
+**Hydration order:** Session hydration loads local cache before fetching Hermes. \
+**Staleness consequence:** Browser cache can make stale state appear valid until Hermes refresh and reconciliation complete. \
+**Slash-command scope:** Slash commands can mutate local timeline state or UI preferences, but some Hermes-oriented commands are partial or stubbed. \
+**Undo limitation:** A local undo can remove an exchange from the browser timeline while Hermes durable history remains unchanged. \
+**Routing relevance:** This matters when debugging chat behavior because a visible local timeline change is not necessarily a Hermes session mutation. \
+
+### 4.3.34 Reported Deployment Bindings, Profile Workspaces, and Runtime Differences
+
+**Bind address:** The current runtime report says active API servers are bound on `0.0.0.0`. \
+**API key auth:** The current runtime report says API-key bearer authentication is enabled. \
+**Default port difference:** The default A.A.S. API-server assumption of `:8642` is not used in the reported runtime. \
+**Per-profile servers:** The reported runtime uses a separate gateway/API-server per profile. \
+**Ezra workspace:** `/home/xli24/.hermes/profiles/ezra/workspace`. \
+**Solomon workspace:** `/home/xli24/.hermes/profiles/solomon/workspace`. \
+**Esther workspace:** `/home/xli24/.hermes/profiles/esther/workspace`. \
+**Default workspace:** The report identifies default runtime state on `:8644`; the exact default workspace path should be verified live before documenting it as a deployment fact. \
+
+### 4.3.35 Missing Runtime Contracts Still Needed
+
+**Session-key effect:** Exact effect of `X-Hermes-Session-Key`. \
+**Cancellation order:** Exact session-chat cancellation event order after `POST /v1/runs/{run_id}/stop`. \
+**Persistence timing:** Persistence timing after stream close, cancel, or error. \
+**Tool parity:** Whether profile gateways expose identical tools and skills. \
+**A.A.S. reachability:** Whether each profile can reach the A.A.S. URL from its runtime environment. \
+**Draw auth:** Whether the A.A.S. Draw endpoint requires real authentication beyond actor headers. \
+**Draw durability:** Whether Hermes Draw mutation survives A.A.S. reload. \
+**Model PATCH effect:** Whether an existing-session model PATCH fix changes the real model immediately. \
+**Duplicate-publication check:** The published chapter should contain one canonical Chapter 4.3 body only; the duplicated source text in the user-provided prompt has not been duplicated in this repository chapter. \
+
+### 4.3.36 Evidence, Qualifications, and Read-Only Verification
 
 **Evidence basis:** The findings in this chapter combine prior read-only inspection of A.A.S. chat and Draw integration code with the supplied Hermes runtime report. \
 **Deployment qualification:** `.env.local` was absent in the inspected workspace. The reported deployment value `HERMES_API_URL=http://172.27.176.115:8644` and the profile gateway availability came from the pasted Hermes agent report rather than local environment verification. \
