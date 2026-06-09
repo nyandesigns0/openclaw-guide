@@ -121,6 +121,11 @@
         "id": "chapter-4.2",
         "title": "4.2 Current Implementation State",
         "filename": "chapter-4.2.md"
+      },
+      {
+        "id": "chapter-4.3",
+        "title": "4.3 Hermes Chat Integration, Profile Routing, and Draw Execution",
+        "filename": "chapter-4.3.md"
       }
     ]
   }
