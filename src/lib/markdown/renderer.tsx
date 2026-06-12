@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { CodeBlock } from "./code-block";
 import { FileTreeBlock, isFileTree } from "./file-tree-block";
 import { MermaidBlock, isMermaid } from "./mermaid-block";
+import { UiMockBlock, isUiMock } from "./ui-mock-block";
 import { remarkAccordion } from "./remark-accordion";
 
 const ListDepthContext = createContext(0);
@@ -185,6 +186,10 @@ const markdownComponents: Components = {
 
     if (!block) {
       return <pre>{children}</pre>;
+    }
+
+    if (isUiMock(block.code, block.language)) {
+      return <UiMockBlock content={block.code} />;
     }
 
     if (isFileTree(block.code, block.language)) {

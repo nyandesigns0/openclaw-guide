@@ -103,6 +103,39 @@ root-dir/
         canvas/
 ```
 
+### 0.1.6 UI Mockup Blocks
+*(instruction)* **Block Type:** Use a triple-backtick code block with the language set to `ui` (or `uimock`). The parser renders an interactive wireframe mockup widget instead of a plain code block. \
+*(instruction)* **Line Grammar:** One element per line: `keyword "Label" flag1 flag2 key=value`. The first quoted string is the element label; bare words after the keyword are flags; `key=value` pairs (value may be quoted) are attributes. Lines starting with `#` are comments. \
+*(instruction)* **Nesting:** Indentation defines the element tree, exactly like the File Tree Explorer — child elements must be indented further than their parent. \
+*(instruction)* **Containers:** `screen "Title"` renders a window frame with chrome dots; `row` and `col` are flex containers (flag `grow` fills space); `panel "Label"` is a bordered region with an uppercase header (attribute `w=240px` fixes width, flag `dim` fades it); `bar "Label"` is a slim horizontal strip for topbars, composers, and status rows; `grid cols=3` is an N-column grid. \
+*(instruction)* **Candidates:** `tile "caption"` renders an image-placeholder card for generated candidates. State flags: `selected` (sky ring + check), `pinned` (amber ring + pin), `rejected` (dimmed + cross), `degraded` (red corner tag). Child elements of a tile render as its action row. \
+*(instruction)* **Ledger Chips:** `chip "mood" state=locked value="nocturnal"` renders a reel chip. States: `open` (dashed gray), `narrowing` (amber pulse), `locked` (solid emerald with value). \
+*(instruction)* **Small Elements:** `badge "CONVERGE" phase` (variants: `phase` indigo, `degraded` red, `ok` emerald, `warn` amber); `meter value=62 "convergence"` with flag `frozen` for the red frozen state; `button "Select"` (variants `primary`, `danger`); `input "placeholder"`; `thumb "H"` small reference thumbnail with flag `x` for an unpin handle; `dot online` / `dot offline` status dots; `banner "message"` (flag `warn` for amber tension banners); `text "caption"` (flags `dim`, `mono`); `divider`; `spacer` (flex gap pusher inside bars). \
+*(instruction)* **Purpose:** UI mockup blocks are the canonical way to specify product UI in these docs — they are wireframes, not pixel designs, and should describe structure, states, and affordances rather than styling.
+
+```ui
+screen "Example — Candidate Batch"
+  bar "A.A.S. · Chat"
+    spacer
+    badge "CONVERGE" phase
+    meter value=40 "convergence"
+  row
+    panel "Timeline" grow
+      text "Habakkuk: Step 2 of 3 — generating candidates" dim
+      grid cols=3
+        tile "nocturnal · sparse" selected
+        tile "nocturnal · dense"
+        tile "pastel · sparse" rejected
+    panel "Field" w=220px
+      chip "mood" state=locked value="nocturnal"
+      chip "palette" state=narrowing
+      chip "era" state=open
+  bar
+    thumb "A1" x
+    input "Roll again or steer…"
+      button "Roll" primary
+```
+
 # Chapter X.X — [Chapter Title]
 
 ## X.X.0 Overview
