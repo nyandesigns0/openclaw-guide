@@ -136,6 +136,11 @@
         "id": "chapter-4.5",
         "title": "4.5 Using the Convergent Loop",
         "filename": "chapter-4.5.md"
+      },
+      {
+        "id": "chapter-4.6",
+        "title": "4.6 Convergence Loop Architecture",
+        "filename": "chapter-4.6.md"
       }
     ]
   }
