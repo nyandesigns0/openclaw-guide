@@ -57,15 +57,15 @@ screen "A.A.S. — Chat Workspace · mid-session"
       text "1 exemplar · run #r-104" dim
   bar
     thumb "A1"
-    input "Roll again, steer, or commit…"
-      button "Roll" primary
+    input "Continue, steer, or commit…"
+      button "Send" primary
 ```
 
 The same surfaces, named:
 
 **Candidate Batch Card:** A grid of generated candidates appears inline in the chat timeline after every roll. Each tile has three hover actions: **Select** (this one), **Reject** (not this), **Pin as Anchor** (this is the vibe). One tap each — no typing required. \
 **Ledger Strip:** A horizontal row of dimension chips in the right panel — `mood`, `palette`, `form`, `era`, `density`. Each chip is a reel: dim when **open**, pulsing when **narrowing**, solid with its value when **locked** (`mood: nocturnal`). You watch the slot machine lose reels in real time. \
-**Reference Chips:** Small thumbnails docked above the composer showing what the next roll will be conditioned on — your pinned Anchor exemplars. An empty dock means the next roll is a wide, unconditioned draw. Each chip has an unpin `×`. \
+**Reference Chips:** Small thumbnails docked above the composer showing what the next workflow move will be conditioned on — your pinned Anchor exemplars. An empty dock means the next move is a wide, unconditioned draw. Each chip has an unpin `×`. \
 **Provenance Card:** Every generated image carries an expandable footer: exact prompt, model, settings, conditioning mode, and thumbnails of the reference images that shaped it. Any image can answer "what made you" in one click. \
 **Phase Indicator:** A small badge near the composer reading `CONVERGE`, `EXPLORE`, or `COMMIT-READY`, with the convergence meter beside it. You never have to ask which phase you are in. \
 **Agent Picker and Agent Chip:** The sidebar lists the persistent Hermes agents (Genesis, Ezra, Solomon, Esther, Habakkuk) with live gateway health dots; the composer carries a chip naming who will execute your next roll. Agents are real, durable processes with their own memory and skills — the picker is choosing a colleague, not a setting.
@@ -160,7 +160,7 @@ screen "Roll 2 — the pin"
   bar
     thumb "A1" x
     input "Explore applications, or keep refining…"
-      button "Roll" primary
+      button "Send" primary
 ```
 
 And the whole session as a UI state flow — every screen you pass through, and what moves you between them:
@@ -417,7 +417,7 @@ The whole system is operable with six gestures. Typing is for starting and steer
 **Pin as Anchor:** *"This is the vibe."* Adds the artifact and its full generation state to the Anchor; its thumbnail docks as a reference chip; subsequent rolls are conditioned on it. \
 **Reopen:** *"I changed my mind about mood."* Long-press a locked chip; confirm; the reel returns to the machine and convergence regresses honestly. \
 **Commit:** *"Done — make it truth."* Confirmed dialog; Anchor plus winner enter the project ledger; every downstream agent inherits them. \
-**Roll:** *"Go again."* The composer's send action while a batch is pending; entropy is decided by the Ledger, so "go again" is always context-correct — wide early, narrow late, lateral in Explore.
+**Continue move:** *"Go again."* The composer's send action while a batch is pending; entropy is decided by the Ledger, so "go again" is always context-correct — wide early, narrow late, lateral in Explore.
 
 ### 4.5.9 What to Expect — and What Not To
 

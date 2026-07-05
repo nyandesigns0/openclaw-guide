@@ -2,7 +2,7 @@
 
 ## 4.4.0 Overview
 
-This chapter defines the Convergent Design Loop update: a minimal extension to the A.A.S. Field Runtime that turns non-deterministic generation into a compounding narrowing process — every roll of the generative slot machine locks dimensions of the design space, conditions the next roll on a reproducible Taste Anchor, and flips from convergence to lateral exploration once the vibe is provably reproducible.
+This chapter defines the Convergent Design Loop update: a minimal extension to the A.A.S. Field Runtime that turns non-deterministic generation into a compounding narrowing process — every workflow move of the generative slot machine locks dimensions of the design space, conditions the next move on a reproducible Taste Anchor, and flips from convergence to lateral exploration once the vibe is provably reproducible. In the final product this happens inside ordinary Chat rather than inside a separate Roll feature.
 
 ### 4.4.1 Motivation and Field Evidence
 
@@ -157,6 +157,8 @@ flowchart TD
 *(new)* **Policy:** Entropy budget per roll as a function of open dimensions and phase; convergence score with a testable reproducibility gate. \
 *(new)* **Substrate Requirement:** The generation tool must accept reference image inputs. This is the single hard prerequisite — and per 4.4.9 it is currently unmet: the installed `image_generate` is text-only, so closing the gap (reference-capable provider plugin or extended tool schema) is the one required Hermes-side change. Everything else rides existing paths. \
 *(reuse)* **Unchanged:** Artifact lifecycle and ingest, Hermes gateway routing and session streaming, profile isolation, skills and memory boundaries, the kanban dispatcher, branch ecology, tensions, commits, approvals, events, evaluator contracts, the five-node graph, and all four workspaces.
+
+*(ui-note)* **Product surface:** The governing workflow is chat-native. Users can still trigger explicit generation/continue actions, but they do so from the normal Chat composer and workflow cards, not by entering a separate Roll feature or relying on a standalone Roll button as the architectural entrypoint.
 
 The implementation footprint in the current frontend prototype:
 
